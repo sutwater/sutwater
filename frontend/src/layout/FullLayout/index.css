@@ -1,0 +1,104 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 4px solid #f15a29;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  height: 80px;
+}
+
+.sut-info {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sut-title {
+  margin: 0;
+  color: #f15a29;
+}
+
+.sut-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: gray;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.nav-item {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.nav-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background-color: #f15a29;
+  transition: width 0.3s ease;
+}
+
+.nav-item:hover::after,
+.nav-item.active::after {
+  width: 100%;
+}
+
+.user-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f15a29;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatar-placeholder {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.content-wrapper {
+  background: #f15a29;
+  padding: 20px;
+}
+
+.content-box {
+  background: white;
+  padding: 30px;
+  max-width: 1000px;
+  margin: 0 auto;
+  border-radius: 5px;
+  font-size: 18px;
+  line-height: 1.8;
+}
