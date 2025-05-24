@@ -88,6 +88,31 @@
   font-size: 18px;
 }
 
+/* เพิ่มให้ดรอปดาวน์ดูนุ่มนวล */
+.ant-dropdown-menu {
+  border-radius: 10px !important;
+  padding: 8px 0 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+}
+
+/* แต่ละเมนู */
+.ant-dropdown-menu-item {
+  padding: 10px 16px !important;
+  transition: all 0.2s ease-in-out;
+  font-size: 15px;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #ffe6d9 !important;
+}
+
+/* ไอคอน */
+.ant-dropdown-menu-item .anticon {
+  margin-right: 8px;
+  color: #f15a29;
+}
+
 .content-wrapper {
   background: #f15a29;
   padding: 20px;
@@ -102,3 +127,4 @@
   font-size: 18px;
   line-height: 1.8;
 }
+

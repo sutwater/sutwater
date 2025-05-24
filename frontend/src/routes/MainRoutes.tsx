@@ -9,7 +9,7 @@ import Loadable from "../components/third-party/Loadable";
 const MainPages = Loadable(lazy(() => import("../pages/authentication/Login")));
 
 const Registerages = Loadable(
-  lazy(() => import("../pages/authentication/Register"))
+  lazy(() => import("../pages/authentication/Register/SignUpPages"))
 );
 
 const MainRoutes = (): RouteObject => {

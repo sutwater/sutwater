@@ -7,9 +7,10 @@ import FullLayout from "../layout/FullLayout";
 const MainPages = Loadable(lazy(() => import("../pages/authentication/Login")));
 
 // ✅ เพิ่มหน้าใหม่
-const WaterPage = Loadable(lazy(() => import("../pages/water")));
+const WaterPage = Loadable(lazy(() => import("../pages/water/HospitalMapImage")));
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
 const ContactPage = Loadable(lazy(() => import("../pages/contact")));
+const WaterDetailPage = Loadable(lazy(() => import("../pages/water/WaterDetail")));
 
 const AdminRoutes = (isLoggedIn: boolean): RouteObject => {
   return {
@@ -19,6 +20,10 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => {
       {
         path: "/water",
         element: <WaterPage />,
+      },
+      {
+        path: "/water/:name",
+        element: <WaterDetailPage />,
       },
       {
         path: "/notification",
