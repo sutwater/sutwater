@@ -10,29 +10,43 @@ interface Marker {
   waterUsage: number | null;
 }
 
+const statusMap: Record<string, string> = {
+  "หอพักสุรนิเวศ 17": "ปกติ",
+  "หอพักสุรนิเวศ 18": "ปกติ",
+  อาคารศูนย์รังสีวินิจฉัย: "ปกติ",
+  อาคารรัตนเวชพัฒน์: "ปกติ",
+  อาคารศูนย์วิจัย: "ปกติ",
+  ที่จอดรถยนต์: "ไม่พบการไหล",
+  "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 1": "การไหลมากผิดปกติ",
+  "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 2": "ปกติ",
+  "อาคารศูนย์การแพทย์เฉพาะทาง 1": "ปกติ",
+  "อาคารศูนย์การแพทย์เฉพาะทาง 2": "การไหลมากผิดปกติ",
+  โรงอาหาร: "การไหลมากผิดปกติ",
+};
+
 const markers: Marker[] = [
   {
-    name: "อาคารอุบัติเหตุและฉุกเฉิน",
-    xPercent: 42.36,
-    yPercent: 78.95,
+    name: "หอพักสุรนิเวศ 17",
+    xPercent: 44.29,
+    yPercent: 80.68,
     waterUsage: null,
   },
   {
-    name: "อาคารผู้ป่วยใน",
-    xPercent: 42.36,
-    yPercent: 71.95,
+    name: "หอพักสุรนิเวศ 18",
+    xPercent: 44.34,
+    yPercent: 74.1,
     waterUsage: null,
   },
   {
-    name: "อาคารศูนย์การแพทย์",
+    name: "อาคารศูนย์รังสีวินิจฉัย",
     xPercent: 53.18,
     yPercent: 75.2,
     waterUsage: null,
   },
   {
     name: "อาคารรัตนเวชพัฒน์",
-    xPercent: 57.32,
-    yPercent: 81.01,
+    xPercent: 57.39,
+    yPercent: 74.81,
     waterUsage: null,
   },
   {
@@ -41,6 +55,32 @@ const markers: Marker[] = [
     yPercent: 59.68,
     waterUsage: null,
   },
+  { name: "ที่จอดรถยนต์", xPercent: 64.86, yPercent: 25.9, waterUsage: null },
+  {
+    name: "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 1",
+    xPercent: 63.41,
+    yPercent: 36.33,
+    waterUsage: null,
+  },
+  {
+    name: "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 2",
+    xPercent: 63.46,
+    yPercent: 41.7,
+    waterUsage: null,
+  },
+  {
+    name: "อาคารศูนย์การแพทย์เฉพาะทาง 1",
+    xPercent: 46.61,
+    yPercent: 48.58,
+    waterUsage: null,
+  },
+  {
+    name: "อาคารศูนย์การแพทย์เฉพาะทาง 2",
+    xPercent: 46.22,
+    yPercent: 57.49,
+    waterUsage: null,
+  },
+  { name: "โรงอาหาร", xPercent: 61.15, yPercent: 71.57, waterUsage: null },
 ];
 
 const HospitalMapImage: React.FC = () => {
@@ -51,22 +91,25 @@ const HospitalMapImage: React.FC = () => {
   const [isTransitioningSlow, setIsTransitioningSlow] = useState(false);
 
   const handleMarkerClick = (marker: Marker) => {
-    if (!zoomed) {
-      setZoomed(true);
-    }
-
+    if (!zoomed) setZoomed(true);
     if (focus?.name !== marker.name) {
       setIsTransitioningSlow(true);
       setFocus(marker);
       setTransformOrigin(`${marker.xPercent}% ${marker.yPercent}%`);
-
-      setTimeout(() => {
-        setIsTransitioningSlow(false);
-      }, 1200);
+      setTimeout(() => setIsTransitioningSlow(false), 1200);
     }
   };
 
-  const handleBackgroundClick = () => {
+  const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget.querySelector(
+      ".map-image"
+    ) as HTMLImageElement;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      console.log(`xPercent: ${x.toFixed(2)}, yPercent: ${y.toFixed(2)},`);
+    }
     if (focus) {
       setZoomedOutMarker(focus.name);
       setZoomed(false);
@@ -94,7 +137,6 @@ const HospitalMapImage: React.FC = () => {
         transformOrigin: `${focus.xPercent}% ${focus.yPercent}%`,
       };
     }
-
     return { transform: `translateY(-12%)` };
   };
 
@@ -116,13 +158,16 @@ const HospitalMapImage: React.FC = () => {
             style={{
               left: `${marker.xPercent}%`,
               top: `${marker.yPercent}%`,
-              pointerEvents: "auto", // ✅ คลิกที่ Marker ได้เสมอ
+              pointerEvents: "auto",
             }}
             onClick={(e) => {
               e.stopPropagation();
               handleMarkerClick(marker);
             }}
           >
+            {/* 🔴 จุดแดงถ้าสถานะไม่ปกติ */}
+            {statusMap[marker.name] !== "ปกติ" && <div className="alert-dot" />}
+
             <div className="tooltip">{marker.name}</div>
             <div
               className={`marker-details ${
@@ -130,7 +175,7 @@ const HospitalMapImage: React.FC = () => {
               }`}
               style={{
                 pointerEvents:
-                  zoomed && focus?.name === marker.name ? "auto" : "none", // ✅ กดได้เฉพาะเมื่อ Zoomed
+                  zoomed && focus?.name === marker.name ? "auto" : "none",
               }}
             >
               <strong>{marker.name}</strong>
@@ -143,9 +188,7 @@ const HospitalMapImage: React.FC = () => {
               <Link
                 to={`/water/${encodeURIComponent(marker.name)}`}
                 className="detail-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
+                onClick={(e) => e.stopPropagation()}
               >
                 รายละเอียดเพิ่มเติม
               </Link>

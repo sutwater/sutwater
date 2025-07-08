@@ -7,9 +7,9 @@ import {
   Flex,
   Row,
   Col,
-  InputNumber,
   DatePicker,
   Select,
+  InputNumber,
 } from "antd";
 
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import { CreateUser, GetGender } from "../../../services/https";
 import { UsersInterface } from "../../../interfaces/IUser";
 import { GenderInterface } from "../../../interfaces/Gender";
 import logo from "../../../assets/logo.png";
+import dayjs from "dayjs";
 
 import "./SignUpPages.css";
 
@@ -25,6 +26,7 @@ function SignUpPages() {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [genderList, setGenderList] = useState<GenderInterface[]>([]);
+  const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
 
   const fetchGenders = async () => {
     const res = await GetGender();
@@ -35,17 +37,33 @@ function SignUpPages() {
     }
   };
 
+  const handleBirthDayChange = (date: any) => {
+    if (date) {
+      const age = dayjs().diff(dayjs(date), "year");
+      setCalculatedAge(age);
+    } else {
+      setCalculatedAge(null);
+    }
+  };
+
   const onFinish = async (values: UsersInterface) => {
-    console.log("📦 Values from form:", values); // ✅ เพิ่มตรงนี้
-  
-    let res = await CreateUser(values);
-  
+    const birthDate = dayjs(values.BirthDay);
+    const today = dayjs();
+    const age = today.diff(birthDate, "year");
+
+    const payload = {
+      ...values,
+      Age: age,
+    };
+
+    let res = await CreateUser(payload);
+
     if (res.status == 201) {
       messageApi.open({
         type: "success",
         content: res.data.message,
       });
-  
+
       setTimeout(function () {
         navigate("/");
       }, 2000);
@@ -55,7 +73,7 @@ function SignUpPages() {
         content: res.data.error,
       });
     }
-  };  
+  };
 
   useEffect(() => {
     fetchGenders();
@@ -68,7 +86,7 @@ function SignUpPages() {
       <Flex justify="center" align="center" className="signup-container">
         <Card className="signup-card">
           <Row align="middle" justify="center">
-            <Col xs={24} sm={24} md={24} lg={10}>
+            <Col xs={24} sm={24} md={24} lg={8} xl={6} style={{ textAlign: "center" }}>
               <img alt="logo" src={logo} className="signup-logo" />
             </Col>
 
@@ -126,12 +144,12 @@ function SignUpPages() {
                   </Col>
 
                   <Col xs={24} sm={12}>
-                    <Form.Item
-                      label="อายุ"
-                      name="Age"
-                      rules={[{ required: true, message: "กรุณากรอกอายุ!" }]}
-                    >
-                      <InputNumber min={0} max={99} style={{ width: "100%" }} />
+                    <Form.Item label="อายุ">
+                      <InputNumber
+                        value={calculatedAge ?? 0}
+                        disabled
+                        style={{ width: "100%" }}
+                      />
                     </Form.Item>
                   </Col>
 
@@ -141,7 +159,10 @@ function SignUpPages() {
                       name="BirthDay"
                       rules={[{ required: true, message: "กรุณาเลือกวันเกิด!" }]}
                     >
-                      <DatePicker style={{ width: "100%" }} />
+                      <DatePicker
+                        style={{ width: "100%" }}
+                        onChange={handleBirthDayChange}
+                      />
                     </Form.Item>
                   </Col>
 
@@ -171,7 +192,7 @@ function SignUpPages() {
                         Sign up
                       </Button>
                       <p style={{ marginTop: "10px" }}>
-                        Or <a onClick={() => navigate("/")}>signin now !</a>
+                        Or <a onClick={() => navigate("/login")}>Sign in</a>
                       </p>
                     </Form.Item>
                   </Col>

@@ -1,94 +1,78 @@
 import React, { useEffect, useState } from "react";
-import { useParams , useNavigate} from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import "./WaterDetailPage.css";
 
-type WaterDataKeys =
-  | "อาคารอุบัติเหตุและฉุกเฉิน"
-  | "อาคารผู้ป่วยใน"
-  | "อาคารศูนย์การแพทย์"
-  | "อาคารรัตนเวชพัฒน์"
-  | "อาคารศูนย์วิจัย";
-
 interface WaterData {
-  waterUsage: string;
-  pressure: string;
+  flowLevel: number | null;
   status: string;
   lastUpdated: string;
 }
 
-const waterData: Record<WaterDataKeys, WaterData> = {
-  อาคารอุบัติเหตุและฉุกเฉิน: {
-    waterUsage: "1500 ลิตร",
-    pressure: "1.2 bar",
-    status: "ปกติ",
-    lastUpdated: "09/05/2025, 14:30",
-  },
-  อาคารผู้ป่วยใน: {
-    waterUsage: "2300 ลิตร",
-    pressure: "1.1 bar",
-    status: "ปกติ",
-    lastUpdated: "09/05/2025, 14:20",
-  },
-  อาคารศูนย์การแพทย์: {
-    waterUsage: "2000 ลิตร",
-    pressure: "1.3 bar",
-    status: "แจ้งเตือน: แรงดันต่ำ",
-    lastUpdated: "09/05/2025, 14:25",
-  },
-  อาคารรัตนเวชพัฒน์: {
-    waterUsage: "1800 ลิตร",
-    pressure: "1.0 bar",
-    status: "ปกติ",
-    lastUpdated: "09/05/2025, 14:10",
-  },
-  อาคารศูนย์วิจัย: {
-    waterUsage: "1250 ลิตร",
-    pressure: "1.2 bar",
-    status: "ปกติ",
-    lastUpdated: "09/05/2025, 14:15",
-  },
+const mockData: Record<string, WaterData> = {
+  "หอพักสุรนิเวศ 17": { flowLevel: 25.4, status: "ปกติ", lastUpdated: "04/06/2025, 17:00" },
+  "หอพักสุรนิเวศ 18": { flowLevel: 22.1, status: "ปกติ", lastUpdated: "04/06/2025, 16:58" },
+  "อาคารศูนย์รังสีวินิจฉัย": { flowLevel: 35.7, status: "ปกติ", lastUpdated: "04/06/2025, 16:55" },
+  "อาคารรัตนเวชพัฒน์": { flowLevel: 47.3, status: "ปกติ", lastUpdated: "04/06/2025, 16:53" },
+  "อาคารศูนย์วิจัย": { flowLevel: 45.8, status: "ปกติ", lastUpdated: "04/06/2025, 16:50" },
+  "ที่จอดรถยนต์": { flowLevel: 5.6, status: "ไม่พบการไหล", lastUpdated: "04/06/2025, 16:48" },
+  "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 1": { flowLevel: 60.2, status: "การไหลมากผิดปกติ", lastUpdated: "04/06/2025, 16:45" },
+  "อาคารศูนย์ความเป็นเลิศทางการแพทย์ 2": { flowLevel: 58.9, status: "ปกติ", lastUpdated: "04/06/2025, 16:43" },
+  "อาคารศูนย์การแพทย์เฉพาะทาง 1": { flowLevel: 29.4, status: "ปกติ", lastUpdated: "04/06/2025, 16:40" },
+  "อาคารศูนย์การแพทย์เฉพาะทาง 2": { flowLevel: 66.7, status: "การไหลมากผิดปกติ", lastUpdated: "04/06/2025, 16:38" },
+  "โรงอาหาร": { flowLevel: 75.5, status: "การไหลมากผิดปกติ", lastUpdated: "04/06/2025, 16:35" },
 };
 
 const WaterDetailPage: React.FC = () => {
   const { name } = useParams<{ name: string }>();
-  const [data, setData] = useState<any | null>(null);
   const navigate = useNavigate();
+  const [data, setData] = useState<WaterData | null>(null);
 
   useEffect(() => {
     const decodedName = decodeURIComponent(name ?? "");
-
-    // 🔍 ตรวจสอบว่า Key นั้นมีอยู่ใน waterData หรือไม่
-    if (decodedName in waterData) {
-      setData(waterData[decodedName as WaterDataKeys]);
+    if (decodedName in mockData) {
+      setData(mockData[decodedName]);
     }
   }, [name]);
 
   if (!data) {
     return (
-      <p style={{ textAlign: "center", marginTop: "20px" }}>
-        ไม่พบข้อมูลสำหรับจุดที่เลือก
-      </p>
+      <>
+        <div className="orange-underline" />
+        <div className="detail-wrapper">
+          <p style={{ textAlign: "center", marginTop: "20px" }}>
+            ไม่พบข้อมูลสำหรับจุดที่เลือก
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="detail-container">
-      <h1>รายละเอียดการใช้น้ำของ {decodeURIComponent(name ?? "")}</h1>
-      <ul>
-        <li>
-          <strong>ปริมาณการใช้น้ำ:</strong> {data.waterUsage}
-        </li>
-        <li>
-          <strong>แรงดันน้ำ:</strong> {data.pressure}
-        </li>
-        <li>
-          <strong>สถานะ:</strong> {data.status}
-        </li>
-        <li>
-          <strong>อัพเดทล่าสุด:</strong> {data.lastUpdated}
-        </li>
-      </ul>
-    </div>
+    <>
+      <div className="orange-underline" />
+      <div className="detail-wrapper">
+        <div className="detail-container">
+          <h1>ผลวิเคราะห์น้ำไหลของ {decodeURIComponent(name ?? "")}</h1>
+          <ul>
+            <li>
+              <strong>จำนวนของน้ำที่ใช้:</strong>{" "}
+              {data.flowLevel !== null
+                ? `${data.flowLevel.toFixed(1)} หน่วย`
+                : "ยังไม่มีข้อมูล"}
+            </li>
+            <li>
+              <strong>สถานะ:</strong> {data.status}
+            </li>
+            <li>
+              <strong>วิเคราะห์ล่าสุด:</strong> {data.lastUpdated}
+            </li>
+          </ul>
+          <button className="back-button" onClick={() => navigate("/water")}>
+            ⬅ ย้อนกลับ
+          </button>
+        </div>
+      </div>
+    </>
   );
 };
 

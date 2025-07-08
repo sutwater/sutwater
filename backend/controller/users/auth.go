@@ -2,9 +2,9 @@ package users
 
 import (
 	"errors"
-	"log" // ✅ เพิ่ม log
-
+	"log"
 	"net/http"
+	"strings" // ✅ เพิ่ม import นี้
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,10 +41,11 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	// ✅ Log payload เพื่อตรวจสอบค่าที่รับมา
+	// ✅ Convert email to lowercase
+	payload.Email = strings.ToLower(payload.Email)
+
 	log.Printf("📦 Payload: %+v\n", payload)
 
-	// เช็คว่า gender_id ถูกเลือกหรือไม่
 	if payload.GenderID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "กรุณาเลือกเพศ"})
 		return
@@ -85,60 +86,39 @@ func SignUp(c *gin.Context) {
 }
 
 func SignIn(c *gin.Context) {
-
 	var payload Authen
-
 	var user entity.Users
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
 
-	// ค้นหา user ด้วย Username ที่ผู้ใช้กรอกเข้ามา
+	// ✅ Convert email to lowercase
+	email := strings.ToLower(payload.Email)
 
-	if err := config.DB().Raw("SELECT * FROM users WHERE email = ?", payload.Email).Scan(&user).Error; err != nil {
-
+	if err := config.DB().Raw("SELECT * FROM users WHERE email = ?", email).Scan(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
-
-	// ตรวจสอบรหัสผ่าน
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
-
 	if err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password is incerrect"})
-
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password is incorrect"})
 		return
-
 	}
 
 	jwtWrapper := services.JwtWrapper{
-
-		SecretKey: "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
-
-		Issuer: "AuthService",
-
+		SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
+		Issuer:          "AuthService",
 		ExpirationHours: 24,
 	}
 
 	signedToken, err := jwtWrapper.GenerateToken(user.Email)
-
 	if err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error signing token"})
-
 		return
-
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token_type": "Bearer", "token": signedToken, "id": user.ID})
-
 }

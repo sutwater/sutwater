@@ -1,3 +1,19 @@
+/* Lock scrolling for the full layout */
+.full-layout {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-scroll-area {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
 .header {
   display: flex;
   align-items: center;
@@ -34,6 +50,7 @@
   color: gray;
 }
 
+/* Navigation */
 .nav-links {
   display: flex;
   align-items: center;
@@ -64,6 +81,7 @@
   width: 100%;
 }
 
+/* User avatar dropdown */
 .user-btn {
   width: 45px;
   height: 45px;
@@ -88,7 +106,7 @@
   font-size: 18px;
 }
 
-/* เพิ่มให้ดรอปดาวน์ดูนุ่มนวล */
+/* Dropdown styles */
 .ant-dropdown-menu {
   border-radius: 10px !important;
   padding: 8px 0 !important;
@@ -96,7 +114,6 @@
   min-width: 160px;
 }
 
-/* แต่ละเมนู */
 .ant-dropdown-menu-item {
   padding: 10px 16px !important;
   transition: all 0.2s ease-in-out;
@@ -107,15 +124,17 @@
   background-color: #ffe6d9 !important;
 }
 
-/* ไอคอน */
 .ant-dropdown-menu-item .anticon {
   margin-right: 8px;
   color: #f15a29;
 }
 
+/* Content area */
 .content-wrapper {
   background: #f15a29;
   padding: 20px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .content-box {
@@ -127,4 +146,3 @@
   font-size: 18px;
   line-height: 1.8;
 }
-

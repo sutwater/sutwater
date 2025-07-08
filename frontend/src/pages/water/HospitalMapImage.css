@@ -29,7 +29,7 @@
   width: 32px;
   height: 32px;
   transform: translate(-50%, -100%);
-  background-image: url("https://cdn-icons-png.flaticon.com/512/684/684908.png");
+  background-image: url("https://cdn-icons-png.flaticon.com/128/684/684908.png"); /* ✅ หมุดสีขาว */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -114,3 +114,16 @@
 .detail-button:hover {
   background-color: #0056b3;
 }
+
+.alert-dot {
+  position: absolute;
+  top: -4px;
+  right: 0px;
+  width: 12px;
+  height: 12px;
+  background-color: #ffeb3b; /* ✅ สีเหลืองแจ้งเตือน */
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 255, 0, 0.9);
+  z-index: 10;
+}
+

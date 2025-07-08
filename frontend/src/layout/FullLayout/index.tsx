@@ -1,11 +1,23 @@
 import React, { useState } from "react";
-import { Link, Routes, Route, useLocation, useNavigate } from "react-router-dom";
-import { Dropdown, Avatar, MenuProps, Carousel } from "antd";
+import {
+  Link,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+  Navigate,
+} from "react-router-dom";
+import { Dropdown, Carousel, MenuProps } from "antd";
 import { UserOutlined, LogoutOutlined, LoginOutlined } from "@ant-design/icons";
+
 import WaterPage from "../../pages/water/HospitalMapImage";
 import NotificationPage from "../../pages/notification";
 import ContactPage from "../../pages/contact";
 import WaterDetailPage from "../../pages/water/WaterDetail";
+import SignInPages from "../../pages/authentication/Login/SignInPages";
+import SignUpPages from "../../pages/authentication/Register/SignUpPages";
+import AdminDashboard from "../../pages/admin/AdminDashboard";
+import ProfilePage from "../../pages/profile/ProfilePage";
 import logo from "../../assets/logo.png";
 import "./index.css";
 
@@ -14,18 +26,19 @@ const FullLayout: React.FC = () => {
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
 
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const user = {
-    name: "User",
-    avatar: "",
-  };
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
+    localStorage.getItem("isLogin") === "true"
+  );
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
     if (e.key === "logout") {
+      localStorage.clear();
       setIsLoggedIn(false);
-      navigate("/"); // เปลี่ยนไปหน้าแรกหรือหน้า login
+      navigate("/login");
+    } else if (e.key === "profile") {
+      navigate("/profile");
     } else if (e.key === "register") {
-      navigate("/signup"); // ไปหน้าลงทะเบียน ถ้ามี
+      navigate("/signup");
     }
   };
 
@@ -51,9 +64,13 @@ const FullLayout: React.FC = () => {
         },
       ];
 
+  const user = {
+    name: "User",
+    avatar: "",
+  };
+
   return (
     <div className="full-layout">
-      {/* Header */}
       <div className="header">
         <div className="header-left">
           <Link to="/">
@@ -64,6 +81,7 @@ const FullLayout: React.FC = () => {
             <p className="sut-subtitle">suranaree university of technology</p>
           </div>
         </div>
+
         <div className="nav-links">
           <Link to="/" className={`nav-item ${isActive("/") ? "active" : ""}`}>
             หน้าแรก
@@ -86,6 +104,16 @@ const FullLayout: React.FC = () => {
           >
             ติดต่อสอบถาม
           </Link>
+
+          {localStorage.getItem("isAdmin") === "true" && (
+            <Link
+              to="/admin"
+              className={`nav-item ${isActive("/admin") ? "active" : ""}`}
+            >
+              แอดมิน
+            </Link>
+          )}
+
           <Dropdown
             menu={{ items: menuItems, onClick: handleMenuClick }}
             placement="bottomRight"
@@ -105,53 +133,73 @@ const FullLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <div className="content-wrapper">
-              <Carousel
-                autoplay
-                effect="fade"
-                dotPosition="bottom"
-                pauseOnHover
-              >
-                <div>
-                  <img
-                    src="https://beta.sut.ac.th/wp-content/uploads/2022/09/banner-01-2-scaled.jpg"
-                    alt="SUT Banner 1"
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      maxHeight: "80vh",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </div>
-                <div>
-                  <img
-                    src="https://shorturl.asia/zpSNv"
-                    alt="SUT Banner 2"
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      maxHeight: "80vh",
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </div>
-              </Carousel>
-            </div>
-          }
-        />
-        <Route path="/water" element={<WaterPage />} />
-        <Route path="/notification" element={<NotificationPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/water/:name" element={<WaterDetailPage />} />
-      </Routes>
+      {/* Scrollable Main Content */}
+      <div className="main-scroll-area">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="content-wrapper">
+                <Carousel
+                  autoplay
+                  effect="fade"
+                  dotPosition="bottom"
+                  pauseOnHover
+                >
+                  <div>
+                    <img
+                      src="https://beta.sut.ac.th/wp-content/uploads/2022/09/banner-01-2-scaled.jpg"
+                      alt="SUT Banner 1"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "80vh",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <img
+                      src="https://beta.sut.ac.th/wp-content/uploads/2022/09/sutbanner-01-scaled.jpg"
+                      alt="SUT Banner 2"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "80vh",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </div>
+                </Carousel>
+              </div>
+            }
+          />
+          <Route path="/water" element={<WaterPage />} />
+          <Route
+            path="/notification"
+            element={
+              isLoggedIn ? <NotificationPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/water/:name" element={<WaterDetailPage />} />
+          <Route path="/login" element={<SignInPages />} />
+          <Route path="/signup" element={<SignUpPages />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route
+            path="/admin"
+            element={
+              localStorage.getItem("isAdmin") === "true" ? (
+                <AdminDashboard />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+        </Routes>
+      </div>
     </div>
   );
 };

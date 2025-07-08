@@ -6,7 +6,7 @@ import MinimalLayout from "../layout/MinimalLayout";
 
 import Loadable from "../components/third-party/Loadable";
 
-const MainPages = Loadable(lazy(() => import("../pages/authentication/Login")));
+const MainPages = Loadable(lazy(() => import("../pages/authentication/Login/SignInPages")));
 
 const Registerages = Loadable(
   lazy(() => import("../pages/authentication/Register/SignUpPages"))
