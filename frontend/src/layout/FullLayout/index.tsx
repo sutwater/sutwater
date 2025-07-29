@@ -135,6 +135,7 @@ const FullLayout: React.FC = () => {
       </div> */}
       {!isAdminPath && <Navbar setShowLogin={setShowLogin} />}
 
+
       {/* Main Content Area */}
       {/* Scrollable Main Content */}
       <div className="main-scroll-area">
