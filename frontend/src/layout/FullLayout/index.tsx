@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import {
-  Link,
   Routes,
   Route,
-  useLocation,
-  useNavigate,
+
   Navigate,
+  useLocation,
 } from "react-router-dom";
-import { Dropdown, Carousel, MenuProps } from "antd";
-import { UserOutlined, LogoutOutlined, LoginOutlined } from "@ant-design/icons";
+import { Carousel } from "antd";
+//import { UserOutlined, LogoutOutlined, LoginOutlined } from "@ant-design/icons";
 
 import WaterPage from "../../pages/water/HospitalMapImage";
 import NotificationPage from "../../pages/notification";
@@ -18,60 +17,62 @@ import SignInPages from "../../pages/authentication/Login/SignInPages";
 import SignUpPages from "../../pages/authentication/Register/SignUpPages";
 import AdminDashboard from "../../pages/admin/AdminDashboard";
 import ProfilePage from "../../pages/profile/ProfilePage";
-import logo from "../../assets/logo.png";
+//import logo from "../../assets/logo.png";
+import Navbar from '../../components/Navbar';
 import "./index.css";
 
 const FullLayout: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isActive = (path: string) => location.pathname === path;
-
+  //const location = useLocation();
+  //const navigate = useNavigate();
+  //const isActive = (path: string) => location.pathname === path;
+  const [showLogin, setShowLogin] = useState(false);
+  const isAdminPath = useLocation().pathname.startsWith('/admin');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("isLogin") === "true"
   );
 
-  const handleMenuClick: MenuProps["onClick"] = (e) => {
-    if (e.key === "logout") {
-      localStorage.clear();
-      setIsLoggedIn(false);
-      navigate("/login");
-    } else if (e.key === "profile") {
-      navigate("/profile");
-    } else if (e.key === "register") {
-      navigate("/signup");
-    }
-  };
+  // const handleMenuClick: MenuProps["onClick"] = (e) => {
+  //   if (e.key === "logout") {
+  //     localStorage.clear();
+  //     setIsLoggedIn(false);
+  //     navigate("/login");
+  //   } else if (e.key === "profile") {
+  //     navigate("/profile");
+  //   } else if (e.key === "register") {
+  //     navigate("/signup");
+  //   }
+  // };
 
-  const menuItems: MenuProps["items"] = isLoggedIn
-    ? [
-        {
-          key: "profile",
-          label: "โปรไฟล์",
-          icon: <UserOutlined />,
-        },
-        {
-          key: "logout",
-          label: "ออกจากระบบ",
-          icon: <LogoutOutlined />,
-          danger: true,
-        },
-      ]
-    : [
-        {
-          key: "register",
-          label: "ลงทะเบียน",
-          icon: <LoginOutlined />,
-        },
-      ];
+  // const menuItems: MenuProps["items"] = isLoggedIn
+  //   ? [
+  //     {
+  //       key: "profile",
+  //       label: "โปรไฟล์",
+  //       icon: <UserOutlined />,
+  //     },
+  //     {
+  //       key: "logout",
+  //       label: "ออกจากระบบ",
+  //       icon: <LogoutOutlined />,
+  //       danger: true,
+  //     },
+  //   ]
+  //   : [
+  //     {
+  //       key: "register",
+  //       label: "ลงทะเบียน",
+  //       icon: <LoginOutlined />,
+  //     },
+  //   ];
 
-  const user = {
-    name: "User",
-    avatar: "",
-  };
+  // const user = {
+  //   name: "User",
+  //   avatar: "",
+  // };
 
   return (
     <div className="full-layout">
-      <div className="header">
+      {/* <div className="header">
         <div className="header-left">
           <Link to="/">
             <img src={logo} alt="logo" className="logo" />
@@ -131,8 +132,10 @@ const FullLayout: React.FC = () => {
             </div>
           </Dropdown>
         </div>
-      </div>
+      </div> */}
+      {!isAdminPath && <Navbar setShowLogin={setShowLogin} />}
 
+      {/* Main Content Area */}
       {/* Scrollable Main Content */}
       <div className="main-scroll-area">
         <Routes>
