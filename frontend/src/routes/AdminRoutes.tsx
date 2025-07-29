@@ -10,6 +10,7 @@ const MainPages = Loadable(lazy(() => import("../pages/authentication/Login/Sign
 const WaterPage = Loadable(lazy(() => import("../pages/water/HospitalMapImage")));
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
 const ContactPage = Loadable(lazy(() => import("../pages/contact")));
+const Water = Loadable(lazy(() => import("../pages/water/Water")));
 const WaterDetailPage = Loadable(lazy(() => import("../pages/water/WaterDetail")));
 const SignInPages = Loadable(lazy(() => import("../pages/authentication/Login/SignInPages")));
 const AdminDashboard = Loadable(lazy(() => import("../pages/admin/AdminDashboard")));
@@ -27,6 +28,10 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => {
       {
         path: "/water/:name",
         element: <WaterDetailPage />,
+      },
+      {
+        path: "/waterdetail",
+        element: <Water />,
       },
       {
         path: "/notification",
