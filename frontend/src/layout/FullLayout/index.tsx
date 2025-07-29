@@ -13,6 +13,7 @@ import WaterPage from "../../pages/water/HospitalMapImage";
 import NotificationPage from "../../pages/notification";
 import ContactPage from "../../pages/contact";
 import WaterDetailPage from "../../pages/water/WaterDetail";
+import Water from "../../pages/water/Water";
 import SignInPages from "../../pages/authentication/Login/SignInPages";
 import SignUpPages from "../../pages/authentication/Register/SignUpPages";
 import AdminDashboard from "../../pages/admin/AdminDashboard";
@@ -190,6 +191,7 @@ const FullLayout: React.FC = () => {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/water/:name" element={<WaterDetailPage />} />
           <Route path="/login" element={<SignInPages />} />
+          <Route path="/waterdetail" element={<Water />} />
           <Route path="/signup" element={<SignUpPages />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route
