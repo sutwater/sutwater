@@ -1,16 +1,21 @@
 import { assets, menuLinks } from '../assets/assets';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 
-type LoginModalProps = {
-    setShowLogin: React.Dispatch<React.SetStateAction<boolean>>;
-};
 
-const Navbar: React.FC<LoginModalProps> = ({ setShowLogin }) => {
+const Navbar: React.FC = ({ }) => {
     const location = useLocation();
-    //const navigate = useNavigate();
+    const navigate = useNavigate();
     const [open, setOpen] = useState<boolean>(false); // เพิ่ม useState ที่หายไป
-
+    const { setUser, user } = useAppContext();
+    
+    const handleLogout = () => {
+        localStorage.clear(); // หรือที่คุณใช้จัดเก็บ auth
+        setUser(null); // ถ้ามีการจัดการ context
+        navigate('/login');
+    };
+    console.log(user)
     return (
         <div
             className={`flex items-center justify-between px-6 md:px-16 lg:px-24
@@ -34,11 +39,21 @@ const Navbar: React.FC<LoginModalProps> = ({ setShowLogin }) => {
                     </Link>
                 ))}
 
-                <div className='flex max-sm:flex-col items-start sm:items-center gap-6'>
-                    {/* <button onClick={() => navigate("/admin")} className='cursor-pointer'>Dashboard</button> */}
-                    <button onClick={() => setShowLogin(true)} className='cursor-pointer px-8 py-2 bg-primary 
-                    hover:bg-primary-dull transition-all text-white rounded-lg'>Login</button>
-                </div>
+                
+                {(
+                    <span className="text-sm text-gray-700">
+                        Welcome, <strong>{}</strong>
+                    </span>
+                )}
+                {user && (
+                    <button
+                        onClick={handleLogout}
+                        className="text-red-500 hover:underline"
+                    >
+                        ออกจากระบบ
+                    </button>
+                )}
+
             </div>
 
             <button

@@ -2,8 +2,8 @@ import { GenderInterface } from "./Gender";
 
 export interface UsersInterface {
   ID?: number;
-  FirstName?: string;
-  LastName?: string;
+  first_name?: string;
+  last_name?: string;
   Email?: string;
   Phone?: string;
   Age?: number;

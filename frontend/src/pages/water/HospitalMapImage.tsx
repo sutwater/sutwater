@@ -130,9 +130,8 @@ const HospitalMapImage: React.FC = () => {
       const extraYOffset = -12;
       return {
         transform: zoomed
-          ? `scale(2) translate(${offsetX / 2}%, ${
-              (offsetY + extraYOffset) / 2
-            }%)`
+          ? `scale(2) translate(${offsetX / 2}%, ${(offsetY + extraYOffset) / 2
+          }%)`
           : `scale(1) translate(0, ${extraYOffset}%)`,
         transformOrigin: `${focus.xPercent}% ${focus.yPercent}%`,
       };
@@ -143,18 +142,16 @@ const HospitalMapImage: React.FC = () => {
   return (
     <div className="map-container" onClick={handleBackgroundClick}>
       <div
-        className={`map-content ${
-          isTransitioningSlow ? "transition-slow" : ""
-        }`}
+        className={`map-content ${isTransitioningSlow ? "transition-slow" : ""
+          }`}
         style={getTransformStyle()}
       >
         <img src={hospitalMap} alt="Hospital" className="map-image" />
         {markers.map((marker, index) => (
           <div
             key={index}
-            className={`map-marker ${zoomed ? "zoomed" : ""} ${
-              zoomedOutMarker === marker.name ? "zoomed-out" : ""
-            } ${focus?.name === marker.name ? "active" : ""}`}
+            className={`map-marker ${zoomed ? "zoomed" : ""} ${zoomedOutMarker === marker.name ? "zoomed-out" : ""
+              } ${focus?.name === marker.name ? "active" : ""}`}
             style={{
               left: `${marker.xPercent}%`,
               top: `${marker.yPercent}%`,
@@ -170,9 +167,8 @@ const HospitalMapImage: React.FC = () => {
 
             <div className="tooltip">{marker.name}</div>
             <div
-              className={`marker-details ${
-                zoomed && focus?.name === marker.name ? "visible" : ""
-              }`}
+              className={`marker-details ${zoomed && focus?.name === marker.name ? "visible" : ""
+                }`}
               style={{
                 pointerEvents:
                   zoomed && focus?.name === marker.name ? "auto" : "none",

@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { CreateUser, GetGender } from "../../../services/https";
 import { UsersInterface } from "../../../interfaces/IUser";
 import { GenderInterface } from "../../../interfaces/Gender";
-import logo from "../../../assets/logo.png";
+import logo from "../../../assets/suth.png";
 import dayjs from "dayjs";
 
 import "./SignUpPages.css";
