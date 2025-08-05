@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignIn } from "../../../services/https";
 import { SignInInterface } from "../../../interfaces/SignIn";
-import logo from "../../../assets/logo.png";
+import logo from "../../../assets/suth.png";
 import "./SignInPages.css";
 
 function SignInPages() {

@@ -1,5 +1,6 @@
 import { UsersInterface } from "../../interfaces/IUser";
 import { SignInInterface } from "../../interfaces/SignIn";
+import { MeterInterface } from "../../interfaces/Meter";
 import axios from "axios";
 
 const apiUrl = "http://localhost:8000";
@@ -65,6 +66,21 @@ async function CreateUser(data: UsersInterface) {
     .catch((e) => e.response);
 }
 
+// METER
+async function GetMerters() {
+  return await axios
+    .get(`${apiUrl}/meters`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function CreateMeter(data: MeterInterface) {
+  return await axios
+    .post(`${apiUrl}/meters`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 export {
   SignIn,
   GetGender,
@@ -73,4 +89,7 @@ export {
   UpdateUsersById,
   DeleteUsersById,
   CreateUser,
+
+  GetMerters,
+  CreateMeter,
 };

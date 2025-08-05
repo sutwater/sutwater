@@ -8,6 +8,7 @@ const MainPages = Loadable(lazy(() => import("../pages/authentication/Login/Sign
 
 // ✅ เพิ่มหน้าใหม่
 const WaterPage = Loadable(lazy(() => import("../pages/water/HospitalMapImage")));
+const WaterMeterMap = Loadable(lazy(() => import("../pages/water/WaterMeterMap")));
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
 const ContactPage = Loadable(lazy(() => import("../pages/contact")));
 const Water = Loadable(lazy(() => import("../pages/water/Water")));
@@ -23,7 +24,7 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => {
     children: [
       {
         path: "/water",
-        element: <WaterPage />,
+        element: <WaterMeterMap />,
       },
       {
         path: "/water/:name",

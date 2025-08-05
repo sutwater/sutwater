@@ -7,6 +7,7 @@ import (
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
+	"example.com/sa-67-example/controller/meter"
 	"example.com/sa-67-example/controller/users"
 	"example.com/sa-67-example/controller/waterusage"
 	"example.com/sa-67-example/entity"
@@ -58,6 +59,9 @@ func main() {
 		router.GET("/users", users.GetAll)
 		router.GET("/user/:id", users.Get)
 		router.DELETE("/user/:id", users.Delete)
+
+		router.GET("/meters", meter.GetAllMeters)
+		router.POST("/meters", meter.CreateMeter)
 
 		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้
 	}

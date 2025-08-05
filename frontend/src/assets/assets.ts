@@ -1,4 +1,4 @@
-import suth_logo from './logo.png';
+import suth_logo from './suth.png';
 import close_icon from './close_icon.svg';
 import menu_icon from './menu_icon.svg';
 

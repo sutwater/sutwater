@@ -9,7 +9,7 @@ import {
 import { Carousel } from "antd";
 //import { UserOutlined, LogoutOutlined, LoginOutlined } from "@ant-design/icons";
 
-import WaterPage from "../../pages/water/HospitalMapImage";
+import WaterMeterMap from "../../pages/water/WaterMeterMap";
 import NotificationPage from "../../pages/notification";
 import ContactPage from "../../pages/contact";
 import WaterDetailPage from "../../pages/water/WaterDetail";
@@ -26,7 +26,6 @@ const FullLayout: React.FC = () => {
   //const location = useLocation();
   //const navigate = useNavigate();
   //const isActive = (path: string) => location.pathname === path;
-  const [showLogin, setShowLogin] = useState(false);
   const isAdminPath = useLocation().pathname.startsWith('/admin');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
     localStorage.getItem("isLogin") === "true"
@@ -73,68 +72,7 @@ const FullLayout: React.FC = () => {
 
   return (
     <div className="full-layout">
-      {/* <div className="header">
-        <div className="header-left">
-          <Link to="/">
-            <img src={logo} alt="logo" className="logo" />
-          </Link>
-          <div className="sut-info">
-            <h1 className="sut-title">มหาวิทยาลัยเทคโนโลยีสุรนารี</h1>
-            <p className="sut-subtitle">suranaree university of technology</p>
-          </div>
-        </div>
-
-        <div className="nav-links">
-          <Link to="/" className={`nav-item ${isActive("/") ? "active" : ""}`}>
-            หน้าแรก
-          </Link>
-          <Link
-            to="/water"
-            className={`nav-item ${isActive("/water") ? "active" : ""}`}
-          >
-            ตรวจสอบการใช้น้ำ
-          </Link>
-          <Link
-            to="/notification"
-            className={`nav-item ${isActive("/notification") ? "active" : ""}`}
-          >
-            แจ้งเตือนการใช้น้ำ
-          </Link>
-          <Link
-            to="/contact"
-            className={`nav-item ${isActive("/contact") ? "active" : ""}`}
-          >
-            ติดต่อสอบถาม
-          </Link>
-
-          {localStorage.getItem("isAdmin") === "true" && (
-            <Link
-              to="/admin"
-              className={`nav-item ${isActive("/admin") ? "active" : ""}`}
-            >
-              แอดมิน
-            </Link>
-          )}
-
-          <Dropdown
-            menu={{ items: menuItems, onClick: handleMenuClick }}
-            placement="bottomRight"
-            trigger={["hover"]}
-            arrow
-          >
-            <div className="user-btn">
-              {user.avatar ? (
-                <img src={user.avatar} alt="profile" className="avatar" />
-              ) : (
-                <div className="avatar-placeholder">
-                  {user.name?.charAt(0).toUpperCase() || ""}
-                </div>
-              )}
-            </div>
-          </Dropdown>
-        </div>
-      </div> */}
-      {!isAdminPath && <Navbar setShowLogin={setShowLogin} />}
+      {!isAdminPath && <Navbar />}
 
 
       {/* Main Content Area */}
@@ -181,7 +119,7 @@ const FullLayout: React.FC = () => {
               </div>
             }
           />
-          <Route path="/water" element={<WaterPage />} />
+          <Route path="/water" element={<WaterMeterMap />} />
           <Route
             path="/notification"
             element={

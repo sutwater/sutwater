@@ -1,25 +1,18 @@
 import React from "react";
-
 import { BrowserRouter as Router } from "react-router-dom";
-
+import { AppProvider } from "./contexts/AppContext"; 
 import ConfigRoutes from "./routes";
-
 import "./App.css";
 
-
 const App: React.FC = () => {
-
   return (
-
-    <Router>
-
-      <ConfigRoutes />
-
-    </Router>
-
+    <AppProvider >
+      <Router>
+        <ConfigRoutes />
+      </Router>
+    </AppProvider>
+    
   );
-
 };
-
 
 export default App;
