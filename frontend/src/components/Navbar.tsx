@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 
-
 const Navbar: React.FC = ({ }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -42,7 +41,7 @@ const Navbar: React.FC = ({ }) => {
                 
                 {(
                     <span className="text-sm text-gray-700">
-                        Welcome, <strong>{}</strong>
+                        Welcome, <strong>{user?.first_name}</strong>
                     </span>
                 )}
                 {user && (
