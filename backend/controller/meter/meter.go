@@ -17,7 +17,7 @@ func GetAllMeters(c *gin.Context) {
 		return
 	}
 
-	var meters []entity.Meter
+	var meters []entity.MeterLocation
 	if err := db.Find(&meters).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -34,13 +34,13 @@ func CreateMeter(c *gin.Context) {
 		return
 	}
 
-	var input entity.Meter
+	var input entity.MeterLocation
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	newMeter := entity.Meter{
+	newMeter := entity.MeterLocation{
 		Name:       input.Name,
 		Latitude:   input.Latitude,
 		Longtitude: input.Longtitude,

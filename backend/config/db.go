@@ -29,9 +29,13 @@ func ConnectionDB() {
 func SetupDatabase() {
 
 	db.AutoMigrate(
-		&entity.Users{},
 		&entity.Genders{},
-		&entity.Meter{},
+		&entity.Users{},
+		&entity.MeterLocation{},
+		&entity.CameraDevice{},
+		&entity.Notification{},
+		&entity.WaterMeterValue{},
+		&entity.WaterUsageLog{},
 	)
 
 	GenderMale := entity.Genders{Gender: "Male"}
@@ -40,29 +44,29 @@ func SetupDatabase() {
 	db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
 	db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
-	MeterExample := entity.Meter{
+	MeterExample := entity.MeterLocation{
 		Name:       "อาคารรัตนเวชพัฒน์",
 		Latitude:   14.86412,
 		Longtitude: 102.03557,
 	}
 
-	MeterExample1 := entity.Meter{
+	MeterExample1 := entity.MeterLocation{
 		Name:       "โรงอาหาร",
 		Latitude:   14.86447,
 		Longtitude: 102.03611,
 	}
 
-	db.FirstOrCreate(&MeterExample, &entity.Meter{Name: "อาคารรัตนเวชพัฒน์"})
-	db.FirstOrCreate(&MeterExample1, &entity.Meter{Name: "โรงอาหาร"})
+	db.FirstOrCreate(&MeterExample, &entity.MeterLocation{Name: "อาคารรัตนเวชพัฒน์"})
+	db.FirstOrCreate(&MeterExample1, &entity.MeterLocation{Name: "โรงอาหาร"})
 
 	hashedPassword, _ := HashPassword("123456")
 	BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
 
 	User := &entity.Users{
 
-		FirstName: "Software",
-		LastName:  "Analysis",
-		Email:     "sa@gmail.com",
+		FirstName: "Danuporn",
+		LastName:  "Seesin",
+		Email:     "suthadmin@gmail.com",
 		Age:       80,
 		Password:  hashedPassword,
 		BirthDay:  BirthDay,
@@ -70,7 +74,7 @@ func SetupDatabase() {
 	}
 
 	db.FirstOrCreate(User, &entity.Users{
-		Email: "sa@gmail.com",
+		Email: "suthadmin@gmail.com",
 	})
 
 }

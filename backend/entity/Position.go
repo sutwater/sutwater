@@ -4,7 +4,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Role struct {
+type Position struct {
 	gorm.Model
 	Name string
 }

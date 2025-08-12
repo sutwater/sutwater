@@ -6,11 +6,9 @@ import (
 
 type Notification struct {
 	gorm.Model
+	Message string
+	IsRead  bool
 
-	Message  string
-	Resolved bool
-
-	UserResolvedID uint
-
-	MeterID uint
+	CameraDeviceID uint
+	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
 }

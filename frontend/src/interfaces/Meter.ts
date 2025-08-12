@@ -1,7 +1,7 @@
 
 export interface MeterInterface {
   ID?: number;
-  Name?: string;
+  Name: string;
   Latitude: number;
   Longtitude: number;
 }

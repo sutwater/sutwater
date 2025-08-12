@@ -1,20 +1,19 @@
 package entity
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
 type WaterUsageLog struct {
 	gorm.Model
+	AverageValue float64
+	MinValue     float64
+	MaxValue     float64
+	BrokenAmount uint
 
-	EditDate time.Time
-	Amount   float64
+	UserID uint
+	Users  Users `gorm:"foreignKey:UserID"`
 
-	UpdatedByID uint
-	UpdatedBy   Users `gorm:"foreignKey:UpdatedByID"`
-
-	MeterID uint
-	Meter   Meter `gorm:"foreignKey:MeterID"`
+	WaterMeterValueID uint
+	WaterMeterValue   *WaterMeterValue `gorm:"foreignKey:WaterMeterValueID"`
 }
