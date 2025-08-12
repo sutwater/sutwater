@@ -10,7 +10,6 @@ import (
 	"example.com/sa-67-example/controller/meter"
 	"example.com/sa-67-example/controller/users"
 	"example.com/sa-67-example/controller/waterusage"
-	"example.com/sa-67-example/entity"
 	"example.com/sa-67-example/middlewares"
 	"example.com/sa-67-example/services"
 )
@@ -27,14 +26,6 @@ func main() {
 
 	// ✅ ส่ง db ให้ services ใช้
 	services.SetDatabase(db)
-
-	// ✅ Auto migrate เผื่อไว้ให้แน่ใจว่า entity ถูก sync
-	db.AutoMigrate(
-		&entity.Users{},
-		&entity.Genders{},
-		&entity.WaterUsage{},
-		&entity.Location{},
-	)
 
 	// ✅ เริ่ม Gin Server
 	r := gin.Default()
