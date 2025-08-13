@@ -4,8 +4,7 @@ import "gorm.io/gorm"
 
 type CameraDevice struct {
 	gorm.Model
-	Name       string
-	MacAddress uint
+	MacAddress uint `gorm:"uniqueIndex"`
 	Battery    uint
 	Wifi       bool
 	Status     bool
@@ -13,6 +12,6 @@ type CameraDevice struct {
 	MeterLocationID uint
 	MeterLocation   *MeterLocation `gorm:"foreignKey:MeterLocationID"`
 
-	WaterMeterValue []WaterMeterValue `gorm:"foreignKey:MacAddressID"`
+	WaterMeterValue []WaterMeterValue `gorm:"foreignKey:MacAddressID;references:MacAddress"`
 	Notification    []Notification    `gorm:"foreignKey:CameraDeviceID"`
 }

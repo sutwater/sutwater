@@ -14,7 +14,7 @@ type WaterMeterValue struct {
 	OCRConfidence uint
 
 	MacAddressID uint
-	CameraDevice *CameraDevice `gorm:"foreignKey:MacAddressID"`
+	CameraDevice *CameraDevice `gorm:"foreignKey:MacAddressID;references:MacAddress"`
 
 	WaterMeterImageID uint
 	WaterMeterImage   *WaterMeterImage `gorm:"foreignKey:WaterMeterImageID"`
