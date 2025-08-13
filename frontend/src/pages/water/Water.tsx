@@ -12,7 +12,7 @@ import {
     periodComparisons,
 } from '../../data/mockData';
 
-const Water = () => {
+const WaterDashboard = () => {
     const [selectedPeriod, setSelectedPeriod] = useState('สัปดาห์');
     const [selectedView, setSelectedView] = useState('ชั่วโมง');
 
@@ -166,4 +166,4 @@ const Water = () => {
   );
 };
 
-export default Water;
+export default WaterDashboard;

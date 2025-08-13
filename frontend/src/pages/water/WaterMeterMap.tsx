@@ -8,10 +8,11 @@ import { useAppContext } from '../../contexts/AppContext';
 import { CreateMeter } from '../../services/https';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { MeterInterface } from '../../interfaces/Meter';
+import { MeterLocationInterface } from '../../interfaces/InterfaceAll';
 import './custom-tooltip.css';
 
 import { message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 
 const defaultIcon = L.icon({
   iconUrl,
@@ -35,10 +36,19 @@ const WaterMeterMap = () => {
     //const [meters, setMeters] = useState<MeterInterface[]>([]);
     const [newMarker, setNewMarker] = useState<{ lat: number; lng: number } | null>(null);
     const [messageApi] = message.useMessage();
+    const navigate = useNavigate();
+    
     const [newName, setNewName] = useState('');
     const [mode, setMode] = useState<'road' | 'satellite'>('satellite');
     const [addingMode, setAddingMode] = useState(false); // เพิ่ม state นี้
-    const { meters } = useAppContext();
+    const { meters, waterusage } = useAppContext();
+
+    waterusage.forEach((log, idx) => {
+  console.log(`waterlog[${idx}] MeterLocation ID:`, log.CameraDevice?.MeterLocation?.ID);
+});
+
+
+    console.log("waterusage: ", waterusage)
 
     const handleAddMarker = (lat: number, lng: number) => {
       setNewMarker({ lat, lng });
@@ -53,7 +63,7 @@ const WaterMeterMap = () => {
         return;
       }
       try {
-        const payload: MeterInterface = {
+        const payload: MeterLocationInterface = {
             Name: newName,
             Latitude: newMarker.lat,
             Longtitude: newMarker.lng, 
@@ -141,69 +151,96 @@ const WaterMeterMap = () => {
         {addingMode && <LocationMarker onAdd={handleAddMarker} />}
 
         {meters
-          .filter(m => typeof m.Latitude === 'number' && typeof m.Longtitude === 'number')
-          .map((meter) => (
-            <Marker key={meter.ID} position={[meter.Latitude, meter.Longtitude]}>
-              <Tooltip
-                direction="top"
-                offset={[0, -35]}
-                opacity={1}
-                permanent
-                className={`custom-tooltip ${mode === 'satellite' ? 'tooltip-satellite' : ''}`}
-              >
-                {meter.Name ?? "ไม่มีชื่อ"}
-              </Tooltip>
+  .filter(m => typeof m.Latitude === "number" && typeof m.Longtitude === "number")
+  .map((meter) => {
+    // หา WaterMeterValue ของ log ที่ MeterLocation.ID ตรงกับ meter.ID
+    const currentLog = waterusage.find(
+        (log) => log.CameraDevice?.MeterLocation?.ID === meter.ID
+      );
+      
+    return (
+      <Marker key={meter.ID} position={[meter.Latitude, meter.Longtitude]}>
+        <Tooltip
+          direction="top"
+          offset={[0, -35]}
+          opacity={1}
+          permanent
+          className={`custom-tooltip ${mode === "satellite" ? "tooltip-satellite" : ""}`}
+        >
+          {meter.Name ?? "ไม่มีชื่อ"}
+        </Tooltip>
+        <Popup>
+          <div className="w-64 p-4">
+            <h2 className="text-lg font-semibold mb-2 text-center text-gray-800">
+              {meter.Name ?? "ไม่มีชื่อ"}
+            </h2>
+            <p className="text-sm text-gray-700 mb-1">
+              📅 วันที่อ่านล่าสุด:{" "}
+              {currentLog?.Timestamp
+                ? new Date(currentLog.Timestamp).toLocaleDateString("th-TH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "ไม่มีข้อมูล"}
+            </p>
+            <p className="text-sm text-gray-700 mb-1">
+              💧 ค่าที่อ่าน:{" "}
+              {currentLog?.MeterValue !== undefined
+                ? `${currentLog.MeterValue} ลูกบาศก์เมตร`
+                : "ไม่มีข้อมูล"}
+            </p>
+            
+            <p className="text-sm text-gray-700 mb-1">
+              🖥️ จาก MacAddress: {currentLog?.CameraDevice?.MacAddress ?? "ไม่มีข้อมูล"}
+            </p>
+            <p className="text-sm text-gray-700 mb-3">
+              🎯 OCR Confidence:{" "}
+              {currentLog?.OCRConfidence !== undefined
+                ? `${currentLog.OCRConfidence}%`
+                : "ไม่มีข้อมูล"}
+            </p>
+            <button
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 rounded-md shadow cursor-pointer"
+              onClick={() => navigate(`/waterdetail/${meter.ID}`)}
+            >
+              ดูข้อมูลเพิ่มเติม
+            </button>
+          </div>
+        </Popup>
 
-              <Popup>
-  <div className="w-64 p-4">
-    <h2 className="text-lg font-semibold mb-2 text-center text-gray-800">
-      {meter.Name ?? "ไม่มีชื่อ"}
-    </h2>
-    <p className="text-sm text-gray-700 mb-1">
-      พิกัด: {meter.Latitude.toFixed(4)}, {meter.Longtitude.toFixed(4)}
-    </p>
-    <p className="text-sm text-gray-700 mb-1">
-      💧 ใช้น้ำวันนี้: {meter.UsageToday ?? "ไม่ระบุ"} ลิตร
-    </p>
-    <p className="text-sm text-gray-700 mb-3">
-      📅 เดือนนี้: {meter.UsageMonth ?? "ไม่ระบุ"} ลิตร
-    </p>
-    <button
-      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 rounded-md shadow"
-      onClick={() => handleViewDetail(meter.ID)}
-    >
-      ดูแบบละเอียด
-    </button>
-  </div>
-</Popup>
-            </Marker>
-        ))}
+
+      </Marker>
+    );
+  })}
+
+
 
 
         {newMarker && (
-  <Marker position={[newMarker.lat, newMarker.lng]}>
-    <Popup>
-      <div className="w-64 p-4">
-        <h2 className="text-lg font-semibold mb-3 text-center text-gray-800">
-          เพิ่มมิเตอร์ รพ.มทส.
-        </h2>
-        <input
-          type="text"
-          placeholder="ชื่อมิเตอร์"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          className="border border-gray-300 rounded-md p-2 mb-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-white font-semibold py-2 rounded-md shadow-md"
-          onClick={handleSaveMeter}
-        >
-          บันทึก
-        </button>
-      </div>
-    </Popup>
-  </Marker>
-)}
+          <Marker position={[newMarker.lat, newMarker.lng]}>
+            <Popup>
+              <div className="w-64 p-4">
+                <h2 className="text-lg font-semibold mb-3 text-center text-gray-800">
+                  เพิ่มมิเตอร์ รพ.มทส.
+                </h2>
+                <input
+                  type="text"
+                  placeholder="ชื่อมิเตอร์"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="border border-gray-300 rounded-md p-2 mb-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <button
+                  className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-white font-semibold py-2 rounded-md shadow-md"
+                  onClick={handleSaveMeter}
+                >
+                  บันทึก
+                </button>
+              </div>
+            </Popup>
+          </Marker>
+        )}
 
       </MapContainer>
     </div>

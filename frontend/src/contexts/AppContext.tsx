@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { message  } from "antd";
 import { UsersInterface } from "../interfaces/IUser"
-import { GetUsersById, GetMerters } from "../services/https";
-import { MeterInterface } from "../interfaces/Meter";
+import { GetUsersById, GetMerters, GetAllWaterUsageLogs } from "../services/https";
+import { MeterLocationInterface, WaterMeterValueInterface } from "../interfaces/InterfaceAll";
 
 type AppContextType = {
   user: UsersInterface | null;
   setUser: (user: UsersInterface | null) => void;
-  meters: MeterInterface[]
+  meters: MeterLocationInterface[]
   loading: boolean;
+  waterusage: WaterMeterValueInterface[]
+
 };
 
 
@@ -17,6 +19,7 @@ const AppContext = createContext<AppContextType>({
   setUser: () => {},
   meters: [],
   loading: true,
+  waterusage: [],
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -25,7 +28,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = String(localStorage.getItem("id") ?? "");
     const [messageApi] = message.useMessage();
     const [user, setUser] = useState<UsersInterface | null>(null);
-    const [meters, setMeters] = useState<MeterInterface[]>([]);
+    const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
+    const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
     const [loading, setLoading] = useState(true);
 
     
@@ -46,6 +50,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       let res = await GetMerters();
       if (res.status == 200) {
         setMeters(res.data);
+        messageApi.success("ดึงข้อมูลมิเตอร์เรียบร้อย")
       } else {
         setMeters([]);
         messageApi.open({
@@ -55,6 +60,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
   
+    const getWaterLog = async () => {
+      let res = await GetAllWaterUsageLogs();
+      if (res.status == 200) {
+        setWaterUsage(res.data);
+        messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย")
+      } else {
+        setWaterUsage([]);
+        messageApi.open({
+          type: "error",
+          content: res.data.error,
+        });
+      }
+    };
+
     useEffect(() => {
         setLoading(true);
         setTimeout(() => {
@@ -62,10 +81,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, 500);
         getUserById();
         getMeters();
+        getWaterLog();
     }, []);
 
     return (
-        <AppContext.Provider value={{ user, setUser, meters, loading }}>
+        <AppContext.Provider value={{ user, setUser, meters, loading, waterusage }}>
         {children}
         </AppContext.Provider>
     );

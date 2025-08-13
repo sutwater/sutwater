@@ -1,6 +1,6 @@
 import { UsersInterface } from "../../interfaces/IUser";
 import { SignInInterface } from "../../interfaces/SignIn";
-import { MeterInterface } from "../../interfaces/Meter";
+import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 import axios from "axios";
 
 const apiUrl = "http://localhost:8000";
@@ -74,9 +74,24 @@ async function GetMerters() {
     .catch((e) => e.response);
 }
 
-async function CreateMeter(data: MeterInterface) {
+async function CreateMeter(data: MeterLocationInterface) {
   return await axios
     .post(`${apiUrl}/meters`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+// Waterlog
+async function GetAllWaterUsageLogs() {
+  return await axios
+    .get(`${apiUrl}/waterusages`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function GetMeterLocationDetail(id: string) {
+  return await axios
+    .get(`${apiUrl}/waterdetail/${id}`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -92,4 +107,7 @@ export {
 
   GetMerters,
   CreateMeter,
+
+  GetAllWaterUsageLogs,
+  GetMeterLocationDetail,
 };

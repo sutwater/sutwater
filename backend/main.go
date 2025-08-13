@@ -2,15 +2,17 @@ package main
 
 import (
 	"net/http"
-	"github.com/gin-gonic/gin"
+
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
 	"example.com/sa-67-example/controller/meter"
+	"example.com/sa-67-example/controller/upload_image"
 	"example.com/sa-67-example/controller/users"
+	"example.com/sa-67-example/controller/waterlog"
 	"example.com/sa-67-example/controller/waterusage"
 	"example.com/sa-67-example/middlewares"
 	"example.com/sa-67-example/services"
-	"example.com/sa-67-example/controller/upload_image"
+	"github.com/gin-gonic/gin"
 )
 
 const PORT = "8000"
@@ -51,13 +53,15 @@ func main() {
 		router.DELETE("/user/:id", users.Delete)
 
 		router.GET("/meters", meter.GetAllMeters)
+		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
+		router.GET("/waterdetail/:id", waterlog.GetMeterLocationWithDevices)
 		router.POST("/meters", meter.CreateMeter)
-		
+
 		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้
 	}
-	
+
 	// ✅ API รับข้อมูลน้ำจาก ESP32 + ส่งให้ Frontend
-	
+
 	r.POST("/upload_image", upload_image.UploadMeterImage)
 
 	r.POST("/api/water-usage", waterusage.PostWaterUsage)
@@ -66,8 +70,8 @@ func main() {
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
 	// ✅ Run server
-	r.Run("0.0.0.0:" + PORT)
-	//r.Run("localhost:" + PORT)
+	//r.Run("0.0.0.0:" + PORT)
+	r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {
