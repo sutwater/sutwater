@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import { Gauge , MapPin, Wifi, ArrowUpCircle, ArrowDownCircle, Battery, Network } from 'lucide-react';
+import { Gauge , MapPin, Wifi, ArrowUpCircle, ArrowDownCircle, Battery, Network, ArrowLeft, Clock } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GetMeterLocationDetail } from "../../services/https"
-import { MeterLocationInterface } from '../../interfaces/InterfaceAll';
+import { GetMeterLocationDetail, GetNotificationsByMeterLocation } from "../../services/https"
+import { MeterLocationInterface, NotificationInterface } from '../../interfaces/InterfaceAll';
 import { message } from 'antd';
 
 
 const WaterMonitoringDashboard: React.FC = () => {
   const { id } = useParams<{ id: any }>();
   const [waterDetail, setWaterDetail] = useState<MeterLocationInterface | null>(null);
+  const [notification, setNotification] = useState<NotificationInterface[]>([]);
 
+  console.log("notofication: ",notification)
   const [messageApi] = message.useMessage();
   const navigate = useNavigate();
 
@@ -20,37 +22,35 @@ const WaterMonitoringDashboard: React.FC = () => {
   updatedBy: string[];     
 }
 
-const dailyData: DailyData[] = [];
+  const dailyData: DailyData[] = [];
 
-waterDetail?.CameraDevice?.[0]?.WaterMeterValue?.forEach(wmv => {
-  if (!wmv.Timestamp || wmv.MeterValue === undefined) return;
+  waterDetail?.CameraDevice?.[0]?.WaterMeterValue?.forEach(wmv => {
+    if (!wmv.Timestamp || wmv.MeterValue === undefined) return;
 
-  const date = wmv.Timestamp.slice(0, 10); 
-  let day = dailyData.find(d => d.date === date);
+    const date = wmv.Timestamp.slice(0, 10); 
+    let day = dailyData.find(d => d.date === date);
 
-  // รวมข้อมูลคนแก้ไขจาก WaterUsageLog
-  const users = wmv.WaterUsageLog?.map(log => 
-    log.User ? `${log.User.first_name} ${log.User.last_name}` : `UserID:${log.ID}`
-  ) || [];
+    // รวมข้อมูลคนแก้ไขจาก WaterUsageLog
+    const users = wmv.WaterUsageLog?.map(log => 
+      log.User ? `${log.User.first_name} ${log.User.last_name}` : `UserID:${log.ID}`
+    ) || [];
 
-  if (day) {
-    day.values.push(wmv.MeterValue);
-    day.updatedBy.push(...users);
-  } else {
-    dailyData.push({
-      date,
-      values: [wmv.MeterValue],
-      updatedBy: users
-    });
-  }
-});
+    if (day) {
+      day.values.push(wmv.MeterValue);
+      day.updatedBy.push(...users);
+    } else {
+      dailyData.push({
+        date,
+        values: [wmv.MeterValue],
+        updatedBy: users
+      });
+    }
+  });
 
-// เอาเฉพาะคนแก้ไขไม่ซ้ำ
-dailyData.forEach(day => {
-  day.updatedBy = Array.from(new Set(day.updatedBy));
-});
-
-
+  // เอาเฉพาะคนแก้ไขไม่ซ้ำ
+  dailyData.forEach(day => {
+    day.updatedBy = Array.from(new Set(day.updatedBy));
+  });
 
   console.log("waterdetail: ",waterDetail )
   const getMeterLocationDetailById = async () => {
@@ -66,10 +66,29 @@ dailyData.forEach(day => {
       }
     };
 
+    const getNotificationById = async () => {
+      try {
+        let res = await GetNotificationsByMeterLocation(id);
+        console.log("API response: ", res.data); 
+        if (res.status == 200) {
+          setNotification(res.data);
+        } else {
+          setNotification([]);
+          messageApi.open({
+            type: "error",
+            content: res.data.error,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching notification:", error);
+      }
+    };
+
+
   useEffect(() => {
     
     getMeterLocationDetailById();
-    
+    getNotificationById();
   }, []);
 
   const dailyMeterData = waterDetail?.CameraDevice?.[0]?.WaterMeterValue
@@ -84,6 +103,10 @@ dailyData.forEach(day => {
     }
     return acc;
   }, []) || [];
+
+  useEffect(() => {
+  console.log("notification updated: ", notification);
+}, [notification]);
 
   // ฟังก์ชันสำหรับแสดงชื่อผู้แก้ไข
   const getUpdatedByNames = (waterUsageLog?: any[]) => {
@@ -120,30 +143,34 @@ dailyData.forEach(day => {
     <div className="min-h-screen bg-gray-50 px-30 pb-20 overflow-auto">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)} // -1 = กลับไปหน้าก่อนหน้า
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-            >
-              กลับ
-            </button>
-            <button className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors">
-              {waterDetail?.Name}
-            </button>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm">ที่มิเตอร์อยู่: {waterDetail?.Name}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Wifi className="w-4 h-4" />
-              <span className="text-sm">สถานะ Wi-Fi: ({waterDetail?.CameraDevice?.[0]?.Wifi ? "เชื่อมต่อ" : "ไม่ได้เชื่อมต่อ"})</span>
-            </div>
-          </div>
-        </div>
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => navigate(-1)} // กลับหน้าก่อนหน้า
+        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow-sm hover:bg-gray-200 hover:shadow transition-all"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>ย้อนกลับ</span>
+      </button>
+      <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700 transition-all">
+        {waterDetail?.Name}
+      </button>
+    </div>
+
+    <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 text-gray-600">
+        <MapPin className="w-4 h-4" />
+        <span className="text-sm">ที่มิเตอร์อยู่: {waterDetail?.Name}</span>
       </div>
+      <div className="flex items-center gap-2 text-gray-600">
+        <Wifi className="w-4 h-4" />
+        <span className="text-sm">
+          สถานะ Wi-Fi: ({waterDetail?.CameraDevice?.[0]?.Wifi ? "เชื่อมต่อ" : "ไม่ได้เชื่อมต่อ"})
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* Main Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -195,18 +222,25 @@ dailyData.forEach(day => {
 
         {/* Cumulative Data */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-2">รายละเอียด</h3>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">123</div>
-              <div className="text-sm text-gray-500">จำนวนข้อมูล</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">10</div>
-              <div className="text-sm text-gray-500">การแจ้งเตือน</div>
-            </div>
-            
-          
-        </div>
+  <h3 className="text-lg font-semibold mb-2">รายละเอียด</h3>
+
+  <div className="text-center">
+    <div className="text-3xl font-bold text-blue-600">
+      {waterDetail?.CameraDevice && waterDetail.CameraDevice.length > 0
+        ? waterDetail.CameraDevice.reduce((total, cam) => total + (cam.WaterMeterValue?.length || 0), 0)
+        : "ไม่มีข้อมูล"}
+    </div>
+    <div className="text-sm text-gray-500">จำนวนข้อมูล</div>
+  </div>
+
+  <div className="text-center">
+    <div className="text-3xl font-bold text-red-600">
+      {notification && notification.length > 0 ? notification.length : "ไม่มีข้อมูล"}
+    </div>
+    <div className="text-sm text-gray-500">การแจ้งเตือน</div>
+  </div>
+</div>
+
 
         {/* Daily Consumption Chart */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -272,57 +306,113 @@ dailyData.forEach(day => {
               />
             </LineChart>
           </ResponsiveContainer>
-
           </div>
-        
         </div>
+        {/* แจ้งเตือน */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+    <div className="text-sm text-gray-500"></div>
+  </div>
 
-        {/* Flow Chart */}
-        
+  <div className="h-64 overflow-auto">
+    {notification?.length === 0 ? (
+      <div className="text-gray-500 text-center mt-6">ไม่มีการแจ้งเตือน</div>
+    ) : (
+       notification.map((n, idx) => (
+      <div
+  key={idx}
+  className="p-4 mb-4 rounded-lg border transition-all duration-200 cursor-pointer group hover:bg-gray-50"
+>
+  <div className="flex items-start space-x-4">
+    <div className="flex-shrink-0 mt-1"></div>
+    <div className="flex-1 min-w-0">
+      <p className="text-gray-800 font-medium leading-relaxed mb-2">
+        {n.Message}
+      </p>
+      {n.CreatedAt && (
+        <div className="flex items-center text-xs text-gray-500 space-x-2">
+          <Clock className="w-3 h-3" />
+          <span>{new Date(n.CreatedAt).toLocaleString("th-TH")}</span>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+    ))
+    )}
+  </div>
+</div>
+
+
+
       </div>
 
       {/* Data Table */}
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4 overflow-auto">
-        <h3 className="text-lg font-semibold">ข้อมูลค่ามิเตอร์ที่อ่านได้</h3>
-      </div>
-      
-      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left p-3 font-medium text-gray-600">วัน/เดือน/ปี</th>
-              <th className="text-left p-3 font-medium text-gray-600">ค่าที่อ่านได้</th>
-              <th className="text-left p-3 font-medium text-gray-600">แก้ไขโดย</th>
-              <th className="text-left p-3 font-medium text-gray-600">การจัดการ</th>
+    {/* Data Table */}
+<div className="bg-white rounded-lg shadow-sm p-6">
+  <div className="flex items-center justify-between mb-4 overflow-auto">
+    <h3 className="text-lg font-semibold">ข้อมูลค่ามิเตอร์ที่อ่านได้</h3>
+    <button
+      className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors"
+      onClick={() => console.log("เพิ่มข้อมูลใหม่")}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-4 h-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      เพิ่มข้อมูล
+    </button>
+  </div>
+
+  {waterDetail?.CameraDevice?.[0]?.WaterMeterValue &&
+  waterDetail.CameraDevice[0].WaterMeterValue.length > 0 ? (
+    <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="text-left p-3 font-medium text-gray-600">วัน/เดือน/ปี</th>
+            <th className="text-left p-3 font-medium text-gray-600">ค่าที่อ่านได้</th>
+            <th className="text-left p-3 font-medium text-gray-600">แก้ไขโดย</th>
+            <th className="text-left p-3 font-medium text-gray-600">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {waterDetail.CameraDevice[0].WaterMeterValue.map((wmv, index) => (
+            <tr key={index} className="border-t hover:bg-gray-50">
+              <td className="p-3 text-gray-800">
+                {wmv.Timestamp
+                  ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
+                      year: "numeric",
+                      month: "long",
+                      day: "2-digit",
+                    })
+                  : "-"}
+              </td>
+              <td className="p-3 text-gray-800">{wmv.MeterValue} ลูกบาศก์เมตร</td>
+              <td className="p-3 text-gray-800">
+                {getUpdatedByNames(wmv.WaterUsageLog)}
+              </td>
+              <td className="p-3 text-gray-800 flex gap-2">
+                <button className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">แก้ไข</button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {waterDetail?.CameraDevice?.[0]?.WaterMeterValue?.map((wmv, index) => (
-              <tr key={index} className="border-t hover:bg-gray-50">
-                <td className="p-3 text-gray-800">
-                  {wmv.Timestamp
-                    ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "2-digit",
-                      })
-                    : "-"}
-                </td>
-                <td className="p-3 text-gray-800">{wmv.MeterValue} ลูกบาศก์เมตร</td>
-                <td className="p-3 text-gray-800">
-                  {getUpdatedByNames(wmv.WaterUsageLog)}
-                </td>
-                <td className="p-3 text-gray-800 flex gap-2">
-                  <button className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">แก้ไข</button>
-                  <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">ลบ</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
+  ) : (
+    <div className="text-gray-500 text-center mt-6">ไม่มีข้อมูลมิเตอร์ล่าสุด</div>
+  )}
+</div>
+
     </div>
   );
 };

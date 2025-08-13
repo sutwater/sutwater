@@ -29,7 +29,7 @@ export interface MeterLocationInterface {
 
 export interface CameraDeviceInterface {
   ID?: number;
-  MacAddress?: number;
+  MacAddress?: string;
   Battery?: number;
   Wifi?: boolean;
   Status?: boolean;
@@ -61,3 +61,15 @@ export interface WaterMeterImageInterface {
   ID?: number;
   ImagePath?: string;
 }
+
+export interface NotificationInterface {
+  ID?: number;
+  Message?: string;
+  IsRead?: boolean;
+  CameraDeviceID?: number;
+  CameraDevice?: CameraDeviceInterface; // relation กับ CameraDevice
+  CreatedAt?: string;   
+  UpdatedAt?: string;
+}
+
+

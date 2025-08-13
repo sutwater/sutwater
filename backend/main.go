@@ -6,6 +6,7 @@ import (
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
 	"example.com/sa-67-example/controller/meter"
+	"example.com/sa-67-example/controller/notification"
 	"example.com/sa-67-example/controller/upload_image"
 	"example.com/sa-67-example/controller/users"
 	"example.com/sa-67-example/controller/waterlog"
@@ -55,6 +56,7 @@ func main() {
 		router.GET("/meters", meter.GetAllMeters)
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
 		router.GET("/waterdetail/:id", waterlog.GetMeterLocationWithDevices)
+		router.GET("notification/:id", notification.GetNotificationsByMeterLocation)
 		router.POST("/meters", meter.CreateMeter)
 
 		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้

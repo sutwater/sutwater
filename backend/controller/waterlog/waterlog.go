@@ -17,16 +17,22 @@ func GetAllWaterUsageValues(c *gin.Context) {
 		return
 	}
 
+	// Subquery ดึงค่า timestamp ล่าสุดของแต่ละ MacAddress
 	subQuery := db.
 		Table("water_meter_values").
-		Select("mac_address_id, MAX(timestamp) AS max_timestamp").
-		Group("mac_address_id")
+		Select("mac_address, MAX(timestamp) AS max_timestamp").
+		Group("mac_address")
 
 	var latestValues []entity.WaterMeterValue
 
+	// Join กับ subQuery เพื่อดึงข้อมูลแถวล่าสุดของแต่ละเครื่อง
 	err := db.
 		Table("water_meter_values AS wm").
-		Joins("JOIN (?) AS wm2 ON wm.mac_address_id = wm2.mac_address_id AND wm.timestamp = wm2.max_timestamp", subQuery).
+		Joins(`
+			JOIN (?) AS wm2 
+			ON wm.mac_address = wm2.mac_address 
+			AND wm.timestamp = wm2.max_timestamp
+		`, subQuery).
 		Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
 		Preload("WaterUsageLog").
