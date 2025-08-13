@@ -192,7 +192,7 @@ const WaterMeterMap = () => {
             </p>
             
             <p className="text-sm text-gray-700 mb-1">
-              🖥️ จาก MacAddress: {currentLog?.CameraDevice?.MacAddress ?? "ไม่มีข้อมูล"}
+              🖥️ MacAddress: {currentLog?.CameraDevice?.MacAddress ?? "ไม่มีข้อมูล"}
             </p>
             <p className="text-sm text-gray-700 mb-3">
               🎯 OCR Confidence:{" "}

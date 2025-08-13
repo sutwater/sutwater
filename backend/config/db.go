@@ -71,18 +71,19 @@ func SetupDatabase() {
 	}
 	// Camera Devices
 	cameraDevices := []entity.CameraDevice{
-		{MacAddress: 100001, Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
-		{MacAddress: 100002, Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
-		{MacAddress: 100003, Battery: 30, Wifi: false, Status: false, MeterLocationID: 3},
+		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
+		{MacAddress: "22:2B:45:12:3A:B9", Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
+		{MacAddress: "33:3B:46:13:3B:B8", Battery: 30, Wifi: false, Status: false, MeterLocationID: 3},
 	}
 
-	for _, cam := range cameraDevices {
-		db.FirstOrCreate(&cam, &entity.CameraDevice{MacAddress: cam.MacAddress})
+	// บันทึกลง DB ก่อน เพื่อให้ได้ ID
+	for i := range cameraDevices {
+		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
 	}
 
 	// Notifications
+	// Notifications
 	notifications := []entity.Notification{}
-
 	messages := []string{
 		"พบน้ำรั่ว", "ท่อแตก", "แรงดันน้ำสูงเกิน", "มิเตอร์ไม่ตอบสนอง",
 		"ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์",
@@ -90,38 +91,43 @@ func SetupDatabase() {
 	}
 
 	for _, cam := range cameraDevices {
-		for i := 0; i < len(messages); i++ {
+		for i, msg := range messages {
 			notifications = append(notifications, entity.Notification{
-				Message:        fmt.Sprintf("%s - Device %d at %s", messages[i], cam.MacAddress, time.Now().Add(time.Duration(-i)*time.Hour).Format("2006-01-02 15:04")),
-				IsRead:         i%2 == 0, // สลับอ่านแล้ว/ยังไม่อ่าน
-				CameraDeviceID: uint(cam.ID),
+				Message:        msg,
+				IsRead:         i%2 == 0,
+				CameraDeviceID: cam.ID, // ใช้ ID ของ CameraDevice
 			})
 		}
 	}
+
+	// บันทึกลง DB
+	db.Create(&notifications)
+
+	// สุดท้ายบันทึก Notification
+	db.Create(&notifications)
 
 	// บันทึกลง DB
 
 	// Water Meter Values
 	waterMeterValues := []entity.WaterMeterValue{}
 
-	// สมมติเรามี 3 เครื่อง MacAddressID: 100001, 100002, 100003
-	macAddresses := []uint{100001, 100002, 100003}
+	// เปลี่ยนให้ macAddresses เป็น string
+	macAddresses := []string{"11:1B:44:11:3A:B7", "22:2B:45:12:3A:B9", "33:3B:46:13:3B:B8"}
 
 	// กำหนดค่ามิเตอร์เริ่มต้นสำหรับแต่ละเครื่อง
 	startValues := []int{1500, 1200, 1800}
 
 	for d := 10; d >= 0; d-- { // 11 วันย้อนหลัง
-		for i, macID := range macAddresses {
-			meterValue := startValues[i] + d*50 + i*100 // เพิ่มค่าต่างกันและไล่วัน
+		for i, mac := range macAddresses {
+			meterValue := startValues[i] + d*50 + i*100
 			waterMeterValues = append(waterMeterValues, entity.WaterMeterValue{
-				MeterValue:    uint(meterValue), // แปลงเป็น uint
+				MeterValue:    uint(meterValue),
 				Timestamp:     time.Now().Add(-time.Duration(d) * 24 * time.Hour),
 				OCRConfidence: uint(90 + i),
-				MacAddressID:  macID,
+				MacAddress:    mac, // ตรงนี้เป็น string แล้ว
 			})
 		}
 	}
-
 	db.Create(&waterMeterValues)
 
 	// Water Usage Logs
