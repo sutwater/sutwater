@@ -34,3 +34,18 @@ func GetNotificationsByMeterLocation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, notifications)
 }
+
+func GetAllNotifications(c *gin.Context) {
+	var notifications []entity.Notification
+
+	if err := config.DB().
+		Preload("CameraDevice").
+		Preload("CameraDevice.MeterLocation").
+		Find(&notifications).Error; err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, notifications)
+}

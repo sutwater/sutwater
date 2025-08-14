@@ -63,7 +63,7 @@ export interface WaterMeterImageInterface {
 }
 
 export interface NotificationInterface {
-  ID?: number;
+  ID: number;
   Message?: string;
   IsRead?: boolean;
   CameraDeviceID?: number;

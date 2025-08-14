@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { message  } from "antd";
 import { UsersInterface } from "../interfaces/IUser"
-import { GetUsersById, GetMerters, GetAllWaterUsageLogs } from "../services/https";
-import { MeterLocationInterface, WaterMeterValueInterface } from "../interfaces/InterfaceAll";
+import { GetUsersById, GetMerters, GetAllWaterUsageLogs,GetAllNotifications } from "../services/https";
+import { MeterLocationInterface, WaterMeterValueInterface, NotificationInterface } from "../interfaces/InterfaceAll";
 
 type AppContextType = {
   user: UsersInterface | null;
@@ -10,6 +10,7 @@ type AppContextType = {
   meters: MeterLocationInterface[]
   loading: boolean;
   waterusage: WaterMeterValueInterface[]
+  notifications: NotificationInterface[]
 
 };
 
@@ -20,6 +21,7 @@ const AppContext = createContext<AppContextType>({
   meters: [],
   loading: true,
   waterusage: [],
+  notifications: [],
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -30,6 +32,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [user, setUser] = useState<UsersInterface | null>(null);
     const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
     const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
+    const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
     const [loading, setLoading] = useState(true);
 
     
@@ -59,7 +62,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
     };
-  
+    
+    const getNotification = async () => {
+      let res = await GetAllNotifications();
+      if (res.status == 200) {
+        setNotifications(res.data);
+        messageApi.success("ดึงข้อมูลมิเตอร์เรียบร้อย")
+      } else {
+        setNotifications([]);
+        messageApi.open({
+          type: "error",
+          content: res.data.error,
+        });
+      }
+    };
+
     const getWaterLog = async () => {
       let res = await GetAllWaterUsageLogs();
       if (res.status == 200) {
@@ -82,10 +99,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getUserById();
         getMeters();
         getWaterLog();
+        getNotification();
     }, []);
 
     return (
-        <AppContext.Provider value={{ user, setUser, meters, loading, waterusage }}>
+        <AppContext.Provider value={{ user, setUser, meters, loading, waterusage, notifications }}>
         {children}
         </AppContext.Provider>
     );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import { Gauge , MapPin, Wifi, ArrowUpCircle, ArrowDownCircle, Battery, Network, ArrowLeft, Clock } from 'lucide-react';
+import { Gauge , MapPin, Wifi, ArrowUpCircle, ArrowDownCircle, Battery, Network, ArrowLeft, Clock, Bell, Droplet, Building2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GetMeterLocationDetail, GetNotificationsByMeterLocation } from "../../services/https"
 import { MeterLocationInterface, NotificationInterface } from '../../interfaces/InterfaceAll';
@@ -152,9 +152,10 @@ const WaterMonitoringDashboard: React.FC = () => {
         <ArrowLeft className="w-4 h-4" />
         <span>ย้อนกลับ</span>
       </button>
-      <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700 transition-all">
-        {waterDetail?.Name}
-      </button>
+      <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-emerald-700 transition-all">
+    <Building2 className="w-5 h-5" />
+    <span className="font-semibold">{waterDetail?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
+  </div>
     </div>
 
     <div className="flex items-center gap-6">
@@ -221,25 +222,41 @@ const WaterMonitoringDashboard: React.FC = () => {
         </div>
 
         {/* Cumulative Data */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-  <h3 className="text-lg font-semibold mb-2">รายละเอียด</h3>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+  {/* หัวข้อ */}
+  {/* <h3 className="text-xl font-semibold text-gray-800 mb-4">รายละเอียด</h3> */}
 
-  <div className="text-center">
-    <div className="text-3xl font-bold text-blue-600">
-      {waterDetail?.CameraDevice && waterDetail.CameraDevice.length > 0
-        ? waterDetail.CameraDevice.reduce((total, cam) => total + (cam.WaterMeterValue?.length || 0), 0)
-        : "ไม่มีข้อมูล"}
+  {/* Content */}
+  <div className="flex flex-col md:flex-row justify-around gap-6">
+    {/* Water Data */}
+    <div className="flex flex-col items-center bg-blue-50 rounded-lg p-4 w-40 hover:shadow-md transition-shadow duration-200">
+      <div className="bg-blue-100 p-3 rounded-full mb-2">
+        <Droplet className="w-6 h-6 text-blue-600" />
+      </div>
+      <div className="text-3xl font-bold text-blue-600">
+        {waterDetail?.CameraDevice && waterDetail.CameraDevice.length > 0
+          ? waterDetail.CameraDevice.reduce(
+              (total, cam) => total + (cam.WaterMeterValue?.length || 0),
+              0
+            )
+          : "ไม่มี"}
+      </div>
+      <div className="text-sm text-gray-500 mt-1">จำนวนข้อมูล</div>
     </div>
-    <div className="text-sm text-gray-500">จำนวนข้อมูล</div>
-  </div>
 
-  <div className="text-center">
-    <div className="text-3xl font-bold text-red-600">
-      {notification && notification.length > 0 ? notification.length : "ไม่มีข้อมูล"}
+    {/* Notifications */}
+    <div className="flex flex-col items-center bg-red-50 rounded-lg p-4 w-40 hover:shadow-md transition-shadow duration-200">
+      <div className="bg-red-100 p-3 rounded-full mb-2">
+        <Bell className="w-6 h-6 text-red-600" />
+      </div>
+      <div className="text-3xl font-bold text-red-600">
+        {notification && notification.length > 0 ? notification.length : "ไม่มี"}
+      </div>
+      <div className="text-sm text-gray-500 mt-1">การแจ้งเตือน</div>
     </div>
-    <div className="text-sm text-gray-500">การแจ้งเตือน</div>
   </div>
 </div>
+
 
 
         {/* Daily Consumption Chart */}
@@ -267,7 +284,7 @@ const WaterMonitoringDashboard: React.FC = () => {
               </div>
               <div className="ml-auto text-right">
                 <div className="text-2xl font-bold">{waterDetail?.CameraDevice?.[0]?.Battery
-                                                      ? `${waterDetail?.CameraDevice?.[0]?.Battery}`
+                                                      ? `${waterDetail?.CameraDevice?.[0]?.Battery} %`
                                                       : "ไม่มีข้อมูล"}
                 </div>
               </div>
