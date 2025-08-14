@@ -15,6 +15,7 @@ import {
   UpdateUsersById,
 } from "../../services/https";
 import "./AdminDashboard.css";
+import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
 
 const { Search } = Input;
@@ -39,6 +40,7 @@ const AdminDashboard: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const navigate = useNavigate();
 
   const [form] = Form.useForm();
 
@@ -102,7 +104,6 @@ const AdminDashboard: React.FC = () => {
 
   const handleExportCSV = () => {
     const csvContent =
-      "data:text/csv;charset=utf-8," +
       ["ID,ชื่อ,นามสกุล,Email,เพศ"]
         .concat(
           users.map(
@@ -190,6 +191,10 @@ const AdminDashboard: React.FC = () => {
         pagination={{ pageSize: 5 }}
         className="admin-table"
       />
+
+      <Button onClick={() => navigate("/")} style={{ marginBottom: 16 }}>
+        กลับหน้าหลัก
+      </Button>
 
       <Modal
         title="แก้ไขสมาชิก"

@@ -17,6 +17,5 @@ export const menuLinks: MenuLink[] = [
     { name: "หน้าแรก", path: "/" },
     { name: "ตรวจสอบการใช้น้ำ", path: "/water" },
     { name: "ติดต่อและสอบถาม", path: "/contact" },
-    { name: "แอดมิน", path: "/admin" },
 ];
 

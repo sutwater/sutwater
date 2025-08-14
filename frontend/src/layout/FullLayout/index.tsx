@@ -73,7 +73,7 @@ const FullLayout: React.FC = () => {
 
   return (
     <div className="full-layout">
-      {!isAdminPath && <Navbar />}
+      {<Navbar />}
 
 
       {/* Main Content Area */}

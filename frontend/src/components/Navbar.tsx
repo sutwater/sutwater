@@ -40,6 +40,11 @@ const UserProfileDropdown = ({ user, onLogout }: { user: any, onLogout: () => vo
         setIsOpen(false);
     };
 
+    const handleAdminDashboard = () => {
+        window.location.href = '/admin';
+        setIsOpen(false);
+    };
+
     return (
         <div className="relative z-1000 inline-block text-left" ref={dropdownRef}>
             {/* Main Button */}
@@ -104,6 +109,14 @@ const UserProfileDropdown = ({ user, onLogout }: { user: any, onLogout: () => vo
                         >
                             <Edit className="w-4 h-4" />
                             แก้ไขข้อมูลส่วนตัว
+                        </button>
+
+                        <button
+                            onClick={handleAdminDashboard}
+                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
+                        >
+                            <Settings className="w-4 h-4" />
+                            Admin Dashboard
                         </button>
                         
                         {/* <button
