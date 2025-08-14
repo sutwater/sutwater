@@ -18,7 +18,6 @@ export const TimeFilter: React.FC<TimeFilterProps> = ({
     { value: 'today', label: 'วันนี้' },
     { value: 'week', label: 'สัปดาห์นี้' },
     { value: 'month', label: 'เดือนนี้' },
-    { value: 'quarter', label: 'ไตรมาสนี้' },
     { value: 'year', label: 'ปีนี้' }
   ];
 
@@ -50,7 +49,7 @@ export const TimeFilter: React.FC<TimeFilterProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* <div className="flex items-center space-x-4">
           <h3 className="text-lg font-semibold text-gray-900">มุมมอง</h3>
           <div className="flex space-x-2">
             {views.map((view) => {
@@ -71,7 +70,7 @@ export const TimeFilter: React.FC<TimeFilterProps> = ({
               );
             })}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

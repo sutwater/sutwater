@@ -105,6 +105,13 @@ async function GetNotificationsByMeterLocation(id: string) {
     .catch((e) => e.response);
 }
 
+async function GetAllNotifications() {
+  return await axios
+    .get(`${apiUrl}/notifications`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 export {
   SignIn,
   GetGender,
@@ -121,4 +128,5 @@ export {
   GetMeterLocationDetail,
 
   GetNotificationsByMeterLocation,
+  GetAllNotifications,
 };

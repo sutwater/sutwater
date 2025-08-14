@@ -1,24 +1,8 @@
 import { WaterUsageData, DailyStats, MonthlyStats, NotificationStats, PeriodComparison } from '../interfaces/types';
 
 export const waterUsageData: WaterUsageData[] = [
-  { id: '1', date: '2024-01-15', period: '06:00-09:00', usage: 45, location: 'ห้องครัว', type: 'cooking' },
-  { id: '2', date: '2024-01-15', period: '09:00-12:00', usage: 78, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '3', date: '2024-01-15', period: '12:00-15:00', usage: 23, location: 'ห้องครัว', type: 'drinking' },
-  { id: '4', date: '2024-01-15', period: '15:00-18:00', usage: 156, location: 'สวน', type: 'irrigation' },
-  { id: '5', date: '2024-01-15', period: '18:00-21:00', usage: 89, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '6', date: '2024-01-15', period: '21:00-00:00', usage: 34, location: 'ห้องครัว', type: 'drinking' },
-  { id: '7', date: '2024-01-16', period: '06:00-09:00', usage: 52, location: 'ห้องครัว', type: 'cooking' },
-  { id: '8', date: '2024-01-16', period: '09:00-12:00', usage: 67, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '9', date: '2024-01-16', period: '12:00-15:00', usage: 29, location: 'ห้องครัว', type: 'drinking' },
-  { id: '10', date: '2024-01-16', period: '15:00-18:00', usage: 143, location: 'สวน', type: 'irrigation' },
-  { id: '11', date: '2024-01-16', period: '18:00-21:00', usage: 92, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '12', date: '2024-01-16', period: '21:00-00:00', usage: 28, location: 'ห้องครัว', type: 'drinking' },
-  { id: '13', date: '2024-01-17', period: '06:00-09:00', usage: 41, location: 'ห้องครัว', type: 'cooking' },
-  { id: '14', date: '2024-01-17', period: '09:00-12:00', usage: 85, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '15', date: '2024-01-17', period: '12:00-15:00', usage: 31, location: 'ห้องครัว', type: 'drinking' },
-  { id: '16', date: '2024-01-17', period: '15:00-18:00', usage: 167, location: 'สวน', type: 'irrigation' },
-  { id: '17', date: '2024-01-17', period: '18:00-21:00', usage: 76, location: 'ห้องน้ำ', type: 'cleaning' },
-  { id: '18', date: '2024-01-17', period: '21:00-00:00', usage: 22, location: 'ห้องครัว', type: 'drinking' },
+  
+  
 ];
 
 export const dailyStats: DailyStats[] = [
@@ -31,49 +15,32 @@ export const dailyStats: DailyStats[] = [
     peakPeriod: '15:00-18:00',
     lowPeriod: '12:00-15:00'
   },
-  {
-    date: '2024-01-16',
-    totalUsage: 411,
-    maxUsage: 143,
-    minUsage: 28,
-    avgUsage: 68.5,
-    peakPeriod: '15:00-18:00',
-    lowPeriod: '21:00-00:00'
-  },
-  {
-    date: '2024-01-17',
-    totalUsage: 422,
-    maxUsage: 167,
-    minUsage: 22,
-    avgUsage: 70.3,
-    peakPeriod: '15:00-18:00',
-    lowPeriod: '21:00-00:00'
-  }
+  
 ];
 
 export const monthlyStats: MonthlyStats[] = [
   {
     month: 'มกราคม 2567',
-    totalUsage: 12450,
-    maxDaily: 467,
-    minDaily: 298,
-    avgDaily: 401.6,
+    totalUsage: 30,
+    maxDaily: 20,
+    minDaily: 40,
+    avgDaily: 22,
     daysCount: 31
   },
   {
     month: 'ธันวาคม 2566',
-    totalUsage: 11890,
-    maxDaily: 445,
-    minDaily: 312,
-    avgDaily: 383.5,
+    totalUsage: 10,
+    maxDaily: 15,
+    minDaily: 11,
+    avgDaily: 12,
     daysCount: 31
   },
   {
     month: 'พฤศจิกายน 2566',
-    totalUsage: 11234,
-    maxDaily: 423,
-    minDaily: 287,
-    avgDaily: 374.5,
+    totalUsage: 20,
+    maxDaily: 20,
+    minDaily: 20,
+    avgDaily: 20,
     daysCount: 30
   }
 ];
@@ -100,12 +67,5 @@ export const periodComparisons: PeriodComparison[] = [
     previousUsage: 11890,
     change: 560,
     changePercent: 4.7
-  },
-  {
-    period: '3 เดือนที่ผ่านมา',
-    currentUsage: 35574,
-    previousUsage: 33912,
-    change: 1662,
-    changePercent: 4.9
   }
 ];

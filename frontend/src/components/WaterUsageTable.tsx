@@ -55,24 +55,11 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
     return 'text-green-600 bg-green-50';
   };
 
-  const getTypeIcon = (type: string) => {
-    const iconMap = {
-      drinking: '🥤',
-      cooking: '🍳',
-      cleaning: '🧽',
-      irrigation: '🌱',
-      other: '💧'
-    };
-    return iconMap[type as keyof typeof iconMap] || '💧';
-  };
-
-  const types = ['all', ...Array.from(new Set(data.map(item => item.type)))];
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-200">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <h3 className="text-xl font-semibold text-gray-900">รายละเอียดการใช้น้ำ</h3>
+          <h3 className="text-xl font-semibold text-gray-900">ข้อมูลค่ามิเตอร์ที่อ่านได้ล่าสุด</h3>
           
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
             {/* Search */}
@@ -87,25 +74,6 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
               />
             </div>
             
-            {/* Type Filter */}
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm appearance-none bg-white"
-              >
-                {types.map(type => (
-                  <option key={type} value={type}>
-                    {type === 'all' ? 'ทุกประเภท' : 
-                     type === 'drinking' ? 'ดื่ม' :
-                     type === 'cooking' ? 'ทำอาหาร' :
-                     type === 'cleaning' ? 'ทำความสะอาด' :
-                     type === 'irrigation' ? 'รดน้ำต้นไม้' : 'อื่นๆ'}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
       </div>
@@ -147,7 +115,7 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
               >
                 <div className="flex items-center space-x-1">
                   <Droplets className="h-4 w-4" />
-                  <span>การใช้ (ลิตร)</span>
+                  <span>ค่ามิเตอร์</span>
                   {sortField === 'usage' && (
                     sortDirection === 'asc' ? 
                     <ChevronUp className="h-4 w-4" /> : 
@@ -169,7 +137,7 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
                   )}
                 </div>
               </th>
-              <th 
+              {/* <th 
                 className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('type')}
               >
@@ -181,7 +149,7 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
                     <ChevronDown className="h-4 w-4" />
                   )}
                 </div>
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -215,7 +183,6 @@ export const WaterUsageTable: React.FC<WaterUsageTableProps> = ({ data }) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
-                    <span className="text-lg">{getTypeIcon(item.type)}</span>
                     <span className="text-sm text-gray-900">
                       {item.type === 'drinking' ? 'ดื่ม' :
                        item.type === 'cooking' ? 'ทำอาหาร' :
