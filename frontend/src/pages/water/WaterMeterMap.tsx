@@ -48,7 +48,7 @@ const WaterMeterMap = () => {
 });
 
 
-    console.log("waterusage: ", waterusage)
+    console.log("meters: ", meters)
 
     const handleAddMarker = (lat: number, lng: number) => {
       setNewMarker({ lat, lng });
@@ -66,7 +66,7 @@ const WaterMeterMap = () => {
         const payload: MeterLocationInterface = {
             Name: newName,
             Latitude: newMarker.lat,
-            Longtitude: newMarker.lng, 
+            Longitude: newMarker.lng, 
           };
 
       let res = await CreateMeter(payload);
@@ -151,7 +151,7 @@ const WaterMeterMap = () => {
         {addingMode && <LocationMarker onAdd={handleAddMarker} />}
 
         {meters
-  .filter(m => typeof m.Latitude === "number" && typeof m.Longtitude === "number")
+  .filter(m => typeof m.Latitude === "number" && typeof m.Longitude === "number")
   .map((meter) => {
     // หา WaterMeterValue ของ log ที่ MeterLocation.ID ตรงกับ meter.ID
     const currentLog = waterusage.find(
@@ -159,7 +159,7 @@ const WaterMeterMap = () => {
       );
       
     return (
-      <Marker key={meter.ID} position={[meter.Latitude, meter.Longtitude]}>
+      <Marker key={meter.ID} position={[meter.Latitude, meter.Longitude]}>
         <Tooltip
           direction="top"
           offset={[0, -35]}

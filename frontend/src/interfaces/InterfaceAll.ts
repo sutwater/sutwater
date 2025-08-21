@@ -23,7 +23,7 @@ export interface MeterLocationInterface {
   ID?: number;
   Name: string;
   Latitude: number;
-  Longtitude: number;
+  Longitude: number;
   CameraDevice?: CameraDeviceInterface[]; 
 }
 
@@ -35,6 +35,7 @@ export interface CameraDeviceInterface {
   Status?: boolean;
   MeterLocation?: MeterLocationInterface;
   WaterMeterValue?: WaterMeterValueInterface[]; 
+  DailyWaterUsage?: DailyWaterUsageInterface[]; 
 }
 
 export interface WaterLogInterface {
@@ -56,6 +57,14 @@ export interface WaterMeterValueInterface {
   WaterMeterImage?: WaterMeterImageInterface;
   WaterUsageLog?: WaterLogInterface[];
 }
+
+export interface DailyWaterUsageInterface {
+  ID?: number;
+  Usage?: number;
+  Timestamp?: string;
+  CameraDevice?: CameraDeviceInterface;
+}
+
 
 export interface WaterMeterImageInterface {
   ID?: number;

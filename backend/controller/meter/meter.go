@@ -41,9 +41,9 @@ func CreateMeter(c *gin.Context) {
 	}
 
 	newMeter := entity.MeterLocation{
-		Name:       input.Name,
-		Latitude:   input.Latitude,
-		Longtitude: input.Longtitude,
+		Name:      input.Name,
+		Latitude:  input.Latitude,
+		Longitude: input.Longitude,
 	}
 
 	if err := db.Create(&newMeter).Error; err != nil {
