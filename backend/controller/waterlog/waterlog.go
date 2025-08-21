@@ -18,24 +18,24 @@ func GetAllWaterUsageValues(c *gin.Context) {
 	}
 
 	// Subquery ดึงค่า timestamp ล่าสุดของแต่ละ MacAddress
+	// Subquery ดึงค่า timestamp ล่าสุดของแต่ละ CameraDeviceID
 	subQuery := db.
 		Table("water_meter_values").
-		Select("mac_address, MAX(timestamp) AS max_timestamp").
-		Group("mac_address")
+		Select("camera_device_id, MAX(timestamp) AS max_timestamp").
+		Group("camera_device_id")
 
 	var latestValues []entity.WaterMeterValue
 
-	// Join กับ subQuery เพื่อดึงข้อมูลแถวล่าสุดของแต่ละเครื่อง
+	// Join กับ subQuery เพื่อดึงข้อมูลแถวล่าสุดของแต่ละกล้อง
 	err := db.
 		Table("water_meter_values AS wm").
 		Joins(`
-			JOIN (?) AS wm2 
-			ON wm.mac_address = wm2.mac_address 
-			AND wm.timestamp = wm2.max_timestamp
-		`, subQuery).
+        JOIN (?) AS wm2 
+        ON wm.camera_device_id = wm2.camera_device_id 
+        AND wm.timestamp = wm2.max_timestamp
+    `, subQuery).
 		Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
-		Preload("WaterUsageLog").
 		Preload("WaterMeterImage").
 		Find(&latestValues).Error
 
@@ -64,8 +64,9 @@ func GetMeterLocationWithDevices(c *gin.Context) {
 
 	var location entity.MeterLocation
 
-	// preload CameraDevice -> WaterMeterValue -> WaterUsageLog
-	err = db.Preload("CameraDevice.WaterMeterValue.WaterUsageLog.Users").
+	// preload CameraDevice -> WaterMeterValue
+	err = db.Preload("CameraDevice.WaterMeterValue.Users").
+		Preload("CameraDevice.DailyWaterUsage").
 		First(&location, id).Error
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "MeterLocation not found"})

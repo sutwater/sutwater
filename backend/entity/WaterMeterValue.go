@@ -13,11 +13,12 @@ type WaterMeterValue struct {
 	Timestamp     time.Time
 	OCRConfidence uint
 
-	MacAddress   string
-	CameraDevice *CameraDevice `gorm:"foreignKey:MacAddress;references:MacAddress"`
+	CameraDeviceID uint
+	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
 
 	WaterMeterImageID uint
 	WaterMeterImage   *WaterMeterImage `gorm:"foreignKey:WaterMeterImageID"`
 
-	WaterUsageLog []WaterUsageLog `gorm:"foreignKey:WaterMeterValueID"`
+	UserID uint
+	Users  Users `gorm:"foreignKey:UserID"`
 }
