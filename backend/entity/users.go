@@ -17,4 +17,6 @@ type Users struct {
 
 	GenderID uint     `json:"gender_id"`
 	Gender   *Genders `gorm:"foreignKey: gender_id" json:"gender"`
+
+	WaterMeterValues []WaterMeterValue `gorm:"foreignKey:UserID"`
 }

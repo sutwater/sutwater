@@ -6,6 +6,7 @@ import (
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/entity"
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
@@ -48,7 +49,7 @@ func GetAllWaterUsageValues(c *gin.Context) {
 }
 
 // GET /api/meterlocation/:id/detail
-func GetMeterLocationWithDevices(c *gin.Context) {
+func GetCameraDeviceWithUsage(c *gin.Context) {
 	db := config.DB()
 	if db == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
@@ -62,16 +63,71 @@ func GetMeterLocationWithDevices(c *gin.Context) {
 		return
 	}
 
-	var location entity.MeterLocation
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
 
-	// preload CameraDevice -> WaterMeterValue
-	err = db.Preload("CameraDevice.WaterMeterValue.Users").
-		Preload("CameraDevice.DailyWaterUsage").
-		First(&location, id).Error
+	var cameraDevice entity.CameraDevice
+
+	query := db.Model(&entity.CameraDevice{}).Preload("MeterLocation")
+
+	if startDate != "" && endDate != "" {
+		query = query.
+			Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
+				return db.Where("timestamp BETWEEN ? AND ?", startDate, endDate).Order("timestamp DESC")
+			}).
+			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
+				return db.Where("timestamp BETWEEN ? AND ?", startDate, endDate).
+					Order("timestamp DESC").
+					Preload("User").
+					Preload("WaterMeterImage")
+			})
+	} else {
+		query = query.
+			Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
+				return db.Order("timestamp DESC")
+			}).
+			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
+				return db.Order("timestamp DESC").
+					Preload("User").
+					Preload("WaterMeterImage")
+			})
+	}
+
+	err = query.First(&cameraDevice, id).Error
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "MeterLocation not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "CameraDevice not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, location)
+	c.JSON(http.StatusOK, cameraDevice)
+}
+
+func GetAllCameraDevicesWithUsage(c *gin.Context) {
+	db := config.DB()
+	if db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
+		return
+	}
+
+	var cameraDevices []entity.CameraDevice
+
+	// ✅ ดึงข้อมูลทั้งหมด + preload ความสัมพันธ์
+	err := db.Model(&entity.CameraDevice{}).
+		Preload("MeterLocation").
+		Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
+			return db.Order("timestamp DESC")
+		}).
+		Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
+			return db.Order("timestamp DESC").
+				Preload("User").
+				Preload("WaterMeterImage")
+		}).
+		Find(&cameraDevices).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, cameraDevices)
 }

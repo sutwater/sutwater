@@ -10,7 +10,7 @@ type DailyWaterUsage struct {
 	gorm.Model
 
 	Timestamp time.Time
-	Usage     uint
+	Usage     int
 
 	CameraDeviceID uint
 	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
