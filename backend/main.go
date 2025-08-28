@@ -5,6 +5,7 @@ import (
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
+	lineController "example.com/sa-67-example/controller/line"
 	"example.com/sa-67-example/controller/meter"
 	"example.com/sa-67-example/controller/notification"
 	"example.com/sa-67-example/controller/upload_image"
@@ -20,6 +21,7 @@ import (
 const PORT = "8000"
 
 func main() {
+	config.Load()
 	// ✅ เชื่อมต่อฐานข้อมูล และ Setup data
 	config.ConnectionDB()
 	config.SetupDatabase()
@@ -40,6 +42,8 @@ func main() {
 
 	r.GET("/genders", genders.GetAll)
 
+	r.POST("/line/webhook", lineController.WebhookHandler)
+
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
@@ -57,10 +61,9 @@ func main() {
 
 		router.GET("/meters", meter.GetAllMeters)
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
-		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
 		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
-		router.GET("notification/:id", notification.GetNotificationsByMeterLocation)
-		router.GET("notifications", notification.GetAllNotifications)
+		router.GET("/notification/:id", notification.GetNotificationsByMeterLocation)
+		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
 		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
 
@@ -77,8 +80,8 @@ func main() {
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
 	// ✅ Run server
-	//r.Run("0.0.0.0:" + PORT)
-	r.Run("localhost:" + PORT)
+	r.Run("0.0.0.0:" + PORT)
+	//r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

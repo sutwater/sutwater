@@ -33,6 +33,7 @@ func SetupDatabase() {
 		&entity.Notification{},
 		&entity.WaterMeterValue{},
 		&entity.DailyWaterUsage{},
+		&entity.WaterUsage{},
 	)
 
 	// Gender

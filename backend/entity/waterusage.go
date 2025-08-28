@@ -3,10 +3,10 @@ package entity
 import "time"
 
 type WaterUsage struct {
-	ID         string    `json:"id" bson:"_id,omitempty"`      // หรือใช้ gorm:"primaryKey"
-	LocationID string    `json:"locationId" bson:"locationId"`
-	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`
-	Usage      float64   `json:"usage" bson:"usage"`
-	Unit       string    `json:"unit" bson:"unit"` // เช่น "L"
-	Source     string    `json:"source" bson:"source"`
+	ID         uint      `json:"id" gorm:"primaryKey"` // ← เปลี่ยนเป็น uint
+	LocationID string    `json:"locationId"`
+	Timestamp  time.Time `json:"timestamp"`
+	Usage      float64   `json:"usage"`
+	Unit       string    `json:"unit"`
+	Source     string    `json:"source"`
 }
