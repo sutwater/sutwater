@@ -43,41 +43,67 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
       </div>
 
       {/* Period Comparisons */}
-      {periodComparisons.map((comparison, index) => (
-        <div key={comparison.period} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${
-                index === 0 ? 'bg-teal-100' : index === 1 ? 'bg-purple-100' : 'bg-indigo-100'
-              }`}>
-                <Droplets className={`h-5 w-5 ${
-                  index === 0 ? 'text-teal-600' : index === 1 ? 'text-purple-600' : 'text-indigo-600'
-                }`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">{comparison.period}</p>
-                <p className="text-2xl font-bold text-gray-900">{comparison.currentUsage.toLocaleString()} ลิตร</p>
-              </div>
-            </div>
+      {/* Period Comparison 1 */}
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow h-full">
+    <div className="flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2 bg-teal-100 rounded-lg">
+            <Droplets className="h-5 w-5 text-teal-600" />
           </div>
-          <div className="flex items-center space-x-2">
-            {comparison.changePercent > 0 ? (
-              <TrendingUp className="h-4 w-4 text-red-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-green-500" />
-            )}
-            <span className={`text-sm font-medium ${
-              comparison.changePercent > 0 ? 'text-red-600' : 'text-green-600'
-            }`}>
-              {comparison.changePercent > 0 ? '+' : ''}{comparison.changePercent}%
-            </span>
-            <span className="text-sm text-gray-500">vs previous</span>
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            เปลี่ยนแปลง {comparison.changePercent > 0 ? '+' : ''}{comparison.change.toLocaleString()} ลิตร
+          <div>
+            <p className="text-sm font-medium text-gray-600">วันนี้</p>
+            <p className="text-2xl font-bold text-gray-900">{periodComparisons[0].currentUsage.toLocaleString()} ลิตร</p>
           </div>
         </div>
-      ))}
+        <div className="flex items-center space-x-2">
+          {periodComparisons[0].changePercent > 0 ? (
+            <TrendingUp className="h-4 w-4 text-red-500" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-green-500" />
+          )}
+          <span className={`text-sm font-medium ${periodComparisons[0].changePercent > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {periodComparisons[0].changePercent > 0 ? '+' : ''}{periodComparisons[0].changePercent}%
+          </span>
+          <span className="text-sm text-gray-500">vs previous</span>
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          เปลี่ยนแปลง {periodComparisons[0].change.toLocaleString()} ลิตร
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Period Comparison 2 */}
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow h-full">
+    <div className="flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Droplets className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">สัปดาห์นี้</p>
+            <p className="text-2xl font-bold text-gray-900">{periodComparisons[1].currentUsage.toLocaleString()} ลิตร</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          {periodComparisons[1].changePercent > 0 ? (
+            <TrendingUp className="h-4 w-4 text-red-500" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-green-500" />
+          )}
+          <span className={`text-sm font-medium ${periodComparisons[1].changePercent > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {periodComparisons[1].changePercent > 0 ? '+' : ''}{periodComparisons[1].changePercent}%
+          </span>
+          <span className="text-sm text-gray-500">vs previous</span>
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          เปลี่ยนแปลง {periodComparisons[1].change.toLocaleString()} ลิตร
+        </div>
+      </div>
+    </div>
+  </div>
 
       {/* Last Alert */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">

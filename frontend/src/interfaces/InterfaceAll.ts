@@ -25,6 +25,7 @@ export interface MeterLocationInterface {
   Latitude: number;
   Longitude: number;
   CameraDevice?: CameraDeviceInterface[]; 
+  DailyWaterUsage?: DailyWaterUsageInterface[];
 }
 
 export interface CameraDeviceInterface {
@@ -36,6 +37,7 @@ export interface CameraDeviceInterface {
   MeterLocation?: MeterLocationInterface;
   WaterMeterValue?: WaterMeterValueInterface[]; 
   DailyWaterUsage?: DailyWaterUsageInterface[]; 
+  User?: UsersInterface[]; 
 }
 
 export interface WaterLogInterface {
@@ -52,11 +54,28 @@ export interface WaterMeterValueInterface {
   ID?: number;
   MeterValue?: number;
   Timestamp?: string;
+  Note?: string;
   OCRConfidence?: number;
   CameraDevice?: CameraDeviceInterface;
   WaterMeterImage?: WaterMeterImageInterface;
   WaterUsageLog?: WaterLogInterface[];
+  User: UsersInterface; // ✅ เพิ่ม relation กับ Users
 }
+
+export interface WaterDetailInterface {
+  ID?: number;
+  MacAddress?: string;
+  Battery?: number;
+  BrokenAmount?: number;
+  CreatedAt?: string;
+  Note?: string;
+  UpdatedAt?: string;
+  DeletedAt?: string | null;
+  MeterLocation?: MeterLocationInterface;   // ✅ มี MeterLocation ซ้อนอยู่
+  CameraDevice?: CameraDeviceInterface | null;
+  DailyWaterUsage?: DailyWaterUsageInterface[];
+}
+
 
 export interface DailyWaterUsageInterface {
   ID?: number;

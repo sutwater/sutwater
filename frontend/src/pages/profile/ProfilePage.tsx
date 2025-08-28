@@ -22,8 +22,8 @@ function ProfilePage() {
 
       const mappedUser: UsersInterface = {
         ID: u.ID,
-        FirstName: u.first_name,
-        LastName: u.last_name,
+        first_name: u.first_name,
+        last_name: u.last_name,
         Email: u.email,
         Age: u.age,
         BirthDay: u.birthday,
@@ -63,8 +63,8 @@ function ProfilePage() {
               column={1}
               labelStyle={{ fontWeight: 600, width: 150 }}
             >
-              <Descriptions.Item label="ชื่อ">{user.FirstName}</Descriptions.Item>
-              <Descriptions.Item label="นามสกุล">{user.LastName}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อ">{user.first_name}</Descriptions.Item>
+              <Descriptions.Item label="นามสกุล">{user.last_name}</Descriptions.Item>
               <Descriptions.Item label="อีเมล">{user.Email}</Descriptions.Item>
               <Descriptions.Item label="อายุ">{user.Age}</Descriptions.Item>
               <Descriptions.Item label="วันเกิด">

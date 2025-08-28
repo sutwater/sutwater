@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { message  } from "antd";
 import { UsersInterface } from "../interfaces/IUser"
-import { GetUsersById, GetMerters, GetAllWaterUsageLogs,GetAllNotifications } from "../services/https";
-import { MeterLocationInterface, WaterMeterValueInterface, NotificationInterface } from "../interfaces/InterfaceAll";
+import { GetUsersById, GetMerters, GetAllWaterDaily, GetAllNotifications, GetAllWaterUsageLogs } from "../services/https";
+import { MeterLocationInterface, WaterMeterValueInterface, NotificationInterface,CameraDeviceInterface } from "../interfaces/InterfaceAll";
 
 type AppContextType = {
   user: UsersInterface | null;
   setUser: (user: UsersInterface | null) => void;
   meters: MeterLocationInterface[]
+  getMeters: () => Promise<void>;
   loading: boolean;
+  setLoading: (loading: boolean) => void;
   waterusage: WaterMeterValueInterface[]
+  waterDaily: CameraDeviceInterface[]
   notifications: NotificationInterface[]
-
 };
 
 
@@ -19,8 +21,11 @@ const AppContext = createContext<AppContextType>({
   user: null,
   setUser: () => {},
   meters: [],
+  getMeters: async () => {},
   loading: true,
+  setLoading: () => {},
   waterusage: [],
+  waterDaily: [],
   notifications: [],
 });
 
@@ -32,6 +37,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [user, setUser] = useState<UsersInterface | null>(null);
     const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
     const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
+    const [waterDaily, setWaterDaily] = useState<CameraDeviceInterface[]>([]);
     const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -91,19 +97,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
+    const getAllWaterDaily = async () => {
+      let res = await GetAllWaterDaily();
+      if (res.status == 200) {
+        setWaterDaily(res.data);
+        messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย")
+      } else {
+        setWaterDaily([]);
+        messageApi.open({
+          type: "error",
+          content: res.data.error,
+        });
+      }
+    };
+
     useEffect(() => {
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
         }, 500);
         getUserById();
-        getMeters();
         getWaterLog();
+        getAllWaterDaily();
         getNotification();
     }, []);
 
     return (
-        <AppContext.Provider value={{ user, setUser, meters, loading, waterusage, notifications }}>
+        <AppContext.Provider value={{ user, setUser, meters, getMeters, loading, setLoading, waterusage, waterDaily, notifications }}>
         {children}
         </AppContext.Provider>
     );

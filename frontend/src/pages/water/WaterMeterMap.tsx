@@ -1,5 +1,5 @@
 // WaterMeterMap.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -41,7 +41,7 @@ const WaterMeterMap = () => {
     const [newName, setNewName] = useState('');
     const [mode, setMode] = useState<'road' | 'satellite'>('satellite');
     const [addingMode, setAddingMode] = useState(false); // เพิ่ม state นี้
-    const { meters, waterusage } = useAppContext();
+    const { meters, waterusage, getMeters, loading, setLoading } = useAppContext();
 
     waterusage.forEach((log, idx) => {
   console.log(`waterlog[${idx}] MeterLocation ID:`, log.CameraDevice?.MeterLocation?.ID);
@@ -100,7 +100,23 @@ const WaterMeterMap = () => {
     mode === 'satellite'
       ? 'Tiles © Esri'
       : '&copy; OpenStreetMap contributors';
+useEffect(() => {
+  setLoading(true);
+  getMeters()
+    .finally(() => {
+      setTimeout(() => setLoading(false), 1000);
+    });
+}, []);
 
+
+  
+  if (loading) {
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
       {/* ปุ่มสลับโหมดแผนที่ */}

@@ -16,7 +16,7 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-	database, err := gorm.Open(sqlite.Open("swm.db?cache=shared"), &gorm.Config{})
+	database, err := gorm.Open(sqlite.Open("watermeter.db?cache=shared"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -42,6 +42,18 @@ func SetupDatabase() {
 	db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
 	db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
+	var images []entity.WaterMeterImage
+	for i := 1; i <= 30; i++ {
+		images = append(images, entity.WaterMeterImage{
+			ImagePath: fmt.Sprintf("uploads/meter%d.jpg", i),
+		})
+	}
+
+	// บันทึกเข้า DB ถ้ายังไม่มี
+	for i := range images {
+		db.FirstOrCreate(&images[i], entity.WaterMeterImage{ImagePath: images[i].ImagePath})
+	}
+
 	// Meter Locations
 	meterLocations := []entity.MeterLocation{
 		{Name: "อาคารรัตนเวชพัฒน์", Latitude: 14.86412, Longitude: 102.03557},
@@ -57,7 +69,7 @@ func SetupDatabase() {
 
 	// Users
 	users := []entity.Users{
-		{FirstName: "ดนุพร", LastName: "สีสิน", Email: "suthadmin@gmail.com", Age: 80, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderMale.ID},
+		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 80, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderMale.ID},
 		{FirstName: "ธนวัฒน์", LastName: "ผ่านบุตร", Email: "thanawat@gmail.com", Age: 45, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID},
 		{FirstName: "สุดาชา", LastName: "แก้ว", Email: "sudacha@gmail.com", Age: 33, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderFemale.ID},
 		{FirstName: "ไชยโรจน์", LastName: "สดไธสงค์", Email: "chaiyarod@gmail.com", Age: 29, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID},
@@ -72,7 +84,9 @@ func SetupDatabase() {
 		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
 		{MacAddress: "22:2B:45:12:3A:B9", Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
 		{MacAddress: "33:3B:46:13:3B:B8", Battery: 30, Wifi: false, Status: false, MeterLocationID: 3},
-		{MacAddress: "44:4B:47:14:4B:B6", Battery: 30, Wifi: true, Status: false, MeterLocationID: 4},
+		{MacAddress: "44:4B:47:14:4B:B6", Battery: 56, Wifi: true, Status: false, MeterLocationID: 4},
+		{MacAddress: "55:5B:48:15:1B:B5", Battery: 26, Wifi: true, Status: false, MeterLocationID: 5},
+		{MacAddress: "66:6B:49:16:2B:B4", Battery: 11, Wifi: true, Status: false, MeterLocationID: 6},
 	}
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
@@ -81,7 +95,7 @@ func SetupDatabase() {
 	// Notifications
 	notifications := []entity.Notification{}
 	messages := []string{
-		"พบน้ำรั่ว", "ท่อแตก", "แรงดันน้ำสูงเกิน", "มิเตอร์ไม่ตอบสนอง",
+		"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง",
 		"ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์",
 		"ค่า OCR ผิดปกติ", "อุปกรณ์ออฟไลน์", "แบตเตอรี่ต่ำ",
 	}
@@ -96,43 +110,51 @@ func SetupDatabase() {
 	}
 	db.Create(&notifications)
 
-	// Water Meter Values + Daily Usage
-	// สมมุติ CameraDeviceID = 1
+	var imageSlice []entity.WaterMeterImage
+	db.Find(&imageSlice)
+
 	cameraDeviceID := uint(1)
+	prevValue := uint(33504) // เริ่ม MeterValue
 
-	prevValue := uint(1000) // ค่าเริ่มต้นของมิเตอร์
-	days := 10              // จำนวนวันที่ย้อนหลัง
+	// กำหนด array ของ Usage ต่อวัน (บวก/ลบตามต้องการ)
+	dailyUsages := []int{0, 2, 0, 3, 0, 1, -3, 2, 0, -1, 2, 0, -2, 1, 0, 3, -1, 0, 2, -2, 0, 1, -1, 0, 2, 0, -1, 1, 0, -2, 0}
 
-	for d := days; d >= 0; d-- {
-		ts := time.Now().AddDate(0, 0, -d).Truncate(24 * time.Hour)
+	// ปีนี้
+	year := time.Now().Year()
+	month := time.August
+	today := time.Now().Day() // วันที่ปัจจุบัน
 
-		// สมมุติการใช้น้ำวันนี้
-		dailyUsage := uint(50)
+	for day := 1; day <= today; day++ {
+		ts := time.Date(year, month, day, 10, 0, 0, 0, time.Local) // เวลา 10:00 ทุกวัน
 
-		// ค่ามิเตอร์สะสม = ค่าเมื่อวาน + usage
-		meterValue := prevValue + dailyUsage
+		dailyUsage := dailyUsages[day-1] // ใช้ค่า array ตามวัน
 
-		// สร้าง WaterMeterValue
+		// ค่ามิเตอร์สะสม
+		meterValue := int(prevValue) + dailyUsage
+
+		// เลือกรูปภาพวนตามลิสต์
+		img := imageSlice[day%len(imageSlice)]
+
+		// สร้าง WaterMeterValue (ทุกวัน)
 		wm := entity.WaterMeterValue{
-			MeterValue:     meterValue,
-			Timestamp:      ts,
-			OCRConfidence:  95,
-			CameraDeviceID: cameraDeviceID,
+			MeterValue:        int(meterValue),
+			Timestamp:         ts,
+			OCRConfidence:     95,
+			CameraDeviceID:    cameraDeviceID,
+			WaterMeterImageID: img.ID,
 		}
 		db.Create(&wm)
 
-		// ถ้าไม่ใช่วันแรก → สร้าง DailyWaterUsage
-		if d != days {
-			du := entity.DailyWaterUsage{
-				Timestamp:      ts,
-				Usage:          dailyUsage,
-				CameraDeviceID: cameraDeviceID,
-			}
-			db.Create(&du)
-		}
+		// สร้าง DailyWaterUsage **ยกเว้นวันแรกสุด (day == 1)**
 
-		// อัปเดตค่าเมื่อวาน
-		prevValue = meterValue
+		du := entity.DailyWaterUsage{
+			Timestamp:      ts,
+			Usage:          dailyUsage,
+			CameraDeviceID: cameraDeviceID,
+		}
+		db.Create(&du)
+
+		prevValue = uint(meterValue)
 	}
 
 }

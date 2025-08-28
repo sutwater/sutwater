@@ -12,6 +12,7 @@ import (
 	"example.com/sa-67-example/controller/users"
 	"example.com/sa-67-example/controller/waterlog"
 	"example.com/sa-67-example/controller/waterusage"
+	"example.com/sa-67-example/controller/watervalue"
 	"example.com/sa-67-example/middlewares"
 	"example.com/sa-67-example/services"
 	"github.com/gin-gonic/gin"
@@ -46,6 +47,7 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
+	r.Static("/uploads", "./uploads")
 
 	// ✅ Protected routes
 	router := r.Group("/")
@@ -59,10 +61,11 @@ func main() {
 
 		router.GET("/meters", meter.GetAllMeters)
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
-		router.GET("/waterdetail/:id", waterlog.GetMeterLocationWithDevices)
+		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
 		router.GET("/notification/:id", notification.GetNotificationsByMeterLocation)
 		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
+		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
 
 		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้
 	}
@@ -83,6 +86,7 @@ func main() {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")

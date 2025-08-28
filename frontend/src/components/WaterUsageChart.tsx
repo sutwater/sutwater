@@ -45,7 +45,7 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-gray-900">
-          ค่ามิเตอร์น้ำแต่ละอาคาร
+          ปริมาณการใช้น้ำแต่ละอาคาร
         </h3>
         {/* <div className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-2">

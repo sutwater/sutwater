@@ -89,9 +89,31 @@ async function GetAllWaterUsageLogs() {
     .catch((e) => e.response);
 }
 
-async function GetMeterLocationDetail(id: string) {
+
+async function GetAllWaterDaily() {
   return await axios
-    .get(`${apiUrl}/waterdetail/${id}`, authHeader())
+    .get(`${apiUrl}/waterdetail`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function GetMeterLocationDetail(id: string, startDate?: string, endDate?: string) {
+  let params: any = {};
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+
+  return await axios
+    .get(`${apiUrl}/waterdetail/${id}`, {
+      ...authHeader(),
+      params,
+    })
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function CreateWaterMeterValue(data: any) {
+  return await axios
+    .post(`${apiUrl}/watervalue`, data, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -126,6 +148,8 @@ export {
 
   GetAllWaterUsageLogs,
   GetMeterLocationDetail,
+  CreateWaterMeterValue,
+  GetAllWaterDaily,
 
   GetNotificationsByMeterLocation,
   GetAllNotifications,

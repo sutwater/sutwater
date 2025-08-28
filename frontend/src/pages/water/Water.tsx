@@ -11,11 +11,15 @@ import {
     notificationStats,
     periodComparisons,
 } from '../../data/mockData';
+import { useAppContext } from '../../contexts/AppContext';
 
 const WaterDashboard = () => {
     const [selectedPeriod, setSelectedPeriod] = useState('สัปดาห์');
     const [selectedView, setSelectedView] = useState('ชั่วโมง');
+    const { waterDaily } = useAppContext();
 
+
+    console.log("waterDaily: ", waterDaily)
     return (
     <div className="min-h-screen bg-gray-50 overflow-auto">
       {/* Header */}
