@@ -62,6 +62,7 @@ func main() {
 		router.GET("/meters", meter.GetAllMeters)
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
 		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
+		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
 		router.GET("/notification/:id", notification.GetNotificationsByMeterLocation)
 		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
