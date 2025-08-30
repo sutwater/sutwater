@@ -1,0 +1,34 @@
+.custom-tooltip {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  pointer-events: none;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: black;
+  text-shadow:
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    1px 1px 0 #fff;
+}
+
+.tooltip-satellite {
+  color: white !important;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+
+.leaflet-popup-close-button {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 22px !important;
+  line-height: 30px !important;
+  top: 8px !important;
+  right: 8px !important;
+}

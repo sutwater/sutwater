@@ -1,6 +1,6 @@
 import { UsersInterface } from "../../interfaces/IUser";
 import { SignInInterface } from "../../interfaces/SignIn";
-import { MeterInterface } from "../../interfaces/Meter";
+import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 import axios from "axios";
 
 const apiUrl = "http://localhost:8000";
@@ -74,9 +74,62 @@ async function GetMerters() {
     .catch((e) => e.response);
 }
 
-async function CreateMeter(data: MeterInterface) {
+async function CreateMeter(data: MeterLocationInterface) {
   return await axios
     .post(`${apiUrl}/meters`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+// Waterlog
+async function GetAllWaterUsageLogs() {
+  return await axios
+    .get(`${apiUrl}/waterusages`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+
+async function GetAllWaterDaily() {
+  return await axios
+    .get(`${apiUrl}/waterdetail`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function GetMeterLocationDetail(id: string, startDate?: string, endDate?: string) {
+  let params: any = {};
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+
+  return await axios
+    .get(`${apiUrl}/waterdetail/${id}`, {
+      ...authHeader(),
+      params,
+    })
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function CreateWaterMeterValue(data: any) {
+  return await axios
+    .post(`${apiUrl}/watervalue`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+// notification
+
+async function GetNotificationsByMeterLocation(id: string) {
+  return await axios
+    .get(`${apiUrl}/notification/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function GetAllNotifications() {
+  return await axios
+    .get(`${apiUrl}/notifications`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -92,4 +145,12 @@ export {
 
   GetMerters,
   CreateMeter,
+
+  GetAllWaterUsageLogs,
+  GetMeterLocationDetail,
+  CreateWaterMeterValue,
+  GetAllWaterDaily,
+
+  GetNotificationsByMeterLocation,
+  GetAllNotifications,
 };

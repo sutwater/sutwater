@@ -7,7 +7,6 @@ import FullLayout from "../layout/FullLayout";
 const MainPages = Loadable(lazy(() => import("../pages/authentication/Login/SignInPages")));
 
 // ✅ เพิ่มหน้าใหม่
-const WaterPage = Loadable(lazy(() => import("../pages/water/HospitalMapImage")));
 const WaterMeterMap = Loadable(lazy(() => import("../pages/water/WaterMeterMap")));
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
 const ContactPage = Loadable(lazy(() => import("../pages/contact")));
@@ -27,11 +26,11 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => {
         element: <WaterMeterMap />,
       },
       {
-        path: "/water/:name",
+        path: "/waterdetail/:id",
         element: <WaterDetailPage />,
       },
       {
-        path: "/waterdetail",
+        path: "/waterdashboard",
         element: <Water />,
       },
       {

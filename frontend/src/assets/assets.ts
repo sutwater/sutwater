@@ -16,8 +16,6 @@ export interface MenuLink {
 export const menuLinks: MenuLink[] = [
     { name: "หน้าแรก", path: "/" },
     { name: "ตรวจสอบการใช้น้ำ", path: "/water" },
-    { name: "แจ้งเตือนการใข้น้ำ", path: "/notification" },
     { name: "ติดต่อและสอบถาม", path: "/contact" },
-    { name: "แอดมิน", path: "/admin" },
 ];
 

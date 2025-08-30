@@ -28,7 +28,7 @@ function SignInPages() {
       localStorage.setItem("id", res.data.id);
       localStorage.setItem("email", lowerEmail);
 
-      if (lowerEmail === "sa@gmail.com") {
+      if (lowerEmail === "suthadmin@gmail.com") {
         localStorage.setItem("isAdmin", "true");
       } else {
         localStorage.setItem("isAdmin", "false");

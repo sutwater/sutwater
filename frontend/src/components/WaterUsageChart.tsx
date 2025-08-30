@@ -45,9 +45,9 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-gray-900">
-          การใช้น้ำ{selectedView === 'daily' ? 'รายวัน' : 'รายช่วงเวลา'}
+          ปริมาณการใช้น้ำแต่ละอาคาร
         </h3>
-        <div className="flex items-center space-x-4 text-sm">
+        {/* <div className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-red-500 rounded"></div>
             <span className="text-gray-600">สูงกว่าค่าเฉลี่ย</span>
@@ -60,7 +60,7 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
             <div className="w-3 h-3 bg-green-500 rounded"></div>
             <span className="text-gray-600">ต่ำกว่าค่าเฉลี่ย</span>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="relative">
@@ -117,7 +117,7 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
       </div>
 
       {/* Statistics summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
         <div className="text-center">
           <div className="text-2xl font-bold text-gray-900">{maxValue} ลิตร</div>
           <div className="text-sm text-gray-600">สูงสุด</div>
@@ -142,7 +142,7 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
           </div>
           <div className="text-sm text-gray-600">รวม</div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

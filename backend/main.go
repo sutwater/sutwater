@@ -2,21 +2,26 @@ package main
 
 import (
 	"net/http"
-	"github.com/gin-gonic/gin"
+
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
+	lineController "example.com/sa-67-example/controller/line"
 	"example.com/sa-67-example/controller/meter"
+	"example.com/sa-67-example/controller/notification"
+	"example.com/sa-67-example/controller/upload_image"
 	"example.com/sa-67-example/controller/users"
+	"example.com/sa-67-example/controller/waterlog"
 	"example.com/sa-67-example/controller/waterusage"
-	"example.com/sa-67-example/entity"
+	"example.com/sa-67-example/controller/watervalue"
 	"example.com/sa-67-example/middlewares"
 	"example.com/sa-67-example/services"
-	"example.com/sa-67-example/controller/upload_image"
+	"github.com/gin-gonic/gin"
 )
 
 const PORT = "8000"
 
 func main() {
+	config.Load()
 	// ✅ เชื่อมต่อฐานข้อมูล และ Setup data
 	config.ConnectionDB()
 	config.SetupDatabase()
@@ -26,14 +31,6 @@ func main() {
 
 	// ✅ ส่ง db ให้ services ใช้
 	services.SetDatabase(db)
-
-	// ✅ Auto migrate เผื่อไว้ให้แน่ใจว่า entity ถูก sync
-	db.AutoMigrate(
-		&entity.Users{},
-		&entity.Genders{},
-		&entity.WaterUsage{},
-		&entity.Location{},
-	)
 
 	// ✅ เริ่ม Gin Server
 	r := gin.Default()
@@ -45,9 +42,12 @@ func main() {
 
 	r.GET("/genders", genders.GetAll)
 
+	r.POST("/line/webhook", lineController.WebhookHandler)
+
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
 	})
+	r.Static("/uploads", "./uploads")
 
 	// ✅ Protected routes
 	router := r.Group("/")
@@ -60,13 +60,19 @@ func main() {
 		router.DELETE("/user/:id", users.Delete)
 
 		router.GET("/meters", meter.GetAllMeters)
+		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
+		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
+		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
+		router.GET("/notification/:id", notification.GetNotificationsByMeterLocation)
+		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
-		
+		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
+
 		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้
 	}
-	
+
 	// ✅ API รับข้อมูลน้ำจาก ESP32 + ส่งให้ Frontend
-	
+
 	r.POST("/upload_image", upload_image.UploadMeterImage)
 
 	r.POST("/api/water-usage", waterusage.PostWaterUsage)
@@ -81,6 +87,7 @@ func main() {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")

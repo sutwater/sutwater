@@ -5,6 +5,7 @@ import {
 
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { Carousel } from "antd";
 //import { UserOutlined, LogoutOutlined, LoginOutlined } from "@ant-design/icons";
@@ -24,7 +25,7 @@ import "./index.css";
 
 const FullLayout: React.FC = () => {
   //const location = useLocation();
-  //const navigate = useNavigate();
+  const navigate = useNavigate();
   //const isActive = (path: string) => location.pathname === path;
   const isAdminPath = useLocation().pathname.startsWith('/admin');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(
@@ -72,7 +73,7 @@ const FullLayout: React.FC = () => {
 
   return (
     <div className="full-layout">
-      {!isAdminPath && <Navbar />}
+      {<Navbar />}
 
 
       {/* Main Content Area */}
@@ -93,26 +94,16 @@ const FullLayout: React.FC = () => {
                     <img
                       src="https://beta.sut.ac.th/wp-content/uploads/2022/09/banner-01-2-scaled.jpg"
                       alt="SUT Banner 1"
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                        maxHeight: "80vh",
-                        objectFit: "cover",
-                        borderRadius: "8px",
-                      }}
+                      className="w-full h-auto max-h-[80vh] object-cover rounded-lg cursor-pointer"
+                      onClick={() => navigate("/waterdashboard")}
                     />
                   </div>
                   <div>
                     <img
                       src="https://beta.sut.ac.th/wp-content/uploads/2022/09/sutbanner-01-scaled.jpg"
                       alt="SUT Banner 2"
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                        maxHeight: "80vh",
-                        objectFit: "cover",
-                        borderRadius: "8px",
-                      }}
+                      className="w-full h-auto max-h-[80vh] object-cover rounded-lg cursor-pointer"
+                      onClick={() => navigate("/waterdashboard")}
                     />
                   </div>
                 </Carousel>
@@ -127,9 +118,9 @@ const FullLayout: React.FC = () => {
             }
           />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/water/:name" element={<WaterDetailPage />} />
+          <Route path="/waterdetail/:id" element={<WaterDetailPage />} />
           <Route path="/login" element={<SignInPages />} />
-          <Route path="/waterdetail" element={<Water />} />
+          <Route path="/waterdashboard" element={<Water />} />
           <Route path="/signup" element={<SignUpPages />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route

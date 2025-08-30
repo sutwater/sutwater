@@ -11,11 +11,15 @@ import {
     notificationStats,
     periodComparisons,
 } from '../../data/mockData';
+import { useAppContext } from '../../contexts/AppContext';
 
-const Water = () => {
+const WaterDashboard = () => {
     const [selectedPeriod, setSelectedPeriod] = useState('สัปดาห์');
     const [selectedView, setSelectedView] = useState('ชั่วโมง');
+    const { waterDaily } = useAppContext();
 
+
+    console.log("waterDaily: ", waterDaily)
     return (
     <div className="min-h-screen bg-gray-50 overflow-auto">
       {/* Header */}
@@ -76,7 +80,7 @@ const Water = () => {
           {/* Period Analysis */}
           <div className="space-y-6">
             {/* Daily Peak Hours */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-orange-100 rounded-lg">
                   <BarChart3 className="h-5 w-5 text-orange-600" />
@@ -98,7 +102,7 @@ const Water = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             {/* Monthly Comparison */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -109,18 +113,18 @@ const Water = () => {
                 <h3 className="text-lg font-semibold text-gray-900">แนวโน้มรายเดือน</h3>
               </div>
               <div className="space-y-4">
-                {monthlyStats.map((month) => (
+                {monthlyStats.map((month : any ) => (
                   <div key={month.month} className="border-l-4 border-blue-500 pl-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-900">
                         {month.month.split(' ')[0]}
                       </span>
                       <span className="text-sm font-bold text-gray-900">
-                        {month.totalUsage.toLocaleString()} ลิตร
+                        {month.totalUsage.toLocaleString()} ลูกบาศก์เมตร
                       </span>
                     </div>
                     <div className="text-xs text-gray-500">
-                      เฉลี่ย: {Math.round(month.avgDaily)} ลิตร/วัน
+                      เฉลี่ย: {Math.round(month.avgDaily)} ลูกบาศก์เมตร/วัน
                     </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>สูงสุด: {month.maxDaily} ลิตร</span>
@@ -132,7 +136,7 @@ const Water = () => {
             </div>
 
             {/* Usage by Type */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-teal-100 rounded-lg">
                   <Calendar className="h-5 w-5 text-teal-600" />
@@ -155,7 +159,7 @@ const Water = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -166,4 +170,4 @@ const Water = () => {
   );
 };
 
-export default Water;
+export default WaterDashboard;
