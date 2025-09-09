@@ -11,7 +11,7 @@ type WaterMeterValue struct {
 
 	MeterValue     int
 	Timestamp      time.Time
-	OCRConfidence  uint
+	OCRConfidence  int
 	Note           string
 	CameraDeviceID uint
 	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
