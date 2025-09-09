@@ -9,16 +9,16 @@ import (
 type WaterMeterValue struct {
 	gorm.Model
 
-	MeterValue     int
-	Timestamp      time.Time
-	OCRConfidence  uint
-	Note           string
-	CameraDeviceID uint
-	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
+	MeterValue     		int
+	Timestamp      		time.Time
+	ModelConfidence  	float32
+	Note           		string
+	CameraDeviceID 		uint
+	CameraDevice   		*CameraDevice `gorm:"foreignKey:CameraDeviceID"`
 
-	WaterMeterImageID uint
-	WaterMeterImage   *WaterMeterImage `gorm:"foreignKey:WaterMeterImageID"`
+	WaterMeterImageID 	uint
+	WaterMeterImage   	*WaterMeterImage `gorm:"foreignKey:WaterMeterImageID"`
 
-	UserID uint
-	User   Users `gorm:"foreignKey:UserID"`
+	UserID 				uint
+	User   				Users `gorm:"foreignKey:UserID"`
 }

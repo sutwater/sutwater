@@ -67,20 +67,15 @@ func main() {
 		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
 		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
-
-		// ❗ หากต้องการให้ waterusage ใช้ auth ก็ย้ายเข้า router นี้
+		
 	}
-
-	// ✅ API รับข้อมูลน้ำจาก ESP32 + ส่งให้ Frontend
-
+	
 	r.POST("/upload_image", upload_image.UploadMeterImage)
-
 	r.POST("/api/water-usage", waterusage.PostWaterUsage)
 	r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
 	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
-	// ✅ Run server
 	r.Run("0.0.0.0:" + PORT)
 	//r.Run("localhost:" + PORT)
 }

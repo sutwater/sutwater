@@ -1,85 +1,142 @@
 package upload_image
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"example.com/sa-67-example/config"
+	"example.com/sa-67-example/entity"
 )
 
 func sanitizeFilename(name string) string {
 	replacer := strings.NewReplacer(
-		"\\", "_",
-		"/", "_",
-		":", "_",
-		"*", "_",
-		"?", "_",
-		"\"", "_",
-		"<", "_",
-		">", "_",
-		"|", "_",
+		"\\", "_", "/", "_", ":", "_",
+		"*", "_", "?", "_", "\"", "_",
+		"<", "_", ">", "_", "|", "_",
 	)
 	return replacer.Replace(name)
 }
 
+// ส่งไฟล์ไปที่ Python API
+func sendToPythonAPI(filePath string) (string, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return "", err
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return "", err
+	}
+	writer.Close()
+
+	// ส่งไปที่ Python API
+	resp, err := http.Post("http://localhost:5000/process", writer.FormDataContentType(), body)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(respBody), nil
+}
+
 func UploadMeterImage(c *gin.Context) {
+
+	db := config.DB()
+
 	mac := c.PostForm("mac")
-	header, err := c.FormFile("image")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing image file"})
-		return
-	}
-
 	if mac == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing MAC address"})
+		c.JSON(400, gin.H{"error": "Missing MAC address"})
 		return
 	}
 
-	// ทำให้ชื่อไฟล์ MAC ปลอดภัย
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Missing image file"})
+		return
+	}
+
 	macSafe := sanitizeFilename(mac)
+	timestamp := time.Now()
+	filename := fmt.Sprintf("%s_%s.jpg", macSafe, timestamp.Format("20060102_150405"))
 
-	uploadDir := "./uploads"
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create upload folder: %v", err)})
+	saveDir := `C:\Users\umdan\Pre-Capstone\backend\python\uploads`
+	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to create upload folder: %v", err)})
+		return
+	}
+	savePath := filepath.Join(saveDir, filename)
+
+	// บันทึกไฟล์ลงโฟลเดอร์
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to save image: %v", err)})
 		return
 	}
 
-	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("%s_%s.jpg", macSafe, timestamp)
+	var camera entity.CameraDevice
+	if err := db.Where("mac_address = ?", mac).First(&camera).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			camera = entity.CameraDevice{
+				MacAddress:   mac,
+				Status:       true,
+				Wifi:         true,
+				Battery:      100,
+				BrokenAmount: 0,
+			}
+			if err := db.Create(&camera).Error; err != nil {
+				c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating CameraDevice: %v", err)})
+				return
+			}
+		} else {
+			c.JSON(500, gin.H{"error": fmt.Sprintf("DB error: %v", err)})
+			return
+		}
+	}
 
-	filepathFull := filepath.Join(uploadDir, filename)
-	fmt.Println("Saving file to:", filepathFull)
+	// บันทึก WaterMeterImage
+	image := entity.WaterMeterImage{
+		ImagePath:      savePath,
+		CameraDeviceID: camera.ID,
+	}
+	if err := db.Create(&image).Error; err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterImage: %v", err)})
+		return
+	}
 
-	out, err := os.Create(filepathFull)
+	// ส่งต่อไฟล์ไป Python API
+	pythonResp, err := sendToPythonAPI(savePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create file: %v", err)})
-		return
-	}
-	defer out.Close()
-
-	src, err := header.Open()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to open uploaded file: %v", err)})
-		return
-	}
-	defer src.Close()
-
-	written, err := io.Copy(out, src)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to write image to disk: %v", err)})
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed sending to Python: %v", err)})
 		return
 	}
 
-	fmt.Printf("Written %d bytes to %s\n", written, filepathFull)
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":  "Image uploaded successfully",
-		"filename": filename,
-		"mac":      mac,
+	c.JSON(200, gin.H{
+		"message":    "Image uploaded & saved",
+		"mac":        mac,
+		"filename":   filename,
+		"path":       savePath,
+		"timestamp":  timestamp,
+		"pythonResp": pythonResp,
 	})
 }
