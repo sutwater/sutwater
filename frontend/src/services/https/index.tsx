@@ -111,18 +111,26 @@ async function GetMeterLocationDetail(id: string, startDate?: string, endDate?: 
     .catch((e) => e.response);
 }
 
-async function CreateWaterMeterValue(data: any) {
-  return await axios
-    .post(`${apiUrl}/watervalue`, data, authHeader())
-    .then((res) => res)
-    .catch((e) => e.response);
+async function CreateWaterMeterValue(formData: FormData) {
+  try {
+    const res = await axios.post(`${apiUrl}/watervalue`, formData, {
+      headers: {
+        ...authHeader().headers, // เอา header เดิมที่คุณมี เช่น Authorization
+        "Content-Type": "multipart/form-data", // ให้ axios จัดการ boundary เอง
+      },
+    });
+    return res;
+  } catch (e: any) {
+    return e.response;
+  }
 }
+
 
 // notification
 
 async function GetNotificationsByMeterLocation(id: string) {
   return await axios
-    .get(`${apiUrl}/notification/${id}`, authHeader())
+    .get(`${apiUrl}/notifications/${id}`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }

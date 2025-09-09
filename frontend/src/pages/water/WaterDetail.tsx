@@ -1,108 +1,142 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-import { Gauge, MapPin, Wifi, ArrowUpCircle, ArrowDownCircle, Battery, Network, ArrowLeft, Bell, Droplet, Building2, Calendar, WifiOff } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
+import { MapPin, Wifi, Battery, Network, ArrowLeft, Bell, Droplet, Building2, Calendar, WifiOff, Plus, Download, Edit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GetMeterLocationDetail, GetNotificationsByMeterLocation, CreateWaterMeterValue } from "../../services/https"
-import { CameraDeviceInterface, NotificationInterface } from '../../interfaces/InterfaceAll';
+import { CameraDeviceInterface, NotificationInterface, WaterMeterValueSaveInterface } from '../../interfaces/InterfaceAll';
 import { message } from 'antd';
+
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { useAppContext } from '../../contexts/AppContext';
 
 const WaterMonitoringDashboard: React.FC = () => {
-  const { id } = useParams<{ id: string  }>();
+  const { id } = useParams<{ id: string }>();
   const [waterDetail, setWaterDetail] = useState<CameraDeviceInterface | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   const [notification, setNotification] = useState<NotificationInterface[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-const [addForm, setAddForm] = useState({
-  date: "",
-  time: "",
-  meterValue: "",
-  note: "",
-  image: null as File | null,
-});
-const [addLoading, setAddLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
-  console.log("waterDetail: ", waterDetail)
-  const [messageApi] = message.useMessage();
+  const [, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
   const { loading, setLoading, user } = useAppContext();
-  
-  
+  const [waterValue, setWaterValue] = useState<Partial<WaterMeterValueSaveInterface>>({
+    Date: "",
+    Time: "",
+    MeterValue: 0,
+    OCRConfidence: 100,
+    Note: "",
+    ImagePath: "",
+  }); 
 
   const exportToExcel = () => {
-  if (!waterDetail || !waterDetail.DailyWaterUsage || waterDetail.DailyWaterUsage.length === 0) {
-    messageApi.open({ type: "warning", content: "ไม่มีข้อมูลให้ export" });
-    return;
-  }
+    if (!waterDetail || !waterDetail.DailyWaterUsage || waterDetail.DailyWaterUsage.length === 0) {
+      messageApi.open({ type: "warning", content: "ไม่มีข้อมูลให้ export" });
+      return;
+    }
 
-  // เรียงจากวันที่น้อย → มาก
-  const sortedUsage = [...waterDetail.DailyWaterUsage].sort((a, b) => {
-    const dateA = a.Timestamp ? new Date(a.Timestamp).getTime() : 0;
-    const dateB = b.Timestamp ? new Date(b.Timestamp).getTime() : 0;
-    return dateA - dateB;
-  });
+    // เรียงจากวันที่น้อย → มาก
+    const sortedUsage = [...waterDetail.DailyWaterUsage].sort((a, b) => {
+      const dateA = a.Timestamp ? new Date(a.Timestamp).getTime() : 0;
+      const dateB = b.Timestamp ? new Date(b.Timestamp).getTime() : 0;
+      return dateA - dateB;
+    });
 
-  const data = sortedUsage.map((item) => {
-    const itemDate = item.Timestamp ? new Date(item.Timestamp) : null;
+    const data = sortedUsage.map((item) => {
+      const itemDate = item.Timestamp ? new Date(item.Timestamp) : null;
 
-    const meter = waterDetail.WaterMeterValue?.find(
-      (wmv) =>
-        wmv.Timestamp &&
-        itemDate &&
-        new Date(wmv.Timestamp).toLocaleDateString("th-TH") ===
+      const meter = waterDetail.WaterMeterValue?.find(
+        (wmv) =>
+          wmv.Timestamp &&
+          itemDate &&
+          new Date(wmv.Timestamp).toLocaleDateString("th-TH") ===
           itemDate.toLocaleDateString("th-TH")
-    );
+      );
 
-    return {
-      วันที่: itemDate ? itemDate.toLocaleDateString("th-TH") : "-",
-      ปริมาณน้ำที่ใช้: item.Usage ?? "-", // fallback ถ้า Usage เป็น undefined
-      ค่ามิเตอร์น้ำ: meter?.MeterValue ?? "-",
-    };
-  });
+      return {
+        วันที่: itemDate ? itemDate.toLocaleDateString("th-TH") : "-",
+        ปริมาณน้ำที่ใช้: item.Usage ?? "-", // fallback ถ้า Usage เป็น undefined
+        ค่ามิเตอร์น้ำ: meter?.MeterValue ?? "-",
+      };
+    });
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "DailyWaterUsage");
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "DailyWaterUsage");
 
-  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(blob, `ข้อมูลปริมาณการใช้น้ำ_${waterDetail.MeterLocation?.Name || "Unknown"}.xlsx`);
-};
-
-
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, `ข้อมูลปริมาณการใช้น้ำ_${waterDetail.MeterLocation?.Name || "Unknown"}.xlsx`);
+  };
 
   const mergedData: { [date: string]: any } = {};
   waterDetail?.DailyWaterUsage?.forEach((usage: any) => {
     if (!usage.Timestamp) return;
-
     const date = new Date(usage.Timestamp).toLocaleDateString("th-TH");
-
     if (!mergedData[date]) mergedData[date] = { date };
-
-    // ใช้ key เป็น deviceID หรือ waterDetail.ID ก็ได้
     mergedData[date][`device_${waterDetail.ID}`] = usage.Usage;
   });
 
   // ดึงค่าจาก DailyWaterUsage แทน
-const dailyUsages = waterDetail?.DailyWaterUsage
-  ?.map(d => d.Usage) // เปลี่ยนเป็น field จริงที่เก็บปริมาณน้ำ
-  .filter((v): v is number => v !== undefined) || [];
+  const dailyUsages = waterDetail?.DailyWaterUsage
+    ?.map(d => d.Usage) // เปลี่ยนเป็น field จริงที่เก็บปริมาณน้ำ
+    .filter((v): v is number => v !== undefined) || [];
+  const validUsages = dailyUsages.filter(u => typeof u === "number" && !isNaN(u));
+  const avgValue = validUsages.length > 0
+    ? validUsages.reduce((a, b) => a + b, 0) / validUsages.length
+    : null;
 
-// ถ้ามีค่า
-// กรองค่าที่เป็นตัวเลขจริง ๆ
-const validUsages = dailyUsages.filter(u => typeof u === "number" && !isNaN(u));
+  const safeAvg = avgValue ?? 0; // ถ้า null จะใช้ 0 แทน
+  const maxValue = (safeAvg + 5).toFixed(2);
+  const minValue = Math.max(0, safeAvg - 5);
 
-const maxValue = validUsages.length > 0 ? Math.max(...validUsages) : null;
-const minValue = validUsages.length > 0 ? Math.min(...validUsages) : null;
-const avgValue = validUsages.length > 0
-  ? validUsages.reduce((a, b) => a + b, 0) / validUsages.length
-  : null;
+  const handleInputChange = (field: keyof WaterMeterValueSaveInterface, value: string | number) => {
+    setWaterValue((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // ล้าง error เมื่อผู้ใช้เริ่มพิมพ์
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+  const handleEdit = (record: any) => {
+  const timestamp = record.Timestamp ? new Date(record.Timestamp) : null;
+
+  setWaterValue({
+    Date: timestamp ? dayjs(timestamp).format("YYYY-MM-DD") : "",
+    Time: timestamp ? dayjs(timestamp).format("HH:mm:ss") : "",
+    MeterValue: record.MeterValue ?? 0,
+    OCRConfidence: record.OCRConfidence ?? 100,
+    Note: record.Note ?? "",
+    ImagePath: record.WaterMeterImage?.ImagePath ?? "",
+    UserID: record.UserID,
+    CameraDeviceID: record.CameraDeviceID,
+  });
+
+  // ถ้ามีรูปจาก database ให้เอามาโชว์เป็น preview
+  if (record.WaterMeterImage?.ImagePath) {
+    setUploadedFile(null); // กันสับสนถ้าเคยอัปโหลดไฟล์ใหม่
+    setPreviewImage(`http://localhost:8000/${record.WaterMeterImage.ImagePath}`);
+  } else {
+    setUploadedFile(null);
+    setPreviewImage(null);
+  }
+
+  setShowAddModal(true);
+};
+
 
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -141,25 +175,6 @@ const avgValue = validUsages.length > 0
     return null;
   };
 
-
-  
-
-
-  // เอาเฉพาะคนแก้ไขไม่ซ้ำ
-
-  // const getMeterLocationDetailById = async () => {
-  //   let res = await GetMeterLocationDetail(id);
-  //   if (res.status == 200) {
-  //     setWaterDetail(res.data);
-  //   } else {
-  //     setWaterDetail(null);
-  //     messageApi.open({
-  //       type: "error",
-  //       content: res.data.error,
-  //     });
-  //   }
-  // };
-
   const getNotificationById = async () => {
     try {
       if (!id) return;
@@ -180,94 +195,189 @@ const avgValue = validUsages.length > 0
   };
 
   const getMeterLocationDetailById = async (startDate?: string, endDate?: string) => {
-  try {
-    const res = await GetMeterLocationDetail(id!, startDate, endDate);
-    if (res.status === 200) {
-      setWaterDetail(res.data);
-    } else {
+    try {
+      const res = await GetMeterLocationDetail(id!, startDate, endDate);
+      if (res.status === 200) {
+        setWaterDetail(res.data);
+      } else {
+        setWaterDetail(null);
+        messageApi.open({ type: "error", content: res.data.error });
+      }
+    } catch (error) {
       setWaterDetail(null);
-      messageApi.open({ type: "error", content: res.data.error });
+      messageApi.open({ type: "error", content: "เกิดข้อผิดพลาดในการโหลดข้อมูล" });
     }
-  } catch (error) {
-    setWaterDetail(null);
-    messageApi.open({ type: "error", content: "เกิดข้อผิดพลาดในการโหลดข้อมูล" });
-  }
-};
+  };
 
-const onFinish = async (values: any) => {
-  try {
-    const payload = {
-  Timestamp: values.Timestamp,
-  MeterValue: values.MeterValue,
-  Note: values.Note || "",
-  CameraDeviceID: values.CameraDeviceID,
-  UserID: values.UserID,
-};
+  const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-
-
-    const res = await CreateWaterMeterValue(payload);
-
-    if (res.status === 200 || res.status === 201) {
-      messageApi.open({ type: "success", content: "Create water meter value successfully" });
-      return res.data;
-    } else {
-      messageApi.open({ type: "error", content: "Create water meter value error" });
-      return null;
-    }
-  } catch (error: any) {
-    console.error(error);
-    messageApi.open({ type: "error", content: error.response?.data?.error || "เกิดข้อผิดพลาด" });
-    return null;
-  }
-};
-
-
-
-  const handleDateRangeChange = (
-  dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null,
-) => {
-  if (!dates) {
-    setDateRange([null, null]);
-    setLoading(true);
-    getMeterLocationDetailById().finally(() => setTimeout(() => setLoading(false), 1000)); // โหลดข้อมูลทั้งหมดเมื่อ clear
+  if (!waterValue.Date || !waterValue.Time) {
+    message.error("กรุณาระบุวันที่และเวลา");
     return;
   }
 
-  setDateRange(dates);
-
-  if (dates[0] && dates[1]) {
-    setLoading(true);
-    getMeterLocationDetailById(
-      dates[0].format("YYYY-MM-DD"),
-      dates[1].format("YYYY-MM-DD")
-    ).finally(() => setTimeout(() => {
-  setLoading(false);
-}, 1000));
+  if (!uploadedFile) {
+    message.error("กรุณาอัปโหลดโปสเตอร์กิจกรรม");
+    return;
   }
+
+  // ✅ ตรวจสอบ user ว่าไม่ null ก่อน
+  if (!user || !user.ID) {
+    console.error("User is not logged in");
+    return;
+  }
+
+  // ✅ ตรวจสอบ id ว่าไม่ undefined ก่อน
+  if (!id) {
+    console.error("CameraDeviceID is missing");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD")); 
+    formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
+    formData.append("MeterValue", waterValue.MeterValue!.toString());
+    formData.append("OCRConfidence", waterValue.OCRConfidence!.toString());
+    formData.append("Note", waterValue.Note || "");
+    formData.append("ImagePath", uploadedFile);
+    formData.append("UserID", user.ID.toString() || "0");
+  formData.append("CameraDeviceID", id.toString() || "0");
+
+    setAddLoading(true);
+
+    const res = await CreateWaterMeterValue(formData);
+
+    if (res.status === 200) {
+      messageApi.success({
+  content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
+});
+
+      
+      setUploadedFile(null);
+      setWaterValue({
+        Date: "",
+        Time: "",
+        MeterValue: 0,
+        OCRConfidence: 0,
+        Note: "",
+        ImagePath: "",
+      });
+      setErrors({});
+      setUploadedFile(null);
+      setPreviewImage(null);
+
+      // ✅ ปิด modal
+      setAddLoading(false);
+      setShowAddModal(false);
+    } else {
+      message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
+    }
+  } catch (error: any) {
+    console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
+  } 
+};
+
+  const validateForm = () => {
+  const newErrors: { [key: string]: string } = {};
+
+  // ตรวจสอบวันที่ เฉพาะกรณีเพิ่มข้อมูลใหม่
+  if (!isEditing) {
+    if (!waterValue.Date?.trim()) {
+      newErrors.Date = "กรุณาเลือกวันที่บันทึก";
+    } else {
+      const selectedDate = new Date(waterValue.Date);
+      selectedDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        newErrors.Date = "วันที่ต้องเป็นวันนี้หรืออนาคตเท่านั้น";
+      }
+    }
+  }
+
+  // ตรวจสอบเวลา
+  if (!waterValue.Time?.trim()) {
+    newErrors.Time = "กรุณาเลือกเวลาที่บันทึก";
+  }
+
+  // ตรวจสอบค่ามิเตอร์
+  if (!waterValue.MeterValue || waterValue.MeterValue < 1) {
+    newErrors.MeterValue = "กรุณากรอกค่ามิเตอร์น้ำที่มากกว่า 0 ลบ.ม.";
+  } else if (waterValue.MeterValue > 100000) {
+    newErrors.MeterValue = "ค่ามิเตอร์น้ำต้องไม่เกิน 100,000 ลบ.ม.";
+  }
+
+  // ตรวจสอบรูปภาพ
+  if (!uploadedFile && !waterValue.ImagePath) {
+    newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
+  }
+
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
 };
 
 
+  const handleDateRangeChange = (
+    dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null,
+  ) => {
+    if (!dates) {
+      setDateRange([null, null]);
+      setLoading(true);
+      getMeterLocationDetailById().finally(() => setTimeout(() => setLoading(false), 1000)); // โหลดข้อมูลทั้งหมดเมื่อ clear
+      return;
+    }
+
+    setDateRange(dates);
+
+    if (dates[0] && dates[1]) {
+      setLoading(true);
+      getMeterLocationDetailById(
+        dates[0].format("YYYY-MM-DD"),
+        dates[1].format("YYYY-MM-DD")
+      ).finally(() => setTimeout(() => {
+        setLoading(false);
+      }, 1000));
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const imageUrl = URL.createObjectURL(file);
+      setPreviewImage(imageUrl);
+      setUploadedFile(file);
+
+      // ล้าง error ของรูปภาพ
+      if (errors.ImagePath) {
+        setErrors((prev) => ({
+          ...prev,
+          ImagePath: "",
+        }));
+      }
+    }
+  };
 
   useEffect(() => {
-  const today = dayjs();
-  const sevenDaysAgo = today.subtract(6, "day");
+    const today = dayjs();
+    const sevenDaysAgo = today.subtract(6, "day");
 
-  setStartDate(sevenDaysAgo.format("YYYY-MM-DD"));
-  setEndDate(today.format("YYYY-MM-DD"));
-  setDateRange([sevenDaysAgo, today]);
+    setStartDate(sevenDaysAgo.format("YYYY-MM-DD"));
+    setEndDate(today.format("YYYY-MM-DD"));
+    setDateRange([sevenDaysAgo, today]);
 
-  setLoading(true); // เริ่มแสดง spinner
+    setLoading(true); // เริ่มแสดง spinner
 
-  Promise.all([
-    getMeterLocationDetailById(sevenDaysAgo.format("YYYY-MM-DD"), today.format("YYYY-MM-DD")),
-    getNotificationById()
-  ])
-    .finally(() => {
-      // เพิ่ม delay ให้ spinner หมุนอีก 0.5 วินาที
-      setTimeout(() => setLoading(false), 1000);
-    });
-}, []);
+    Promise.all([
+      getMeterLocationDetailById(sevenDaysAgo.format("YYYY-MM-DD"), today.format("YYYY-MM-DD")),
+      getNotificationById()
+    ])
+      .finally(() => {
+        setTimeout(() => setLoading(false), 1000);
+      });
+  }, []);
 
 
   // Mapping dailyMeterData ให้ date และ value ถูกต้อง
@@ -289,130 +399,291 @@ const onFinish = async (values: any) => {
 
   // ฟังก์ชันสำหรับแสดงชื่อผู้แก้ไข
   const getUpdatedByNames = (waterUsageLog?: any[]) => {
-  if (!waterUsageLog || waterUsageLog.length === 0) {
-    return "ESP-32 Cam";
-  }
-
-  const names = waterUsageLog.map(log => {
-    const user = log.User;
-    if (user && user.ID && user.ID !== 0) {
-      // ถ้ามีชื่อ
-      if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`;
-      if (user.first_name) return user.first_name;
-      if (user.last_name) return user.last_name;
-      return `UserID: ${user.ID}`;
+    if (!waterUsageLog || waterUsageLog.length === 0) {
+      return "ESP-32 Cam";
     }
-    // ถ้า ID = 0 หรือไม่มี user
-    return "ESP-32 Cam";
-  });
 
-  // ลบชื่อซ้ำ
-  const uniqueNames = Array.from(new Set(names));
-  return uniqueNames.join(", ");
-};
+    const names = waterUsageLog.map(log => {
+      const user = log.User;
+      if (user && user.ID && user.ID !== 0) {
+        // ถ้ามีชื่อ
+        if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`;
+        if (user.first_name) return user.first_name;
+        if (user.last_name) return user.last_name;
+        return `UserID: ${user.ID}`;
+      }
+      // ถ้า ID = 0 หรือไม่มี user
+      return "ESP-32 Cam";
+    });
+
+    // ลบชื่อซ้ำ
+    const uniqueNames = Array.from(new Set(names));
+    return uniqueNames.join(", ");
+  };
 
 
   return (
     <div className="min-h-screen bg-gray-50 px-2 sm:px-4 lg:px-30 pb-20 overflow-auto">
+      {contextHolder}
       {loading && (
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-        <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
-      </div>
-    )}
-    {showAddModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+        </div>
+      )}
+      {showAddModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-auto">
+    <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden my-8">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-600"></div>
+      
+      {/* Close button */}
       <button
-        className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
         onClick={() => setShowAddModal(false)}
       >
-        ×
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
-      <h2 className="text-lg font-semibold mb-4">เพิ่มข้อมูลค่ามิเตอร์น้ำ</h2>
-      <form
-  onSubmit={async (e) => {
-    e.preventDefault();
-    setAddLoading(true);
 
-    // รวม date + time เป็น Timestamp แบบ ISO 8601
-    const timestamp = `${addForm.date}T${addForm.time}`;
-
-    const payload = {
-      Timestamp: timestamp,          // "YYYY-MM-DDTHH:mm"
-      MeterValue: Number(addForm.meterValue), // แปลงเป็นตัวเลข
-      Note: addForm.note || "",
-      CameraDeviceID: Number(id),   // id ของ MeterLocation / CameraDevice
-      UserID: user?.ID || 0,
-    };
-
-    const res = await onFinish(payload); // ส่งไปฟังก์ชัน Create API
-    if (res) {
-      setShowAddModal(false); // ปิด modal หลังสร้างเสร็จ
-      // รีโหลดข้อมูลล่าสุด
-      getMeterLocationDetailById(startDate, endDate);
-    }
-
-    setAddLoading(false);
-  }}
->
+      {/* Header */}
+      <div className="mb-6">
+  <h2 className="text-2xl font-bold text-blue-800">
+    {isEditing ? "แก้ไขข้อมูลค่ามิเตอร์น้ำ" : "เพิ่มข้อมูลค่ามิเตอร์น้ำ"}
+  </h2>
+  <p className="text-gray-500 text-sm mt-1">
+    {isEditing ? "แก้ไขข้อมูลที่บันทึกไว้แล้ว" : "กรอกข้อมูลการบันทึกค่ามิเตอร์น้ำ"}
+  </p>
+</div>
 
 
-        {/* ฟิลด์ต่าง ๆ เหมือนเดิม */}
-        <div className="mb-3">
-          <label className="block text-sm mb-1">วันที่</label>
-          <input
-            type="date"
-            required
-            className="w-full border rounded px-3 py-2"
-            value={addForm.date}
-            onChange={e => setAddForm(f => ({ ...f, date: e.target.value }))}
-          />
+      {/* Form */}
+      <div className="space-y-6">
+        {/* Date and Time Row */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Date */}
+<div>
+  <label className="block text-base font-semibold text-gray-700 mb-2">
+    วันที่ <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type="date"
+      required
+      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none ${
+        isEditing
+          ? "bg-gray-100 border-gray-200 cursor-not-allowed"
+          : "border-gray-200 focus:ring-blue-500"
+      }`}
+      value={waterValue.Date || ""}
+      onChange={(e) => handleInputChange("Date", e.target.value)}
+      disabled={isEditing} // ถ้าแก้ไข ห้ามเปลี่ยน
+    />
+  </div>
+  {errors.Date && (
+    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+      {errors.Date}
+    </p>
+  )}
+</div>
+
+{/* Time */}
+<div>
+  <label className="block text-base font-semibold text-gray-700 mb-2">
+    เวลา <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type="time"
+      required
+      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none ${
+        isEditing
+          ? "bg-gray-100 border-gray-200 cursor-not-allowed"
+          : "border-gray-200 focus:ring-blue-500"
+      }`}
+      value={waterValue.Time || ""}
+      onChange={(e) => handleInputChange("Time", e.target.value)}
+      disabled={isEditing} // ถ้าแก้ไข ห้ามเปลี่ยน
+    />
+  </div>
+  {errors.Time && (
+    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+      {errors.Time}
+    </p>
+  )}
+</div>
+
         </div>
-        <div className="mb-3">
-          <label className="block text-sm mb-1">เวลา</label>
-          <input
-            type="time"
-            required
-            className="w-full border rounded px-3 py-2"
-            value={addForm.time}
-            onChange={e => setAddForm(f => ({ ...f, time: e.target.value }))}
-          />
+
+        {/* Meter Value */}
+        <div>
+          <label className="block text-base font-semibold text-gray-700 mb-2">
+            ค่ามิเตอร์น้ำ (ลบ.ม.) <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              min="1"
+              max="100000"
+              placeholder="กรอกค่ามิเตอร์น้ำ..."
+              required
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-base"
+              value={waterValue.MeterValue || ""}
+              onChange={(e) => handleInputChange("MeterValue", parseInt(e.target.value) || 0)}
+            />
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">
+              ลบ.ม.
+            </div>
+          </div>
+          {errors.MeterValue && (
+            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errors.MeterValue}
+            </p>
+          )}
         </div>
-        <div className="mb-3">
-          <label className="block text-sm mb-1">ค่าที่อ่านได้ (ลบ.ม.)</label>
-          <input
-            type="number"
-            required
-            className="w-full border rounded px-3 py-2"
-            value={addForm.meterValue}
-            onChange={e => setAddForm(f => ({ ...f, meterValue: e.target.value }))}
-          />
-        </div>
-        <div className="mb-3">
-          <label className="block text-sm mb-1">หมายเหตุ</label>
+
+        {/* Note */}
+        <div>
+          <label className="block text-base font-semibold text-gray-700 mb-2">
+            หมายเหตุ
+          </label>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2"
-            value={addForm.note}
-            onChange={e => setAddForm(f => ({ ...f, note: e.target.value }))}
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+            value={waterValue.Note || ""}
+            placeholder="กรอกหมายเหตุ (ถ้ามี)..."
+            onChange={(e) => handleInputChange("Note", e.target.value)}
           />
+          {errors.Note && (
+            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errors.Note}
+            </p>
+          )}
         </div>
+
+        {/* Image Upload */}
+        <div>
+          <label className="block text-base font-semibold text-gray-700 mb-2">
+            รูปภาพมิเตอร์น้ำ <span className="text-red-500">*</span>
+          </label>
+          
+          {previewImage ? (
+            <div className="relative group">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-gray-200">
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <button
+                    onClick={() => {
+                      setPreviewImage(null);
+                      setUploadedFile(null);
+                    }}
+                    type="button"
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    ลบรูป
+                  </button>
+                </div>
+              </div>
+              {uploadedFile ? (
+                <p className="text-sm text-gray-500 mt-2 text-center truncate">
+                  📄 {uploadedFile.name}
+                </p>
+              ) : waterValue.ImagePath ? (
+                <p className="text-sm text-gray-500 mt-2 text-center truncate">
+                  📄 {waterValue.ImagePath.split("/").pop()}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-2 text-center italic">ไม่มีไฟล์รูปภาพ</p>
+              )}
+            </div>
+          ) : (
+            <label className="block cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <div className={`relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 ${
+                errors.ImagePath
+                  ? "border-red-300 bg-red-50"
+                  : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50"
+              }`}>
+                <div className="flex flex-col items-center justify-center py-12 px-6">
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                    errors.ImagePath
+                      ? "bg-red-100 text-red-500"
+                      : "bg-blue-100 text-blue-500"
+                  }`}>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <p className={`font-medium mb-2 ${
+                    errors.ImagePath ? "text-red-600" : "text-gray-700"
+                  }`}>
+                    อัปโหลดรูปภาพมิเตอร์น้ำ
+                  </p>
+                  <p className="text-xs text-gray-500 text-center">
+                    รองรับไฟล์ JPG, PNG (ขนาดไม่เกิน 5MB)
+                  </p>
+                </div>
+              </div>
+            </label>
+          )}
+
+          {errors.ImagePath && (
+            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errors.ImagePath}
+            </p>
+          )}
+        </div>
+
+        {/* Submit Button */}
         <button
-          type="submit"
+          onClick={handleSubmit}
           disabled={addLoading}
-          className="w-full py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+          className="w-full py-4 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-70 disabled:transform-none disabled:shadow-lg flex items-center justify-center gap-3"
         >
-          {addLoading ? "กำลังบันทึก..." : "บันทึก"}
+          {addLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              กำลังบันทึก...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              บันทึกข้อมูล
+            </>
+          )}
         </button>
-      </form>
+      </div>
     </div>
   </div>
 )}
 
       {/* Header - Responsive */}
-      
+
       <div className="bg-white rounded-lg shadow-sm mb-4 sm:mb-6 p-3 sm:p-4">
-        
+
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
           {/* Left Section */}
           <div className="flex flex-row items-center xs:flex-row xs:items-center gap-2 xs:gap-4">
@@ -431,107 +702,36 @@ const onFinish = async (values: any) => {
 
           {/* Right Section - Stack on mobile */}
           <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl shadow-md">
-                <MapPin className="w-4 h-4 text-blue-500" />
-                <span className="hidden md:inline text-gray-700">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
-              </div>
-              
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md backdrop-blur-sm ${
-                waterDetail?.Wifi ? 'bg-green-100/80 text-green-700' : 'bg-red-100/80 text-red-700'
-              }`}>
-                {waterDetail?.Wifi ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-                <span className="hidden md:inline">{waterDetail?.Wifi ? 'เชื่อมต่อ' : 'ไม่ได้เชื่อมต่อ'}</span>
-              </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl shadow-md">
+              <MapPin className="w-4 h-4 text-blue-500" />
+              <span className="hidden md:inline text-gray-700">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
             </div>
+
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md backdrop-blur-sm ${waterDetail?.Wifi ? 'bg-green-100/80 text-green-700' : 'bg-red-100/80 text-red-700'
+              }`}>
+              {waterDetail?.Wifi ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              <span className="hidden md:inline">{waterDetail?.Wifi ? 'เชื่อมต่อ' : 'ไม่ได้เชื่อมต่อ'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Metrics - Responsive Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
         {/* Flow Meter Device */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-  <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-3 tracking-tight">
-  สรุปการใช้น้ำ
-</h3>
-
-
-  <div className="space-y-4">
-    {/* ปริมาณน้ำมากที่สุด */}
-    <div className="flex items-center gap-4">
-      <ArrowUpCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm sm:text-base font-medium text-gray-600 uppercase tracking-wide">
-          ปริมาณการใช้น้ำมากที่สุด
+        <div className="bg-white p-8 rounded-3xl text-blue-600 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="flex items-center mb-4 space-x-4">
+            <div className="bg-gray-100 p-3 rounded-2xl backdrop-blur-sm">
+              <Bell className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-semibold">การแจ้งเตือน</h3>
+            
+          </div>
+          <p className="text-black text-base">รายการแจ้งเตือนทั้งหมด</p>
         </div>
-        {/* <div className="text-xs text-gray-400 mt-1">อัปเดตล่าสุดเมื่อ 3 วันที่แล้ว</div> */}
-      </div>
-      <div className="text-right">
-  {maxValue !== null ? (
-    <div className="text-2xl sm:text-3xl font-extrabold text-blue-600">
-      <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-        {maxValue.toFixed(2)}
-      </span>
-      <span className="text-base sm:text-lg font-semibold text-gray-500 ml-1">ลบ.ม.</span>
-    </div>
-  ) : (
-    <div className="text-gray-400 italic text-lg sm:text-2xl">ไม่มีข้อมูล</div>
-  )}
-</div>
-    </div>
-
-    {/* ปริมาณน้ำต่ำที่สุด */}
-    <div className="flex items-center gap-4">
-      <ArrowDownCircle className="w-6 h-6 text-teal-500 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm sm:text-base font-medium text-gray-600 uppercase tracking-wide">
-          ปริมาณการใช้น้ำน้อยที่สุด
-        </div>
-      </div>
-      <div className="text-right">
-  {minValue !== null ? (
-    <div className="text-2xl sm:text-3xl font-extrabold text-teal-600">
-      <span className="bg-gradient-to-r from-teal-400 to-teal-600 bg-clip-text text-transparent">
-        {minValue.toFixed(2)}
-      </span>
-      <span className="text-base sm:text-lg font-semibold text-gray-500 ml-1">ลบ.ม.</span>
-    </div>
-  ) : (
-    <div className="text-gray-400 italic text-lg sm:text-2xl">ไม่มีข้อมูล</div>
-  )}
-</div>
-    </div>
-
-    {/* ปริมาณน้ำเฉลี่ย */}
-    <div className="flex items-center gap-4">
-      <Gauge className="w-6 h-6 text-indigo-500 flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm sm:text-base font-medium text-gray-600 uppercase tracking-wide">
-          ปริมาณการใช้น้ำโดยเฉลี่ย
-        </div>
-      </div>
-      <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600">
-  {avgValue !== null ? (
-    <div>
-      <span className="bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-      {avgValue.toFixed(2)}
-    </span>
-    <span className="text-base sm:text-lg font-semibold text-gray-500 ml-1">ลบ.ม.</span>
-    </div>
-    
-  ) : (
-    <span className="text-gray-400 italic">ไม่มีข้อมูล</span>
-  )}
-  
-</div>
-
-
-    </div>
-  </div>
-</div>
-
 
         {/* Cumulative Data */}
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex flex-row sm:flex-col md:flex-row justify-around gap-4 sm:gap-6">
             {/* Water Data */}
             <div className="flex flex-col items-center bg-blue-50 rounded-lg p-3 sm:p-4 flex-1 sm:w-40 hover:shadow-md transition-shadow duration-200">
@@ -548,7 +748,7 @@ const onFinish = async (values: any) => {
             </div>
 
             {/* Notifications */}
-            <div className="flex flex-col items-center bg-red-50 rounded-lg p-3 sm:p-4 flex-1 sm:w-40 hover:shadow-md transition-shadow duration-200">
+            <div className="flex flex-col items-center bg-red-50 rounded-3xl p-3 sm:p-4 flex-1 sm:w-40 hover:shadow-md transition-shadow duration-200">
               <div className="bg-red-100 p-2 sm:p-3 rounded-full mb-2">
                 <Bell className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />
               </div>
@@ -561,7 +761,7 @@ const onFinish = async (values: any) => {
         </div>
 
         {/* Device Info */}
-        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 ">
+        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg sm:text-2xl font-semibold text-gray-800">ข้อมูลมิเตอร์</h3>
           </div>
@@ -594,18 +794,9 @@ const onFinish = async (values: any) => {
       </div>
 
       {/* Chart Section - Mobile Optimized */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+      <div className="bg-white rounded-3xl border border-white/20 shadow-xl p-4 sm:p-6 mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-          <h3 className="text-base sm:text-2xl font-semibold">ปริมาณการใช้น้ำ</h3>
-          {/* Date Range Picker - Mobile Responsive */}
-          {/* <div className="w-full sm:w-auto">
-            <input 
-              type="date" 
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" 
-              defaultValue="2024-01-01"
-            />
-          </div> */}
-
+          <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">ปริมาณการใช้น้ำ</h3>
           <div className="flex items-center w-full sm:w-auto ">
             {/* Start Date */}
             <div className="relative w-full sm:w-auto bg-white ">
@@ -657,67 +848,80 @@ const onFinish = async (values: any) => {
           </div>
         ) : (
           /* Chart Container - Scrollable on mobile */
-          <div className="h-64 sm:h-72 w-full overflow-x-auto">
-            <div
-              className="h-full"
-              style={{ width: `${dailyMeterData.length * 60}px`, minWidth: "100%" }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyMeterData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="usage"
-                    name="ใช้น้ำ"
-                    stroke="#3B82F6"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                  {avgValue !== null && (
-                    <Line
-                      type="monotone"
-                      dataKey="avg"
-                      stroke="#FF0000"
-                      strokeWidth={2}
-                      dot={false}
-                      name="ค่าเฉลี่ย"
-                    />
-                  )}
-                  {maxValue !== null && (
-                    <Line
-                      type="monotone"
-                      dataKey="max"
-                      name="ค่าสูงสุด"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-                  {minValue !== null && (
-                    <Line
-                      type="monotone"
-                      dataKey="min"
-                      name="ค่าต่ำสุด"
-                      stroke="#0ea5e9"
-                      strokeDasharray="4 4"
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <div className="h-80 sm:h-96 w-full overflow-x-auto">
+  <div
+    className="h-full"
+    style={{ width: `${dailyMeterData.length * 60}px`, minWidth: "100%" }}
+  >
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={dailyMeterData} margin={{ bottom: 50 }}> {/* เพิ่ม margin bottom */}
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 12 }}
+          angle={-45}
+          textAnchor="end"
+          interval={0}
+          
+          label={{
+            value: "วันที่",
+            position: "bottom",
+            offset: 38 // ดัน label ลงด้านล่าง
+          }}
+        />
+        <YAxis
+          tick={{ fontSize: 12 }}
+          label={{ value: 'ปริมาณน้ำ (ลบ.ม.)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Line
+          type="linear"
+          dataKey="usage"
+          name="ใช้น้ำ"
+          stroke="#3B82F6"
+          strokeWidth={2}
+          dot={{ r: 3 }}
+        />
+        {avgValue != null && (
+          <ReferenceLine
+            y={avgValue}
+            stroke="#ef4444"
+            strokeWidth={2}
+            label={{
+              position: "right",
+              value: "ค่าเฉลี่ย",
+              fill: "#ef4444",
+              fontWeight: "bold",
+            }}
+          />
+        )}
+        {maxValue != null && (
+          <Line
+            type="monotone"
+            dataKey="max"
+            name="ค่าสูงสุด"
+            stroke="#22c55e"
+            strokeDasharray="4 4"
+            dot={false}
+            isAnimationActive={false}
+          />
+        )}
+        {minValue != null && (
+          <Line
+            type="monotone"
+            dataKey="min"
+            name="ค่าต่ำสุด"
+            stroke="#a855f7"
+            strokeDasharray="4 4"
+            dot={false}
+            isAnimationActive={false}
+          />
+        )}
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
         )}
 
         {/* Chart Legend - Mobile friendly */}
@@ -727,152 +931,135 @@ const onFinish = async (values: any) => {
             <span>การใช้น้ำ</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <div className="w-3 h-3 bg-orange-500 rounded"></div>
             <span>ค่าเฉลี่ย</span>
           </div>
         </div>
       </div>
 
       {/* Data Table - Mobile Responsive */}
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-  {/* Header */}
-  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-    <h3 className="text-lg sm:text-2xl font-semibold text-gray-800">
-      ข้อมูลค่ามิเตอร์
-    </h3>
-     <div className="flex gap-2">
-    <button
-      onClick={exportToExcel}
-      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors text-sm sm:text-base cursor-pointer"
-    >
-      นำข้อมูลออกเป็น Excel
-    </button>
-    <button
-      onClick={() => setShowAddModal(true)}
-      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors text-sm sm:text-base cursor-pointer"
-    >
-      เพิ่มข้อมูล
-    </button>
-  </div>
-  </div>
-  
-
-  {/* Image Zoom Overlay */}
-  {selectedImage && (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={() => setSelectedImage(null)}
-    >
-      <img
-        src={selectedImage}
-        alt="zoomed"
-        className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
-      />
-    </div>
-  )}
-
-  {/* Mobile Card Layout */}
-  <div className="block sm:hidden space-y-3">
-    {waterDetail?.WaterMeterValue?.map((wmv, index) => (
-      <div
-        key={index}
-        className="border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow bg-white"
-      >
-        <div className="flex justify-between items-start mb-2">
-          <div className="text-sm font-medium text-gray-900">
-            {wmv.Timestamp
-              ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "2-digit",
-                })
-              : "-"}
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+            <div>
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                ประวัติการบันทึกค่ามิเตอร์
+              </h3>
+              <p className="text-gray-500">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button onClick={exportToExcel}className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+                <Download className="w-5 h-5" />
+                Export Excel
+              </button>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-3 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+              >
+                <Plus className="w-5 h-5" />
+                เพิ่มข้อมูล
+              </button>
+            </div>
           </div>
-          <div className="text-sm text-blue-600 font-semibold">{wmv.MeterValue} ลบ.ม.</div>
-        </div>
-        <div className="text-xs text-gray-500 mb-3">
-          แก้ไขโดย: {getUpdatedByNames(wmv.WaterUsageLog)}
-        </div>
-        <div className="flex gap-2">
-          <button className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-xs sm:text-sm transition-colors">
-            แก้ไข
-          </button>
-        </div>
-      </div>
-    ))}
+        
+
+
+        {/* Mobile Card Layout */}
+        <div className="block lg:hidden space-y-4">
+          {waterDetail?.WaterMeterValue?.map((wmv, index) => (
+            <div key={index} className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg transition-all duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-lg font-semibold text-gray-800">
+                  {wmv.Timestamp && (
+  <div className="text-lg font-semibold text-gray-800">
+    {new Date(wmv.Timestamp).toLocaleDateString("th-TH")}
   </div>
+)}
 
-  {/* Desktop Table */}
-  {waterDetail?.WaterMeterValue && waterDetail.WaterMeterValue.length > 0 ? (
-    <div className="hidden sm:block overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-gray-200 shadow-sm">
-      <table className="w-full text-sm border-collapse">
-        <thead className="bg-gray-50 sticky top-0 z-10">
-          <tr>
-            <th className="text-left p-3 font-medium text-gray-600">วัน/เดือน/ปี</th>
-            <th className="text-left p-3 font-medium text-gray-600">เวลา</th>
-            <th className="text-left p-3 font-medium text-gray-600">รูปภาพ</th>
-            <th className="text-left p-3 font-medium text-gray-600">ค่าที่อ่านได้</th>
-            <th className="text-left p-3 font-medium text-gray-600">หมายเหตุ</th>
-            <th className="text-left p-3 font-medium text-gray-600">การจัดการ</th>
-            {/* <th className="text-left p-3 font-medium text-gray-600">แก้ไขโดย</th> */}
-          </tr>
-        </thead>
-        <tbody>
-          {waterDetail.WaterMeterValue.map((wmv, index) => (
-            <tr
-              key={index}
-              className="border-t last:border-b hover:bg-gray-50 transition-colors"
-            >
-              <td className="p-3 text-gray-800">
-                {wmv.Timestamp
-                  ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
-                      year: "numeric",
-                      month: "long",
-                      day: "2-digit",
-                    })
-                  : "-"}
-              </td>
-              <td className="p-3 text-gray-800">
-                {wmv.Timestamp
-                  ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })
-                  : "-"}
-              </td>
-              <td className="p-3">
-                {wmv.WaterMeterImage?.ImagePath ? (
-                  <img
-                    src={`http://localhost:8000/${wmv.WaterMeterImage.ImagePath}`}
-                    alt="water meter"
-                    className="w-28 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform"
-                    onClick={() =>
-                      setSelectedImage(`http://localhost:8000/${wmv.WaterMeterImage?.ImagePath}`)
-                    }
-                  />
-                ) : (
-                  <span className="text-gray-400 italic">ไม่มีรูป</span>
-                )}
-              </td>
-              <td className="p-3 text-gray-800 font-medium">{wmv.MeterValue} ลบ.ม.</td>
-              <td className="p-3 text-gray-800">{wmv.Note || "-"}</td>
-              <td className="p-3">
-                <button className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-                  แก้ไข
-                </button>
-              </td>
-              {/* <td className="p-3 text-gray-800">{getUpdatedByNames(wmv.WaterUsageLog)}</td> */}
-            </tr>
+
+                </div>
+                <div className="text-2xl font-bold text-blue-600">{wmv.MeterValue} ลบ.ม.</div>
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <span>{wmv.Timestamp
+    ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH")
+    : "-"}</span>
+                
+              </div>
+              {wmv.Note && (
+                <p className="text-gray-600 mb-4 bg-white/60 p-3 rounded-lg">{wmv.Note}</p>
+              )}
+              <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all">
+                <Edit className="w-4 h-4" />
+                แก้ไขข้อมูล
+              </button>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <div className="text-gray-500 text-center mt-6 italic">ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก กรุณาเลือกช่วงเวลาใหม่</div>
-      )}
-    </div>
+        </div>
 
+        {/* Desktop Table */}
+        {waterDetail?.WaterMeterValue && waterDetail.WaterMeterValue.length > 0 ? (
+          <div className="hidden sm:block overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-gray-200 shadow-sm">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="text-left p-3 font-medium text-gray-600">วัน/เดือน/ปี</th>
+                  <th className="text-left p-3 font-medium text-gray-600">เวลา</th>
+                  <th className="text-left p-3 font-medium text-gray-600">ค่าที่อ่านได้</th>
+                  <th className="text-left p-3 font-medium text-gray-600">หมายเหตุ</th>
+                  <th className="text-left p-3 font-medium text-gray-600">การจัดการ</th>
+                  {/* <th className="text-left p-3 font-medium text-gray-600">แก้ไขโดย</th> */}
+                </tr>
+              </thead>
+              <tbody>
+                {waterDetail.WaterMeterValue.map((wmv, index) => (
+                  <tr
+                    key={index}
+                    className="border-t last:border-b hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="p-3 text-gray-800">
+                      {wmv.Timestamp
+                        ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "long",
+                          day: "2-digit",
+                        })
+                        : "-"}
+                    </td>
+                    <td className="p-3 text-gray-800">
+                      {wmv.Timestamp
+                        ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })
+                        : "-"}
+                    </td>
+                    
+                    <td className="p-3 text-gray-800 font-medium">{wmv.MeterValue} ลบ.ม.</td>
+                    <td className="p-3 text-gray-800">{wmv.Note || "-"}</td>
+                    <td className="p-3">
+                    <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      handleEdit(wmv);
+                    }}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  >
+                    แก้ไข
+                  </button>
+                  </td>
+                    {/* <td className="p-3 text-gray-800">{getUpdatedByNames(wmv.WaterUsageLog)}</td> */}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-gray-500 text-center mt-6 italic">ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก กรุณาเลือกช่วงเวลาใหม่</div>
+        )}
+
+    </div>
     </div>
   );
 };

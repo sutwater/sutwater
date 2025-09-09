@@ -63,7 +63,7 @@ func main() {
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
 		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
 		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
-		router.GET("/notification/:id", notification.GetNotificationsByMeterLocation)
+		router.GET("/notifications/:id", notification.GetNotificationsByMeterLocation)
 		router.GET("/notifications", notification.GetAllNotifications)
 		router.POST("/meters", meter.CreateMeter)
 		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
@@ -76,8 +76,9 @@ func main() {
 	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
-	r.Run("0.0.0.0:" + PORT)
-	//r.Run("localhost:" + PORT)
+	// ✅ Run server
+	//r.Run("0.0.0.0:" + PORT)
+	r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {
