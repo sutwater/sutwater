@@ -62,6 +62,18 @@ export interface WaterMeterValueInterface {
   User: UsersInterface; // ✅ เพิ่ม relation กับ Users
 }
 
+export interface WaterMeterValueSaveInterface {
+  ID?: number;
+  Date?: string;
+  Time?: string;
+  MeterValue?: number;
+  Note?: string;
+  ImagePath?: string;
+  OCRConfidence: number;
+  CameraDeviceID?: number;
+  UserID: number; // ✅ เพิ่ม relation กับ Users
+}
+
 export interface WaterDetailInterface {
   ID?: number;
   MacAddress?: string;
