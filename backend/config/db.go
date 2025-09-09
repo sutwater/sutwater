@@ -134,7 +134,7 @@ func SetupDatabase() {
 		wm := entity.WaterMeterValue{
 			MeterValue:        int(meterValue),
 			Timestamp:         ts,
-			ModelConfidence:     95.28,
+			ModelConfidence:     95,
 			CameraDeviceID:    cameraDeviceID,
 			WaterMeterImageID: img.ID,
 		}

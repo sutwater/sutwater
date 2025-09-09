@@ -20,7 +20,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 	date := c.PostForm("Date")
 	timestr := c.PostForm("Time")
 	meterValue := c.PostForm("MeterValue")
-	ocrConfidence := c.PostForm("OCRConfidence")
+	modelConfidence := c.PostForm("ModelConfidence")
 	note := c.PostForm("Note")
 	userID := c.PostForm("UserID")
 	cameraDeviceID := c.PostForm("CameraDeviceID")
@@ -39,7 +39,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	ocrConfidenceInt, err := strconv.Atoi(ocrConfidence)
+	modelConfidenceInt, err := strconv.Atoi(modelConfidence)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OCR confidence"})
 		return
@@ -106,7 +106,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 	waterValue := entity.WaterMeterValue{
 		Timestamp:         timestamp,
 		MeterValue:        meterValueInt,
-		OCRConfidence:     ocrConfidenceInt,
+		ModelConfidence:   modelConfidenceInt,
 		Note:              note,
 		CameraDeviceID:    cameraDeviceIDuInt,
 		UserID:            userIDuInt,
