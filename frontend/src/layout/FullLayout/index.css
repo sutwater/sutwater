@@ -1,14 +1,14 @@
 /* Lock scrolling for the full layout */
 .full-layout {
   height: 100vh;
-  overflow: hidden;
+  overflow: auto; /* เปลี่ยนจาก hidden เป็น auto */
   display: flex;
   flex-direction: column;
 }
 
 .main-scroll-area {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto; /* เปิดการเลื่อนในแนวตั้ง */
   display: flex;
   flex-direction: column;
 }
@@ -134,7 +134,7 @@
   background: #f15a29;
   padding: 20px;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto; /* เปลี่ยนจาก hidden เป็น auto */
 }
 
 .content-box {

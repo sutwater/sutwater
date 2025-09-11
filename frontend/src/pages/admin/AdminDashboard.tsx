@@ -6,8 +6,8 @@ import {
   Button,
   Modal,
   Form,
-  Select,
   Space,
+  Select,
 } from "antd";
 import {
   GetUsers,
@@ -16,7 +16,6 @@ import {
 } from "../../services/https";
 import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
-import { saveAs } from "file-saver";
 
 const { Search } = Input;
 const { Option } = Select;
@@ -31,6 +30,8 @@ interface User {
   last_name: string;
   email: string;
   gender: Gender | null;
+  line_user_id: string | null;
+  is_selected_for_line: boolean; // เพิ่มสถานะการเลือก
 }
 
 const AdminDashboard: React.FC = () => {
@@ -40,7 +41,13 @@ const AdminDashboard: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isNotificationModalVisible, setIsNotificationModalVisible] =
+    useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [hasSelectedUsers, setHasSelectedUsers] = useState<boolean>(false); // เพิ่ม state สำหรับตรวจสอบว่ามีผู้ใช้งานที่เลือกหรือไม่
   const navigate = useNavigate();
+
+  const BASE_URL = "https://hj211v7t-8000.asse.devtunnels.ms";
 
   const [form] = Form.useForm();
 
@@ -59,6 +66,12 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // ตรวจสอบว่ามีผู้ใช้งานที่เลือก "ส่ง" หรือไม่
+  useEffect(() => {
+    const hasSelected = users.some((user) => user.is_selected_for_line);
+    setHasSelectedUsers(hasSelected);
+  }, [users]);
 
   const onSearch = (value: string) => {
     const keyword = value.toLowerCase();
@@ -102,46 +115,130 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleExportCSV = () => {
-    const csvContent =
-      ["ID,ชื่อ,นามสกุล,Email,เพศ"]
-        .concat(
-          users.map(
-            (u) =>
-              `${u.ID},${u.first_name},${u.last_name},${u.email},${u.gender?.gender || "ไม่ระบุ"}`
-          )
-        )
-        .join("\n");
+  const handleSendNotification = async () => {
+    const selectedUsers = users
+      .filter((user) => user.is_selected_for_line)
+      .map((user) => user.ID);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, "users.csv");
-  };
+    if (selectedUsers.length === 0) {
+      message.warning("กรุณาเลือกผู้ใช้งานที่ต้องการส่งการแจ้งเตือน");
+      return;
+    }
 
-  const genders = Array.from(
-    new Set(users.map((u) => u.gender?.gender || "ไม่ระบุ"))
-  );
+    if (!notificationMessage.trim()) {
+      message.warning("กรุณากรอกข้อความแจ้งเตือน");
+      return;
+    }
 
-  const handleGenderFilter = (gender: string) => {
-    if (gender === "all") {
-      setFiltered(users);
-    } else {
-      setFiltered(users.filter((u) => (u.gender?.gender || "ไม่ระบุ") === gender));
+    try {
+      const res = await fetch(`${BASE_URL}/line/send-notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_ids: selectedUsers,
+          message: notificationMessage,
+        }),
+      });
+
+      if (res.ok) {
+        message.success("ส่งการแจ้งเตือนสำเร็จ");
+        setNotificationMessage("");
+        setIsNotificationModalVisible(false);
+      } else {
+        message.error("ส่งการแจ้งเตือนไม่สำเร็จ");
+      }
+    } catch (error) {
+      message.error("เกิดข้อผิดพลาดในการส่งการแจ้งเตือน");
     }
   };
 
+  const updateUserStatus = async (userId: number, isSelected: boolean) => {
+    try {
+      const res = await fetch(`${BASE_URL}/user/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          is_selected_for_line: isSelected,
+        }),
+      });
+
+      if (res.ok) {
+        message.success("อัปเดตสถานะสำเร็จ");
+        fetchUsers();
+      } else {
+        message.error("อัปเดตสถานะไม่สำเร็จ");
+      }
+    } catch (error) {
+      message.error("เกิดข้อผิดพลาดในการอัปเดตสถานะ");
+    }
+  };
+
+  const handleSelectUser = (userId: number, value: string) => {
+    const isSelected = value === "send";
+    updateUserStatus(userId, isSelected);
+
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.ID === userId
+          ? { ...user, is_selected_for_line: isSelected }
+          : user
+      )
+    );
+  };
+
   const columns = [
-    { title: "ID", dataIndex: "ID", key: "ID" },
+    {
+      title: "ลำดับ",
+      key: "index",
+      render: (_: any, __: any, index: number) => index + 1, // แสดงลำดับ
+      className: "column-index", // เพิ่ม className สำหรับจัดการ CSS
+      width: 50,
+    },
     {
       title: "ชื่อ-นามสกุล",
       key: "name",
       render: (_: any, record: User) =>
         `${record.first_name || "-"} ${record.last_name || "-"}`,
+      className: "column-name", // เพิ่ม className สำหรับจัดการ CSS
+      width: 150,
     },
-    { title: "Email", dataIndex: "email", key: "email" },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+      className: "column-email", // เพิ่ม className สำหรับจัดการ CSS
+      width: 200,
+    },
     {
       title: "เพศ",
       key: "gender",
       render: (_: any, record: User) => record.gender?.gender || "ไม่ระบุ",
+      className: "column-gender", // เพิ่ม className สำหรับจัดการ CSS
+      width: 100,
+    },
+    {
+      title: "ส่งการแจ้งเตือน",
+      key: "notify",
+      render: (_: any, record: User) =>
+        record.line_user_id ? (
+          <Select
+            value={record.is_selected_for_line ? "send" : "no-send"}
+            onChange={(value) => handleSelectUser(record.ID, value)}
+            style={{ width: 100 }}
+          >
+            <Option value="send">ส่ง</Option>
+            <Option value="no-send">ไม่ส่ง</Option>
+          </Select>
+        ) : (
+          <span style={{ color: "gray" }}>ไม่สามารถส่งได้</span>
+        ),
+      className: "column-notify", // เพิ่ม className สำหรับจัดการ CSS
+      width: 100,
     },
     {
       title: "จัดการ",
@@ -154,6 +251,8 @@ const AdminDashboard: React.FC = () => {
           </Button>
         </Space>
       ),
+      className: "column-actions", // เพิ่ม className สำหรับจัดการ CSS
+      width: 150,
     },
   ];
 
@@ -166,21 +265,15 @@ const AdminDashboard: React.FC = () => {
           onSearch={onSearch}
           value={searchText}
           onChange={(e) => onSearch(e.target.value)}
-          style={{ width: 240 }}
+          style={{ width: 240, marginBottom: 16 }}
         />
-        <Select
-          defaultValue="all"
-          onChange={handleGenderFilter}
-          style={{ width: 180 }}
+        <Button
+          onClick={() => setIsNotificationModalVisible(true)}
+          type="primary"
+          disabled={!hasSelectedUsers} // ปิดการใช้งานปุ่มเมื่อไม่มีผู้ใช้งานที่เลือก
         >
-          <Option value="all">ทุกเพศ</Option>
-          {genders.map((g) => (
-            <Option key={g} value={g}>
-              {g}
-            </Option>
-          ))}
-        </Select>
-        <Button onClick={handleExportCSV}>Export CSV</Button>
+          ส่งการแจ้งเตือน
+        </Button>
       </div>
 
       <Table
@@ -188,13 +281,15 @@ const AdminDashboard: React.FC = () => {
         columns={columns}
         rowKey="ID"
         loading={loading}
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 8 }}
         className="admin-table"
       />
 
-      <Button onClick={() => navigate("/")} style={{ marginBottom: 16 }}>
-        กลับหน้าหลัก
-      </Button>
+      <div className="back-button-container">
+        <Button type="default" onClick={() => navigate("/")}>
+          ย้อนกลับ
+        </Button>
+      </div>
 
       <Modal
         title="แก้ไขสมาชิก"
@@ -215,6 +310,25 @@ const AdminDashboard: React.FC = () => {
             <Input disabled />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="ส่งการแจ้งเตือน"
+        open={isNotificationModalVisible}
+        onOk={handleSendNotification}
+        onCancel={() => {
+          setIsNotificationModalVisible(false);
+          setNotificationMessage("");
+        }}
+        okText="ส่ง"
+        cancelText="ยกเลิก"
+      >
+        <Input.TextArea
+          rows={4}
+          placeholder="กรอกข้อความแจ้งเตือน"
+          value={notificationMessage}
+          onChange={(e) => setNotificationMessage(e.target.value)}
+        />
       </Modal>
     </div>
   );

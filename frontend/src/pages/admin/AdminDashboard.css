@@ -23,3 +23,21 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
+/* ซ่อนคอลัมน์ที่ไม่ต้องการใน Mobile View */
+@media (max-width: 768px) {
+  .column-email,
+  .column-gender,
+  .column-actions {
+    display: none; /* ซ่อนคอลัมน์ Email, เพศ และ จัดการ */
+  }
+
+  .ant-table-cell {
+    white-space: nowrap; /* ป้องกันข้อความล้น */
+  }
+}
+
+.back-button-container {
+  margin-top: -50px; /* เพิ่มระยะห่างด้านบน */
+  text-align: left; /* จัดตำแหน่งปุ่มไว้ด้านซ้าย */
+}

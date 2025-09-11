@@ -1,0 +1,177 @@
+/* Container */
+.liff-link-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: flex-start; /* เปลี่ยนจาก center เป็น flex-start */
+  align-items: center;
+  padding: 140px 24px; /* เพิ่ม padding-top เพื่อดึงขึ้น */
+  flex-direction: column;
+  background-color: #f9f9f9;
+}
+
+/* Content */
+.liff-link-content {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* QR Code Section */
+.qr-code-section {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: row; /* แสดงผลแบบแนวนอนเป็นค่าเริ่มต้น */
+  justify-content: center;
+  align-items: center;
+  gap: 16px; /* ระยะห่างระหว่าง QR Code, divider และโลโก้ LINE */
+}
+
+.qr-code {
+  max-width: 200px;
+  height: auto;
+}
+
+.divider {
+  width: 2px;
+  height: 150px;
+  background-color: #ccc;
+}
+
+.line-logo {
+  width: 160px;
+  height: 160px;
+  cursor: pointer; /* เปลี่ยนเมาส์เป็น pointer */
+}
+
+/* Buttons */
+.login-button,
+.validate-button {
+  padding: 16px 32px;
+  font-size: 18px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-button:hover,
+.validate-button:hover {
+  background-color: #45a049;
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #00c300; /* สีเขียว LINE */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+  background-color: #009900; /* สีเขียวเข้มเมื่อ Hover */
+}
+
+.validate-button {
+  padding: 12px; /* ปรับ padding ให้เท่ากับกล่องกรอก */
+  font-size: 16px; /* ขนาดตัวอักษรเท่ากัน */
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.validate-button:hover {
+  background-color: #0056b3;
+}
+
+/* Input Section */
+.input-section {
+  margin-top: 32px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.line-user-input {
+  padding: 12px;
+  width: 75%;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+/* Validation Message Container */
+.validation-message-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  gap: 8px;
+}
+
+/* ไอคอนสำหรับข้อความแจ้งเตือน */
+.validation-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.validation-icon.success {
+  background-color: #4caf50; /* สีเขียว */
+  color: white;
+}
+
+.validation-icon.error {
+  background-color: #f44336; /* สีแดง */
+  color: white;
+}
+
+/* ข้อความแจ้งเตือน */
+.validation-message {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.validation-message.success {
+  color: #4caf50; /* สีเขียว */
+}
+
+.validation-message.error {
+  color: #f44336; /* สีแดง */
+}
+
+/* สำหรับหน้าจอมือถือ */
+@media (max-width: 768px) {
+  .qr-code-section {
+    flex-direction: column; /* เปลี่ยนเป็นแนวตั้ง */
+    gap: 32px; /* เพิ่มระยะห่างระหว่าง QR Code และโลโก้ LINE */
+  }
+
+  .divider {
+    display: none; /* ซ่อน divider */
+  }
+
+  .qr-code {
+    margin-bottom: 16px; /* เพิ่มระยะห่างด้านล่างของ QR Code */
+  }
+}

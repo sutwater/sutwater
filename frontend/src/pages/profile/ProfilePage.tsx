@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Descriptions, Card, Spin, Typography, Avatar } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { Descriptions, Card, Spin, Typography, Avatar, Button, message } from "antd";
+import { UserOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { UsersInterface } from "../../interfaces/IUser";
 import { GetUsersById } from "../../services/https";
 import "./ProfilePage.css";
@@ -13,28 +13,47 @@ function ProfilePage() {
 
   const fetchUser = async () => {
     const userId = localStorage.getItem("id");
-    if (!userId) return;
-
-    const res = await GetUsersById(userId);
-
-    if (res.status === 200) {
-      const u = res.data;
-
-      const mappedUser: UsersInterface = {
-        ID: u.ID,
-        first_name: u.first_name,
-        last_name: u.last_name,
-        Email: u.email,
-        Age: u.age,
-        BirthDay: u.birthday,
-        GenderID: u.gender_id,
-        Gender: u.gender,
-      };
-
-      setUser(mappedUser);
+    if (!userId) {
+      message.error("ไม่พบข้อมูลผู้ใช้งานในระบบ กรุณาเข้าสู่ระบบใหม่");
+      return;
     }
 
-    setLoading(false);
+    try {
+      const res = await GetUsersById(userId);
+      if (res.status === 200) {
+        const u = res.data;
+        const mappedUser: UsersInterface = {
+          ID: u.ID,
+          FirstName: u.first_name,
+          LastName: u.last_name,
+          Email: u.email,
+          Age: u.age,
+          BirthDay: u.birthday,
+          GenderID: u.gender_id,
+          Gender: u.gender,
+          LineUserID: u.line_user_id,
+        };
+        setUser(mappedUser);
+      } else {
+        message.error("ไม่สามารถดึงข้อมูลผู้ใช้งานได้");
+      }
+    } catch (error) {
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginWithLine = () => {
+    const liffId = import.meta.env.VITE_LIFF_ID;
+
+    if (!liffId) {
+      alert("LIFF ID ไม่ได้ถูกตั้งค่า กรุณาติดต่อผู้ดูแลระบบ");
+      return;
+    }
+
+    const liffUrl = `https://liff.line.me/${liffId}`;
+    window.location.href = liffUrl; // เปลี่ยน URL ของหน้าเว็บปัจจุบันไปยัง LIFF URL
   };
 
   useEffect(() => {
@@ -63,8 +82,8 @@ function ProfilePage() {
               column={1}
               labelStyle={{ fontWeight: 600, width: 150 }}
             >
-              <Descriptions.Item label="ชื่อ">{user.first_name}</Descriptions.Item>
-              <Descriptions.Item label="นามสกุล">{user.last_name}</Descriptions.Item>
+              <Descriptions.Item label="ชื่อ">{user.FirstName}</Descriptions.Item>
+              <Descriptions.Item label="นามสกุล">{user.LastName}</Descriptions.Item>
               <Descriptions.Item label="อีเมล">{user.Email}</Descriptions.Item>
               <Descriptions.Item label="อายุ">{user.Age}</Descriptions.Item>
               <Descriptions.Item label="วันเกิด">
@@ -78,6 +97,19 @@ function ProfilePage() {
               </Descriptions.Item>
               <Descriptions.Item label="เพศ">
                 {user.Gender?.gender || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Line User ID">
+                {user.LineUserID ? (
+                  user.LineUserID // แสดง Line User ID หากไม่เป็น NULL
+                ) : (
+                  <Button
+                    type="primary"
+                    icon={<QrcodeOutlined />}
+                    onClick={handleLoginWithLine}
+                  >
+                    เชื่อม LINE
+                  </Button>
+                )}
               </Descriptions.Item>
             </Descriptions>
           </>

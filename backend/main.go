@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/controller/genders"
-	lineController "example.com/sa-67-example/controller/line"
+	"example.com/sa-67-example/controller/line"
 	"example.com/sa-67-example/controller/meter"
 	"example.com/sa-67-example/controller/notification"
 	"example.com/sa-67-example/controller/upload_image"
@@ -42,7 +43,26 @@ func main() {
 
 	r.GET("/genders", genders.GetAll)
 
-	r.POST("/line/webhook", lineController.WebhookHandler)
+	r.GET("/liff-link", func(c *gin.Context) {
+		q := c.Request.URL.RawQuery
+		target := fmt.Sprintf("%s/liff-link", config.Cfg.DashboardURL) // DASHBOARD_URL ต้องเป็น ngrok/frontend
+		if q != "" {
+			target += "?" + q
+		}
+		c.Redirect(http.StatusTemporaryRedirect, target) // 307/307-like
+	})
+
+	lineGroup := r.Group("/line")
+	{
+		lineGroup.POST("/webhook", line.WebhookHandler)         // Route สำหรับ Webhook
+		lineGroup.POST("/link-account", line.LinkLineAccount)   // Route สำหรับเชื่อมบัญชี
+		lineGroup.GET("/check-link", line.CheckLinkHandler)     // Route สำหรับตรวจสอบการเชื่อมบัญชี
+		lineGroup.POST("/send-message", line.SendMessageToUser) // Route สำหรับส่งข้อความ
+		lineGroup.POST("/send-notifications", line.SendNotifications)
+		lineGroup.GET("/get-qrcode", line.GetQRCodeHandler)
+		lineGroup.POST("/save-line-userid", line.SaveLineUserID)
+		lineGroup.POST("/login", line.LoginWithLine)
+	}
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
@@ -77,14 +97,23 @@ func main() {
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
 	// ✅ Run server
-	//r.Run("0.0.0.0:" + PORT)
-	r.Run("localhost:" + PORT)
+	r.Run("0.0.0.0:" + PORT)
+	//r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		allowedOrigins := map[string]bool{
+			"http://localhost:5173":                    true,
+			"http://127.0.0.1:5173":                    true,
+			"https://hj211v7t-5173.asse.devtunnels.ms": true,
+		}
 
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		if allowedOrigins[origin] {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
@@ -93,7 +122,6 @@ func CORSMiddleware() gin.HandlerFunc {
 			c.AbortWithStatus(204)
 			return
 		}
-
 		c.Next()
 	}
 }

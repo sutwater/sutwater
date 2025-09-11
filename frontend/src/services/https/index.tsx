@@ -39,10 +39,12 @@ async function GetUsers() {
 }
 
 async function GetUsersById(id: string) {
-  return await axios
-    .get(`${apiUrl}/user/${id}`, authHeader())
-    .then((res) => res)
-    .catch((e) => e.response);
+  try {
+    const res = await axios.get(`${apiUrl}/user/${id}`, authHeader());
+    return res;
+  } catch (e: any) {
+    return e?.response ?? { status: 500, data: { error: "Unknown error" } };
+  }
 }
 
 async function UpdateUsersById(id: string, data: UsersInterface) {
@@ -89,7 +91,6 @@ async function GetAllWaterUsageLogs() {
     .catch((e) => e.response);
 }
 
-
 async function GetAllWaterDaily() {
   return await axios
     .get(`${apiUrl}/waterdetail`, authHeader())
@@ -97,7 +98,11 @@ async function GetAllWaterDaily() {
     .catch((e) => e.response);
 }
 
-async function GetMeterLocationDetail(id: string, startDate?: string, endDate?: string) {
+async function GetMeterLocationDetail(
+  id: string,
+  startDate?: string,
+  endDate?: string
+) {
   let params: any = {};
   if (startDate) params.startDate = startDate;
   if (endDate) params.endDate = endDate;
@@ -125,7 +130,6 @@ async function CreateWaterMeterValue(formData: FormData) {
   }
 }
 
-
 // notification
 
 async function GetNotificationsByMeterLocation(id: string) {
@@ -150,15 +154,12 @@ export {
   UpdateUsersById,
   DeleteUsersById,
   CreateUser,
-
   GetMerters,
   CreateMeter,
-
   GetAllWaterUsageLogs,
   GetMeterLocationDetail,
   CreateWaterMeterValue,
   GetAllWaterDaily,
-
   GetNotificationsByMeterLocation,
   GetAllNotifications,
 };
