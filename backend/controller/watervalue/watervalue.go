@@ -39,7 +39,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	modelConfidenceInt, err := strconv.Atoi(modelConfidence)
+	modelConfidenceFloat, err := strconv.ParseFloat(modelConfidence, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OCR confidence"})
 		return
@@ -106,7 +106,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 	waterValue := entity.WaterMeterValue{
 		Timestamp:         timestamp,
 		MeterValue:        meterValueInt,
-		ModelConfidence:   float64(modelConfidenceInt),
+		ModelConfidence:   modelConfidenceFloat,
 		Note:              note,
 		CameraDeviceID:    cameraDeviceIDuInt,
 		UserID:            userIDuInt,
