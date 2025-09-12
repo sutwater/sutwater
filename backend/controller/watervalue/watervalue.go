@@ -106,7 +106,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 	waterValue := entity.WaterMeterValue{
 		Timestamp:         timestamp,
 		MeterValue:        meterValueInt,
-		ModelConfidence:   modelConfidenceInt,
+		ModelConfidence:   float64(modelConfidenceInt),
 		Note:              note,
 		CameraDeviceID:    cameraDeviceIDuInt,
 		UserID:            userIDuInt,

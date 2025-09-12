@@ -10,7 +10,7 @@ type WaterMeterValue struct {
 	gorm.Model
 	MeterValue     		int
 	Timestamp      		time.Time
-	ModelConfidence  	int
+	ModelConfidence  	float64
 	Note           		string
 	CameraDeviceID 		uint
 	CameraDevice   		*CameraDevice `gorm:"foreignKey:CameraDeviceID"`
