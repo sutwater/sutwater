@@ -1,4 +1,18 @@
 import { assets, menuLinks } from "../assets/assets";
+// ฟังก์ชันสำหรับดึงตัวอักษรตัวแรกที่ไม่ใช่สระ (ภาษาไทย)
+function getThaiInitial(name: string): string {
+  if (!name) return "U";
+  // รายการสระนำหน้าที่ไม่ควรใช้เป็น Avatar
+  const vowels = [
+    "ะ","ั","า","ำ","ิ","ี","ึ","ื","ุ","ู","เ","แ","โ","ใ","ไ","ๅ","็","๋","้","๊","์","่","ํ"
+  ];
+  for (const ch of name) {
+    if (!vowels.includes(ch)) {
+      return ch.toUpperCase();
+    }
+  }
+  return name.charAt(0).toUpperCase() || "U";
+}
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "../contexts/AppContext";
@@ -78,7 +92,7 @@ const UserProfileDropdown = ({
               className="w-7 h-7 rounded-full object-cover"
             />
           ) : (
-            user?.first_name?.charAt(0).toUpperCase() || "U"
+            getThaiInitial(user?.first_name)
           )}
         </div>
 
@@ -117,7 +131,7 @@ const UserProfileDropdown = ({
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
-                  user?.first_name?.charAt(0).toUpperCase() || "U"
+                  getThaiInitial(user?.first_name)
                 )}
               </div>
               <div className="flex-1 min-w-0">
