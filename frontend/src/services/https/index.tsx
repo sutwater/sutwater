@@ -3,6 +3,7 @@ import { SignInInterface } from "../../interfaces/SignIn";
 import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 import axios from "axios";
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const apiUrl = "http://localhost:8000";
 
 // ✅ ดึง token & type แบบ dynamic
@@ -83,7 +84,7 @@ async function CreateMeter(data: MeterLocationInterface) {
     .catch((e) => e.response);
 }
 
-// Waterlog
+// WaterValue
 async function GetAllWaterUsageLogs() {
   return await axios
     .get(`${apiUrl}/waterusages`, authHeader())
@@ -130,8 +131,28 @@ async function CreateWaterMeterValue(formData: FormData) {
   }
 }
 
-// notification
+async function UpdateWaterMeterValue(id: string, formData: FormData) {
+  try {
+    return await axios.patch(`${apiUrl}/watervalue/${id}`, formData, {
+      headers: {
+        ...authHeader().headers,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  } catch (e: any) {
+    throw e.response;
+  }
+}
 
+
+async function fetchWaterValueById(id: string) {
+  return await axios
+    .get(`${apiUrl}/watervalue/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+// notification
 async function GetNotificationsByMeterLocation(id: string) {
   return await axios
     .get(`${apiUrl}/notifications/${id}`, authHeader())
@@ -142,6 +163,15 @@ async function GetNotificationsByMeterLocation(id: string) {
 async function GetAllNotifications() {
   return await axios
     .get(`${apiUrl}/notifications`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+//status
+
+async function fetchWaterValueStatus() {
+  return await axios
+    .get(`${apiUrl}/watervalue/status`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -159,7 +189,10 @@ export {
   GetAllWaterUsageLogs,
   GetMeterLocationDetail,
   CreateWaterMeterValue,
+  UpdateWaterMeterValue,
   GetAllWaterDaily,
+  fetchWaterValueById,
   GetNotificationsByMeterLocation,
   GetAllNotifications,
+  fetchWaterValueStatus,
 };

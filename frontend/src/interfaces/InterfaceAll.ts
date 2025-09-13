@@ -13,6 +13,13 @@ export interface UsersInterface {
   Gender?: GenderInterface;
 }
 
+export interface WaterValueStatus {
+  ID: number;
+  Name: string;
+  Description: string;
+  WaterMeterValue?: WaterMeterValueInterface[];
+}
+
 export interface GenderInterface {
   ID?: number;
 
@@ -53,9 +60,12 @@ export interface WaterLogInterface {
 export interface WaterMeterValueInterface {
   ID?: number;
   MeterValue?: number;
+  StatusID?: number;
   Timestamp?: string;
+  Time?: string;
+  Date?: string;
   Note?: string;
-  OCRConfidence?: number;
+  ModelConfidence?: number;
   CameraDevice?: CameraDeviceInterface;
   WaterMeterImage?: WaterMeterImageInterface;
   WaterUsageLog?: WaterLogInterface[];

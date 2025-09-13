@@ -76,7 +76,9 @@ func GetCameraDeviceWithUsage(c *gin.Context) {
 				return db.Where("timestamp BETWEEN ? AND ?", startDate, endDate).Order("timestamp DESC")
 			}).
 			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-				return db.Where("timestamp BETWEEN ? AND ?", startDate, endDate).
+				return db.
+					Where("status_id = ?", 2). // ✅ กรองเฉพาะ StatusID = 2
+					Where("timestamp BETWEEN ? AND ?", startDate, endDate).
 					Order("timestamp DESC").
 					Preload("User").
 					Preload("WaterMeterImage")
@@ -87,7 +89,9 @@ func GetCameraDeviceWithUsage(c *gin.Context) {
 				return db.Order("timestamp DESC")
 			}).
 			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-				return db.Order("timestamp DESC").
+				return db.
+					Where("status_id = ?", 2). // ✅ กรองเฉพาะ StatusID = 2
+					Order("timestamp DESC").
 					Preload("User").
 					Preload("WaterMeterImage")
 			})
