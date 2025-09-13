@@ -15,7 +15,6 @@ const WaterMonitoringDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [waterDetail, setWaterDetail] = useState<CameraDeviceInterface | null>(null);
   const [notification, setNotification] = useState<NotificationInterface[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -34,8 +33,8 @@ const WaterMonitoringDashboard: React.FC = () => {
     OCRConfidence: 100,
     Note: "",
     ImagePath: "",
-  }); 
-
+  });
+  console.log("CameraID: ", id?.toString())
   const exportToExcel = () => {
     if (!waterDetail || !waterDetail.DailyWaterUsage || waterDetail.DailyWaterUsage.length === 0) {
       messageApi.open({ type: "warning", content: "ไม่มีข้อมูลให้ export" });
@@ -112,30 +111,30 @@ const WaterMonitoringDashboard: React.FC = () => {
     }
   };
   const handleEdit = (record: any) => {
-  const timestamp = record.Timestamp ? new Date(record.Timestamp) : null;
+    const timestamp = record.Timestamp ? new Date(record.Timestamp) : null;
 
-  setWaterValue({
-    Date: timestamp ? dayjs(timestamp).format("YYYY-MM-DD") : "",
-    Time: timestamp ? dayjs(timestamp).format("HH:mm:ss") : "",
-    MeterValue: record.MeterValue ?? 0,
-    OCRConfidence: record.OCRConfidence ?? 100,
-    Note: record.Note ?? "",
-    ImagePath: record.WaterMeterImage?.ImagePath ?? "",
-    UserID: record.UserID,
-    CameraDeviceID: record.CameraDeviceID,
-  });
+    setWaterValue({
+      Date: timestamp ? dayjs(timestamp).format("YYYY-MM-DD") : "",
+      Time: timestamp ? dayjs(timestamp).format("HH:mm:ss") : "",
+      MeterValue: record.MeterValue ?? 0,
+      OCRConfidence: record.OCRConfidence ?? 100,
+      Note: record.Note ?? "",
+      ImagePath: record.WaterMeterImage?.ImagePath ?? "",
+      UserID: record.UserID,
+      CameraDeviceID: record.CameraDeviceID,
+    });
 
-  // ถ้ามีรูปจาก database ให้เอามาโชว์เป็น preview
-  if (record.WaterMeterImage?.ImagePath) {
-    setUploadedFile(null); // กันสับสนถ้าเคยอัปโหลดไฟล์ใหม่
-    setPreviewImage(`http://localhost:8000/${record.WaterMeterImage.ImagePath}`);
-  } else {
-    setUploadedFile(null);
-    setPreviewImage(null);
-  }
+    // ถ้ามีรูปจาก database ให้เอามาโชว์เป็น preview
+    if (record.WaterMeterImage?.ImagePath) {
+      setUploadedFile(null); // กันสับสนถ้าเคยอัปโหลดไฟล์ใหม่
+      setPreviewImage(`http://localhost:8000/${record.WaterMeterImage.ImagePath}`);
+    } else {
+      setUploadedFile(null);
+      setPreviewImage(null);
+    }
 
-  setShowAddModal(true);
-};
+    setShowAddModal(true);
+  };
 
 
 
@@ -210,80 +209,80 @@ const WaterMonitoringDashboard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  if (!waterValue.Date || !waterValue.Time) {
-    message.error("กรุณาระบุวันที่และเวลา");
-    return;
-  }
-
-  if (!uploadedFile) {
-    message.error("กรุณาอัปโหลดโปสเตอร์กิจกรรม");
-    return;
-  }
-
-  // ✅ ตรวจสอบ user ว่าไม่ null ก่อน
-  if (!user || !user.ID) {
-    console.error("User is not logged in");
-    return;
-  }
-
-  // ✅ ตรวจสอบ id ว่าไม่ undefined ก่อน
-  if (!id) {
-    console.error("CameraDeviceID is missing");
-    return;
-  }
-
-  try {
-    const formData = new FormData();
-    formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD")); 
-    formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
-    formData.append("MeterValue", waterValue.MeterValue!.toString());
-    formData.append("OCRConfidence", waterValue.OCRConfidence!.toString());
-    formData.append("Note", waterValue.Note || "");
-    formData.append("ImagePath", uploadedFile);
-    formData.append("UserID", user.ID.toString() || "0");
-  formData.append("CameraDeviceID", id.toString() || "0");
-
-    setAddLoading(true);
-
-    const res = await CreateWaterMeterValue(formData);
-
-    if (res.status === 200) {
-      messageApi.success({
-  content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
-});
-
-      
-      setUploadedFile(null);
-      setWaterValue({
-        Date: "",
-        Time: "",
-        MeterValue: 0,
-        OCRConfidence: 0,
-        Note: "",
-        ImagePath: "",
-      });
-      setErrors({});
-      setUploadedFile(null);
-      setPreviewImage(null);
-
-      // ✅ ปิด modal
-      setAddLoading(false);
-      setShowAddModal(false);
-    } else {
-      message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
+    if (!waterValue.Date || !waterValue.Time) {
+      message.error("กรุณาระบุวันที่และเวลา");
+      return;
     }
-  } catch (error: any) {
-    console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
-  } 
-};
+
+    if (!uploadedFile) {
+      message.error("กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ");
+      return;
+    }
+
+    // ✅ ตรวจสอบ user ว่าไม่ null ก่อน
+    if (!user || !user.ID) {
+      console.error("User is not logged in");
+      return;
+    }
+
+    // ✅ ตรวจสอบ id ว่าไม่ undefined ก่อน
+    if (!id) {
+      console.error("CameraDeviceID is missing");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
+      formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
+      formData.append("MeterValue", waterValue.MeterValue!.toString());
+      formData.append("ModelConfidence", waterValue.OCRConfidence!.toString());
+      formData.append("Note", waterValue.Note || "");
+      formData.append("ImagePath", uploadedFile);
+      formData.append("UserID", user.ID.toString() || "0");
+      formData.append("CameraDeviceID", id.toString() || "0");
+
+      setAddLoading(true);
+
+      const res = await CreateWaterMeterValue(formData);
+
+      if (res.status === 200) {
+        messageApi.success({
+          content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
+        });
+
+
+        setUploadedFile(null);
+        setWaterValue({
+          Date: "",
+          Time: "",
+          MeterValue: 0,
+          OCRConfidence: 0,
+          Note: "",
+          ImagePath: "",
+        });
+        setErrors({});
+        setUploadedFile(null);
+        setPreviewImage(null);
+
+        // ✅ ปิด modal
+        setAddLoading(false);
+        setShowAddModal(false);
+      } else {
+        message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
+      }
+    } catch (error: any) {
+      console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
+    }
+  };
 
   const validateForm = () => {
-  const newErrors: { [key: string]: string } = {};
+    const newErrors: { [key: string]: string } = {};
 
-  // ตรวจสอบวันที่ เฉพาะกรณีเพิ่มข้อมูลใหม่
-  if (!isEditing) {
+    // ตรวจสอบวันที่ เฉพาะกรณีเพิ่มข้อมูลใหม่
+
     if (!waterValue.Date?.trim()) {
       newErrors.Date = "กรุณาเลือกวันที่บันทึก";
     } else {
@@ -296,28 +295,28 @@ const WaterMonitoringDashboard: React.FC = () => {
         newErrors.Date = "วันที่ต้องเป็นวันนี้หรืออนาคตเท่านั้น";
       }
     }
-  }
 
-  // ตรวจสอบเวลา
-  if (!waterValue.Time?.trim()) {
-    newErrors.Time = "กรุณาเลือกเวลาที่บันทึก";
-  }
 
-  // ตรวจสอบค่ามิเตอร์
-  if (!waterValue.MeterValue || waterValue.MeterValue < 1) {
-    newErrors.MeterValue = "กรุณากรอกค่ามิเตอร์น้ำที่มากกว่า 0 ลบ.ม.";
-  } else if (waterValue.MeterValue > 100000) {
-    newErrors.MeterValue = "ค่ามิเตอร์น้ำต้องไม่เกิน 100,000 ลบ.ม.";
-  }
+    // ตรวจสอบเวลา
+    if (!waterValue.Time?.trim()) {
+      newErrors.Time = "กรุณาเลือกเวลาที่บันทึก";
+    }
 
-  // ตรวจสอบรูปภาพ
-  if (!uploadedFile && !waterValue.ImagePath) {
-    newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
-  }
+    // ตรวจสอบค่ามิเตอร์
+    if (!waterValue.MeterValue || waterValue.MeterValue < 1) {
+      newErrors.MeterValue = "กรุณากรอกค่ามิเตอร์น้ำที่มากกว่า 0 ลบ.ม.";
+    } else if (waterValue.MeterValue > 100000) {
+      newErrors.MeterValue = "ค่ามิเตอร์น้ำต้องไม่เกิน 100,000 ลบ.ม.";
+    }
 
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
+    // ตรวจสอบรูปภาพ
+    if (!uploadedFile && !waterValue.ImagePath) {
+      newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
 
   const handleDateRangeChange = (
@@ -431,254 +430,246 @@ const WaterMonitoringDashboard: React.FC = () => {
         </div>
       )}
       {showAddModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-auto">
-    <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden my-8">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-600"></div>
-      
-      {/* Close button */}
-      <button
-        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
-        onClick={() => setShowAddModal(false)}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden my-8">
+            {/* Background decoration */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-emerald-500 to-blue-600"></div>
 
-      {/* Header */}
-      <div className="mb-6">
-  <h2 className="text-2xl font-bold text-blue-800">
-    {isEditing ? "แก้ไขข้อมูลค่ามิเตอร์น้ำ" : "เพิ่มข้อมูลค่ามิเตอร์น้ำ"}
-  </h2>
-  <p className="text-gray-500 text-sm mt-1">
-    {isEditing ? "แก้ไขข้อมูลที่บันทึกไว้แล้ว" : "กรอกข้อมูลการบันทึกค่ามิเตอร์น้ำ"}
-  </p>
-</div>
+            {/* Close button */}
+            <button
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
+              onClick={() => setShowAddModal(false)}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-blue-800">
+                {"เพิ่มข้อมูลค่ามิเตอร์น้ำ"}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                {"กรอกข้อมูลการบันทึกค่ามิเตอร์น้ำ"}
+              </p>
+            </div>
 
 
-      {/* Form */}
-      <div className="space-y-6">
-        {/* Date and Time Row */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Date */}
-<div>
-  <label className="block text-base font-semibold text-gray-700 mb-2">
-    วันที่ <span className="text-red-500">*</span>
-  </label>
-  <div className="relative">
-    <input
-      type="date"
-      required
-      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none ${
-        isEditing
-          ? "bg-gray-100 border-gray-200 cursor-not-allowed"
-          : "border-gray-200 focus:ring-blue-500"
-      }`}
-      value={waterValue.Date || ""}
-      onChange={(e) => handleInputChange("Date", e.target.value)}
-      disabled={isEditing} // ถ้าแก้ไข ห้ามเปลี่ยน
-    />
-  </div>
-  {errors.Date && (
-    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-      {errors.Date}
-    </p>
-  )}
-</div>
+            {/* Form */}
+            <div className="space-y-6">
+              {/* Date and Time Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Date */}
+                <div>
+                  <label className="block text-base font-semibold text-gray-700 mb-2">
+                    วันที่ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      required
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none  "border-gray-200 focus:ring-blue-500"
+      `}
+                      value={waterValue.Date || ""}
+                      onChange={(e) => handleInputChange("Date", e.target.value)}
+                    />
+                  </div>
+                  {errors.Date && (
+                    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.Date}
+                    </p>
+                  )}
+                </div>
 
-{/* Time */}
-<div>
-  <label className="block text-base font-semibold text-gray-700 mb-2">
-    เวลา <span className="text-red-500">*</span>
-  </label>
-  <div className="relative">
-    <input
-      type="time"
-      required
-      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none ${
-        isEditing
-          ? "bg-gray-100 border-gray-200 cursor-not-allowed"
-          : "border-gray-200 focus:ring-blue-500"
-      }`}
-      value={waterValue.Time || ""}
-      onChange={(e) => handleInputChange("Time", e.target.value)}
-      disabled={isEditing} // ถ้าแก้ไข ห้ามเปลี่ยน
-    />
-  </div>
-  {errors.Time && (
-    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-      {errors.Time}
-    </p>
-  )}
-</div>
+                {/* Time */}
+                <div>
+                  <label className="block text-base font-semibold text-gray-700 mb-2">
+                    เวลา <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      required
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none "border-gray-200 focus:ring-blue-500"
+      `}
+                      value={waterValue.Time || ""}
+                      onChange={(e) => handleInputChange("Time", e.target.value)}
+                    />
+                  </div>
+                  {errors.Time && (
+                    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                      {errors.Time}
+                    </p>
+                  )}
+                </div>
 
-        </div>
+              </div>
 
-        {/* Meter Value */}
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-2">
-            ค่ามิเตอร์น้ำ (ลบ.ม.) <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              min="1"
-              max="100000"
-              placeholder="กรอกค่ามิเตอร์น้ำ..."
-              required
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-base"
-              value={waterValue.MeterValue || ""}
-              onChange={(e) => handleInputChange("MeterValue", parseInt(e.target.value) || 0)}
-            />
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">
-              ลบ.ม.
+              {/* Meter Value */}
+              <div>
+                <label className="block text-base font-semibold text-gray-700 mb-2">
+                  ค่ามิเตอร์น้ำ (ลบ.ม.) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    placeholder="กรอกค่ามิเตอร์น้ำ..."
+                    required
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-base"
+                    value={waterValue.MeterValue || ""}
+                    onChange={(e) => handleInputChange("MeterValue", parseInt(e.target.value) || 0)}
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">
+                    ลบ.ม.
+                  </div>
+                </div>
+                {errors.MeterValue && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.MeterValue}
+                  </p>
+                )}
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="block text-base font-semibold text-gray-700 mb-2">
+                  หมายเหตุ
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                  value={waterValue.Note || ""}
+                  placeholder="กรอกหมายเหตุ (ถ้ามี)..."
+                  onChange={(e) => handleInputChange("Note", e.target.value)}
+                />
+                {errors.Note && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.Note}
+                  </p>
+                )}
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-base font-semibold text-gray-700 mb-2">
+                  รูปภาพมิเตอร์น้ำ <span className="text-red-500">*</span>
+                </label>
+
+                {previewImage ? (
+                  <div className="relative group">
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-gray-200">
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <button
+                          onClick={() => {
+                            setPreviewImage(null);
+                            setUploadedFile(null);
+                          }}
+                          type="button"
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          ลบรูป
+                        </button>
+                      </div>
+                    </div>
+                    {uploadedFile ? (
+                      <p className="text-sm text-gray-500 mt-2 text-center truncate">
+                        📄 {uploadedFile.name}
+                      </p>
+                    ) : waterValue.ImagePath ? (
+                      <p className="text-sm text-gray-500 mt-2 text-center truncate">
+                        📄 {waterValue.ImagePath.split("/").pop()}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-2 text-center italic">ไม่มีไฟล์รูปภาพ</p>
+                    )}
+                  </div>
+                ) : (
+                  <label className="block cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <div className={`relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 ${errors.ImagePath
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50"
+                      }`}>
+                      <div className="flex flex-col items-center justify-center py-12 px-6">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${errors.ImagePath
+                            ? "bg-red-100 text-red-500"
+                            : "bg-blue-100 text-blue-500"
+                          }`}>
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </div>
+                        <p className={`font-medium mb-2 ${errors.ImagePath ? "text-red-600" : "text-gray-700"
+                          }`}>
+                          อัปโหลดรูปภาพมิเตอร์น้ำ
+                        </p>
+                        <p className="text-xs text-gray-500 text-center">
+                          รองรับไฟล์ JPG, PNG (ขนาดไม่เกิน 5MB)
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                )}
+
+                {errors.ImagePath && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.ImagePath}
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmit}
+                disabled={addLoading}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-70 disabled:transform-none disabled:shadow-lg flex items-center justify-center gap-3"
+              >
+                {addLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    บันทึกข้อมูล
+                  </>
+                )}
+              </button>
             </div>
           </div>
-          {errors.MeterValue && (
-            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {errors.MeterValue}
-            </p>
-          )}
         </div>
-
-        {/* Note */}
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-2">
-            หมายเหตุ
-          </label>
-          <input
-            type="text"
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-            value={waterValue.Note || ""}
-            placeholder="กรอกหมายเหตุ (ถ้ามี)..."
-            onChange={(e) => handleInputChange("Note", e.target.value)}
-          />
-          {errors.Note && (
-            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {errors.Note}
-            </p>
-          )}
-        </div>
-
-        {/* Image Upload */}
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-2">
-            รูปภาพมิเตอร์น้ำ <span className="text-red-500">*</span>
-          </label>
-          
-          {previewImage ? (
-            <div className="relative group">
-              <div className="relative overflow-hidden rounded-2xl border-2 border-gray-200">
-                <img
-                  src={previewImage}
-                  alt="Preview"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <button
-                    onClick={() => {
-                      setPreviewImage(null);
-                      setUploadedFile(null);
-                    }}
-                    type="button"
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    ลบรูป
-                  </button>
-                </div>
-              </div>
-              {uploadedFile ? (
-                <p className="text-sm text-gray-500 mt-2 text-center truncate">
-                  📄 {uploadedFile.name}
-                </p>
-              ) : waterValue.ImagePath ? (
-                <p className="text-sm text-gray-500 mt-2 text-center truncate">
-                  📄 {waterValue.ImagePath.split("/").pop()}
-                </p>
-              ) : (
-                <p className="text-sm text-gray-500 mt-2 text-center italic">ไม่มีไฟล์รูปภาพ</p>
-              )}
-            </div>
-          ) : (
-            <label className="block cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              <div className={`relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 ${
-                errors.ImagePath
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50"
-              }`}>
-                <div className="flex flex-col items-center justify-center py-12 px-6">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                    errors.ImagePath
-                      ? "bg-red-100 text-red-500"
-                      : "bg-blue-100 text-blue-500"
-                  }`}>
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </div>
-                  <p className={`font-medium mb-2 ${
-                    errors.ImagePath ? "text-red-600" : "text-gray-700"
-                  }`}>
-                    อัปโหลดรูปภาพมิเตอร์น้ำ
-                  </p>
-                  <p className="text-xs text-gray-500 text-center">
-                    รองรับไฟล์ JPG, PNG (ขนาดไม่เกิน 5MB)
-                  </p>
-                </div>
-              </div>
-            </label>
-          )}
-
-          {errors.ImagePath && (
-            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {errors.ImagePath}
-            </p>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={addLoading}
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-70 disabled:transform-none disabled:shadow-lg flex items-center justify-center gap-3"
-        >
-          {addLoading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              กำลังบันทึก...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              บันทึกข้อมูล
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* Header - Responsive */}
 
@@ -725,7 +716,7 @@ const WaterMonitoringDashboard: React.FC = () => {
               <Bell className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-semibold">การแจ้งเตือน</h3>
-            
+
           </div>
           <p className="text-black text-base">รายการแจ้งเตือนทั้งหมด</p>
         </div>
@@ -849,78 +840,78 @@ const WaterMonitoringDashboard: React.FC = () => {
         ) : (
           /* Chart Container - Scrollable on mobile */
           <div className="h-80 sm:h-96 w-full overflow-x-auto">
-  <div
-    className="h-full"
-    style={{ width: `${dailyMeterData.length * 60}px`, minWidth: "100%" }}
-  >
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={dailyMeterData} margin={{ bottom: 50 }}> {/* เพิ่ม margin bottom */}
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 12 }}
-          angle={-45}
-          textAnchor="end"
-          interval={0}
-          
-          label={{
-            value: "วันที่",
-            position: "bottom",
-            offset: 38 // ดัน label ลงด้านล่าง
-          }}
-        />
-        <YAxis
-          tick={{ fontSize: 12 }}
-          label={{ value: 'ปริมาณน้ำ (ลบ.ม.)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Line
-          type="linear"
-          dataKey="usage"
-          name="ใช้น้ำ"
-          stroke="#3B82F6"
-          strokeWidth={2}
-          dot={{ r: 3 }}
-        />
-        {avgValue != null && (
-          <ReferenceLine
-            y={avgValue}
-            stroke="#ef4444"
-            strokeWidth={2}
-            label={{
-              position: "right",
-              value: "ค่าเฉลี่ย",
-              fill: "#ef4444",
-              fontWeight: "bold",
-            }}
-          />
-        )}
-        {maxValue != null && (
-          <Line
-            type="monotone"
-            dataKey="max"
-            name="ค่าสูงสุด"
-            stroke="#22c55e"
-            strokeDasharray="4 4"
-            dot={false}
-            isAnimationActive={false}
-          />
-        )}
-        {minValue != null && (
-          <Line
-            type="monotone"
-            dataKey="min"
-            name="ค่าต่ำสุด"
-            stroke="#a855f7"
-            strokeDasharray="4 4"
-            dot={false}
-            isAnimationActive={false}
-          />
-        )}
-      </LineChart>
-    </ResponsiveContainer>
-  </div>
-</div>
+            <div
+              className="h-full"
+              style={{ width: `${dailyMeterData.length * 60}px`, minWidth: "100%" }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dailyMeterData} margin={{ bottom: 50 }}> {/* เพิ่ม margin bottom */}
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    interval={0}
+
+                    label={{
+                      value: "วันที่",
+                      position: "bottom",
+                      offset: 38 // ดัน label ลงด้านล่าง
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    label={{ value: 'ปริมาณน้ำ (ลบ.ม.)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="linear"
+                    dataKey="usage"
+                    name="ใช้น้ำ"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                  {avgValue != null && (
+                    <ReferenceLine
+                      y={avgValue}
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      label={{
+                        position: "right",
+                        value: "ค่าเฉลี่ย",
+                        fill: "#ef4444",
+                        fontWeight: "bold",
+                      }}
+                    />
+                  )}
+                  {maxValue != null && (
+                    <Line
+                      type="monotone"
+                      dataKey="max"
+                      name="ค่าสูงสุด"
+                      stroke="#22c55e"
+                      strokeDasharray="4 4"
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
+                  {minValue != null && (
+                    <Line
+                      type="monotone"
+                      dataKey="min"
+                      name="ค่าต่ำสุด"
+                      stroke="#a855f7"
+                      strokeDasharray="4 4"
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
         )}
 
@@ -938,30 +929,30 @@ const WaterMonitoringDashboard: React.FC = () => {
       </div>
 
       {/* Data Table - Mobile Responsive */}
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
-            <div>
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
-                ประวัติการบันทึกค่ามิเตอร์
-              </h3>
-              <p className="text-gray-500">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={exportToExcel}className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
-                <Download className="w-5 h-5" />
-                Export Excel
-              </button>
-              <button 
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-3 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-              >
-                <Plus className="w-5 h-5" />
-                เพิ่มข้อมูล
-              </button>
-            </div>
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+          <div>
+            <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+              ประวัติการบันทึกค่ามิเตอร์
+            </h3>
+            <p className="text-gray-500">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
           </div>
-        
+
+          <div className="flex gap-3">
+            <button onClick={exportToExcel} className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+              <Download className="w-5 h-5" />
+              Export Excel
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-3 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              เพิ่มข้อมูล
+            </button>
+          </div>
+        </div>
+
 
 
         {/* Mobile Card Layout */}
@@ -971,10 +962,10 @@ const WaterMonitoringDashboard: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="text-lg font-semibold text-gray-800">
                   {wmv.Timestamp && (
-  <div className="text-lg font-semibold text-gray-800">
-    {new Date(wmv.Timestamp).toLocaleDateString("th-TH")}
-  </div>
-)}
+                    <div className="text-lg font-semibold text-gray-800">
+                      {new Date(wmv.Timestamp).toLocaleDateString("th-TH")}
+                    </div>
+                  )}
 
 
                 </div>
@@ -982,9 +973,9 @@ const WaterMonitoringDashboard: React.FC = () => {
               </div>
               <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                 <span>{wmv.Timestamp
-    ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH")
-    : "-"}</span>
-                
+                  ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH")
+                  : "-"}</span>
+
               </div>
               {wmv.Note && (
                 <p className="text-gray-600 mb-4 bg-white/60 p-3 rounded-lg">{wmv.Note}</p>
@@ -1035,20 +1026,19 @@ const WaterMonitoringDashboard: React.FC = () => {
                         })
                         : "-"}
                     </td>
-                    
+
                     <td className="p-3 text-gray-800 font-medium">{wmv.MeterValue} ลบ.ม.</td>
                     <td className="p-3 text-gray-800">{wmv.Note || "-"}</td>
                     <td className="p-3">
-                    <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      handleEdit(wmv);
-                    }}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                  >
-                    แก้ไข
-                  </button>
-                  </td>
+                      <button
+                        onClick={() => {
+                          navigate(`/waterdetail/edit/${wmv.ID}`);
+                        }}
+                        className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                      >
+                        แก้ไข
+                      </button>
+                    </td>
                     {/* <td className="p-3 text-gray-800">{getUpdatedByNames(wmv.WaterUsageLog)}</td> */}
                   </tr>
                 ))}
@@ -1059,7 +1049,7 @@ const WaterMonitoringDashboard: React.FC = () => {
           <div className="text-gray-500 text-center mt-6 italic">ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก กรุณาเลือกช่วงเวลาใหม่</div>
         )}
 
-    </div>
+      </div>
     </div>
   );
 };

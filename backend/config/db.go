@@ -31,6 +31,7 @@ func SetupDatabase() {
 		&entity.MeterLocation{},
 		&entity.CameraDevice{},
 		&entity.Notification{},
+		&entity.StatusWaterValue{},
 		&entity.WaterMeterValue{},
 		&entity.DailyWaterUsage{},
 		&entity.WaterUsage{},
@@ -41,6 +42,14 @@ func SetupDatabase() {
 	GenderFemale := entity.Genders{Gender: "Female"}
 	db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
 	db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
+
+	statuses := []entity.StatusWaterValue{
+		{Name: "pending", Description: "รอการอนุมัติ"},
+		{Name: "approved", Description: "อนุมัติแล้ว"},
+	}
+	for _, s := range statuses {
+		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
+	}
 
 	var images []entity.WaterMeterImage
 	for i := 1; i <= 30; i++ {
@@ -69,11 +78,11 @@ func SetupDatabase() {
 
 	// Users
 	users := []entity.Users{
-		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 80, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderMale.ID},
-		{FirstName: "ธนวัฒน์", LastName: "ผ่านบุตร", Email: "thanawat@gmail.com", Age: 45, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID},
-		{FirstName: "สุดาชา", LastName: "แก้ว", Email: "sudacha@gmail.com", Age: 33, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderFemale.ID},
-		{FirstName: "ไชยโรจน์", LastName: "สดไธสงค์", Email: "chaiyarod@gmail.com", Age: 29, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID},
-		{FirstName: "เกริกฐิติ", LastName: "วราชัย", Email: "kroekthiti@gmail.com", Age: 40, Password: hashOrPanic("123456"), BirthDay: parseDate("1983-09-05"), GenderID: GenderFemale.ID},
+		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderFemale.ID},
+		{FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID},
+		{FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderMale.ID},
+		{FirstName: "นนทกานต์", LastName: "ใสโสก", Email: "nontakarn@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID},
+		{FirstName: "ณัฐวุฒิ", LastName: "ถินราช", Email: "nattawut@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1983-09-05"), GenderID: GenderMale.ID},
 	}
 	for _, u := range users {
 		db.FirstOrCreate(&u, &entity.Users{Email: u.Email})
@@ -82,7 +91,13 @@ func SetupDatabase() {
 	// Camera Devices
 	cameraDevices := []entity.CameraDevice{
 		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
+		{MacAddress: "22:2B:45:12:3A:B9", Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
+		{MacAddress: "33:3B:46:13:3B:B8", Battery: 30, Wifi: false, Status: false, MeterLocationID: 3},
+		{MacAddress: "44:4B:47:14:4B:B6", Battery: 56, Wifi: true, Status: false, MeterLocationID: 4},
+		{MacAddress: "55:5B:48:15:1B:B5", Battery: 26, Wifi: true, Status: false, MeterLocationID: 5},
+		{MacAddress: "66:6B:49:16:2B:B4", Battery: 11, Wifi: true, Status: false, MeterLocationID: 6},
 	}
+
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
 	}
@@ -112,14 +127,13 @@ func SetupDatabase() {
 	prevValue := uint(33504) // เริ่ม MeterValue
 
 	// กำหนด array ของ Usage ต่อวัน (บวก/ลบตามต้องการ)
-	dailyUsages := []int{0, 2, 0, 3, 0, 1, -3, 2, 0, -1, 2, 0, -2, 1, 0, 3, -1, 0, 2, -2, 0, 1, -1, 0, 2, 0, -1, 1, 0, -2, 0}
+	dailyUsages := []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7, 5}
 
 	// ปีนี้
 	year := time.Now().Year()
 	month := time.August
-	today := time.Now().Day() // วันที่ปัจจุบัน
 
-	for day := 1; day <= today; day++ {
+	for day := 1; day <= 31; day++ {
 		ts := time.Date(year, month, day, 10, 0, 0, 0, time.Local) // เวลา 10:00 ทุกวัน
 
 		dailyUsage := dailyUsages[day-1] // ใช้ค่า array ตามวัน
@@ -134,9 +148,10 @@ func SetupDatabase() {
 		wm := entity.WaterMeterValue{
 			MeterValue:        int(meterValue),
 			Timestamp:         ts,
-			ModelConfidence:     95,
+			ModelConfidence:   95,
 			CameraDeviceID:    cameraDeviceID,
 			WaterMeterImageID: img.ID,
+			StatusID:          2,
 		}
 		db.Create(&wm)
 
