@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -33,7 +34,6 @@ func GetWaterMeterValueByID(c *gin.Context) {
 	// ✅ ดึงข้อมูลตาม ID พร้อม Preload ความสัมพันธ์
 	if err := db.Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
-		Preload("WaterMeterImage").
 		Preload("User").
 		Preload("Status").
 		First(&waterValue, id).Error; err != nil {
@@ -94,7 +94,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 	}
 	cameraDeviceIDuInt := uint(cameraDeviceID64)
 
-	// 2. ดึง MeterLocation
+	// ดึง MeterLocation
 	var camera entity.CameraDevice
 	if err := db.Preload("MeterLocation").First(&camera, cameraDeviceIDuInt).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
@@ -102,51 +102,48 @@ func CreateWaterMeterValue(c *gin.Context) {
 	}
 	buildingName := camera.MeterLocation.Name
 
-	var imageID uint = 0
+	var imagePath string = ""
 
-	// 3. ตรวจสอบว่ามีไฟล์รูปหรือไม่
+	// ตรวจสอบว่ามีไฟล์รูปหรือไม่
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
-		// 4. สร้างโฟลเดอร์ uploads/ชื่ออาคาร
+		// สร้างโฟลเดอร์ uploads/ชื่ออาคาร
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
 		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create folder"})
 			return
 		}
 
-		// 5. ตั้งชื่อไฟล์
+		// ตั้งชื่อไฟล์ตาม timestamp และ extension ของไฟล์จริง
+		ext := ""
+		if len(file.Filename) > 4 {
+			ext = file.Filename[len(file.Filename)-4:] // เช่น ".jpg" หรือ ".png"
+		} else {
+			ext = ".jpg"
+		}
 		timestampStr := timestamp.Format("2006-01-02_15-04")
-		fileName := fmt.Sprintf("%s.jpg", timestampStr)
+		fileName := fmt.Sprintf("%s%s", timestampStr, ext)
 		uploadPath := fmt.Sprintf("%s/%s", folderPath, fileName)
 
-		// 6. บันทึกไฟล์
+		// บันทึกไฟล์
 		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
 			return
 		}
 
-		// 7. สร้าง record ของรูปภาพ
-		image := entity.WaterMeterImage{
-			ImagePath: uploadPath,
-		}
-		if err := db.Create(&image).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image record"})
-			return
-		}
-
-		imageID = image.ID
+		imagePath = uploadPath
 	}
 
-	// 8. สร้าง WaterMeterValue พร้อม WaterMeterImageID (อาจเป็น 0)
+	// สร้าง WaterMeterValue พร้อม ImagePath
 	waterValue := entity.WaterMeterValue{
-		Timestamp:         timestamp,
-		MeterValue:        meterValueInt,
-		ModelConfidence:   modelConfidenceFloat,
-		Note:              note,
-		CameraDeviceID:    cameraDeviceIDuInt,
-		UserID:            userIDuInt,
-		WaterMeterImageID: imageID,
-		StatusID:          2, // สมมุติคนสร้างเองผ่านการตรวจสอบแล้ว
+		Timestamp:       timestamp,
+		MeterValue:      meterValueInt,
+		ModelConfidence: modelConfidenceFloat,
+		Note:            note,
+		CameraDeviceID:  cameraDeviceIDuInt,
+		UserID:          userIDuInt,
+		StatusID:        2, // สมมุติคนสร้างเองผ่านการตรวจสอบแล้ว
+		ImagePath:       imagePath,
 	}
 
 	if err := db.Create(&waterValue).Error; err != nil {
@@ -163,22 +160,18 @@ func CreateWaterMeterValue(c *gin.Context) {
 func UpdateWaterMeterValue(c *gin.Context) {
 	db := config.DB()
 
-	// ดึง id จาก URL
 	id := c.Param("id")
 
-	// หา record เดิม
 	var waterValue entity.WaterMeterValue
-	if err := db.Preload("WaterMeterImage").First(&waterValue, id).Error; err != nil {
+	if err := db.First(&waterValue, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Water meter value not found"})
 		return
 	}
 
-	// รับค่าจากฟอร์ม (เลือกได้ว่าจะส่งหรือไม่ส่ง)
 	meterValue := c.PostForm("MeterValue")
 	modelConfidence := c.PostForm("ModelConfidence")
 	note := c.PostForm("Note")
 
-	// ถ้าใส่ MeterValue ให้แปลงเป็น int
 	if meterValue != "" {
 		val, err := strconv.Atoi(meterValue)
 		if err != nil {
@@ -188,7 +181,6 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		waterValue.MeterValue = val
 	}
 
-	// ถ้าใส่ ModelConfidence ให้แปลงเป็น float
 	if modelConfidence != "" {
 		val, err := strconv.ParseFloat(modelConfidence, 64)
 		if err != nil {
@@ -198,24 +190,18 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		waterValue.ModelConfidence = val
 	}
 
-	// อัปเดต note
 	if note != "" {
 		waterValue.Note = note
 	}
 
-	// ตรวจสอบว่ามีไฟล์อัปโหลดใหม่หรือไม่
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
-		// ถ้ามีรูปเก่า → ลบทิ้ง
-		if waterValue.WaterMeterImageID != 0 {
-			var oldImage entity.WaterMeterImage
-			if err := db.First(&oldImage, waterValue.WaterMeterImageID).Error; err == nil {
-				os.Remove(oldImage.ImagePath) // ลบไฟล์เก่า
-				db.Delete(&oldImage)          // ลบ record เก่า
-			}
+		// ลบรูปเก่าออกถ้ามี
+		if waterValue.ImagePath != "" {
+			os.Remove(waterValue.ImagePath)
 		}
 
-		// โหลด camera device เพื่อตั้งชื่อโฟลเดอร์
+		// ดึงชื่ออาคารจาก CameraDevice
 		var camera entity.CameraDevice
 		if err := db.Preload("MeterLocation").First(&camera, waterValue.CameraDeviceID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
@@ -223,16 +209,18 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		}
 		buildingName := camera.MeterLocation.Name
 
-		// สร้างโฟลเดอร์ใหม่ถ้าไม่มี
+		// สร้างโฟลเดอร์
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
-		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create folder"})
-			return
+		os.MkdirAll(folderPath, os.ModePerm)
+
+		// ดึงนามสกุลไฟล์จริง
+		ext := filepath.Ext(file.Filename)
+		if ext == "" {
+			ext = ".jpg"
 		}
 
-		// ตั้งชื่อไฟล์ใหม่ (ใช้ timestamp เดิมเพื่อความต่อเนื่อง)
 		timestampStr := waterValue.Timestamp.Format("2006-01-02_15-04")
-		fileName := fmt.Sprintf("%s.jpg", timestampStr)
+		fileName := fmt.Sprintf("%s%s", timestampStr, ext)
 		uploadPath := fmt.Sprintf("%s/%s", folderPath, fileName)
 
 		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
@@ -240,18 +228,11 @@ func UpdateWaterMeterValue(c *gin.Context) {
 			return
 		}
 
-		// สร้าง record ใหม่
-		newImage := entity.WaterMeterImage{
-			ImagePath: uploadPath,
-		}
-		if err := db.Create(&newImage).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image record"})
-			return
-		}
-		waterValue.WaterMeterImageID = newImage.ID
+		// อัปเดต path ใน WaterMeterValue
+		waterValue.ImagePath = uploadPath
 	}
 
-	// บันทึกการแก้ไข
+	// บันทึกทุก field ที่แก้ไข
 	if err := db.Save(&waterValue).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return

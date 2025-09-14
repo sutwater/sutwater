@@ -37,7 +37,6 @@ func GetAllWaterUsageValues(c *gin.Context) {
     `, subQuery).
 		Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
-		Preload("WaterMeterImage").
 		Find(&latestValues).Error
 
 	if err != nil {
@@ -77,11 +76,10 @@ func GetCameraDeviceWithUsage(c *gin.Context) {
 			}).
 			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
 				return db.
-					Where("status_id = ?", 2). // ✅ กรองเฉพาะ StatusID = 2
+					Where("status_id = ?", 2).
 					Where("timestamp BETWEEN ? AND ?", startDate, endDate).
 					Order("timestamp DESC").
-					Preload("User").
-					Preload("WaterMeterImage")
+					Preload("User")
 			})
 	} else {
 		query = query.
@@ -90,10 +88,9 @@ func GetCameraDeviceWithUsage(c *gin.Context) {
 			}).
 			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
 				return db.
-					Where("status_id = ?", 2). // ✅ กรองเฉพาะ StatusID = 2
+					Where("status_id = ?", 2).
 					Order("timestamp DESC").
-					Preload("User").
-					Preload("WaterMeterImage")
+					Preload("User")
 			})
 	}
 
@@ -115,16 +112,13 @@ func GetAllCameraDevicesWithUsage(c *gin.Context) {
 
 	var cameraDevices []entity.CameraDevice
 
-	// ✅ ดึงข้อมูลทั้งหมด + preload ความสัมพันธ์
 	err := db.Model(&entity.CameraDevice{}).
 		Preload("MeterLocation").
 		Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
 			return db.Order("timestamp DESC")
 		}).
 		Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-			return db.Order("timestamp DESC").
-				Preload("User").
-				Preload("WaterMeterImage")
+			return db.Order("timestamp DESC").Preload("User")
 		}).
 		Find(&cameraDevices).Error
 

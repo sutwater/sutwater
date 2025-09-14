@@ -12,12 +12,10 @@ type WaterMeterValue struct {
 	Timestamp       time.Time
 	ModelConfidence float64 `json:"OCRConfidence"`
 	Note            string
+	ImagePath       string
 
 	CameraDeviceID uint
 	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
-
-	WaterMeterImageID uint
-	WaterMeterImage   *WaterMeterImage `gorm:"foreignKey:WaterMeterImageID"`
 
 	UserID uint
 	User   Users `gorm:"foreignKey:UserID"`

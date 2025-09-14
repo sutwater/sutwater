@@ -43,6 +43,7 @@ func SetupDatabase() {
 	db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
 	db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
+	// Statuses
 	statuses := []entity.StatusWaterValue{
 		{Name: "pending", Description: "รอการอนุมัติ"},
 		{Name: "approved", Description: "อนุมัติแล้ว"},
@@ -51,26 +52,14 @@ func SetupDatabase() {
 		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
 	}
 
-	var images []entity.WaterMeterImage
-	for i := 1; i <= 30; i++ {
-		images = append(images, entity.WaterMeterImage{
-			ImagePath: fmt.Sprintf("uploads/meter%d.jpg", i),
-		})
-	}
-
-	// บันทึกเข้า DB ถ้ายังไม่มี
-	for i := range images {
-		db.FirstOrCreate(&images[i], entity.WaterMeterImage{ImagePath: images[i].ImagePath})
-	}
-
 	// Meter Locations
 	meterLocations := []entity.MeterLocation{
 		{Name: "อาคารรัตนเวชพัฒน์", Latitude: 14.86412, Longitude: 102.03557},
 		{Name: "โรงอาหาร", Latitude: 14.86447, Longitude: 102.03611},
-		{Name: "ศูนย์สุขภาพช่องปาก", Latitude: 14.8656160553751, Longitude: 102.03562438488},
-		{Name: "ศูนย์ความเป็นเลิศทางการแพทย์", Latitude: 14.8674981557441, Longitude: 102.036364674568},
-		{Name: "ศูนย์รังสีวินิจฉัย", Latitude: 14.8644390861983, Longitude: 102.034975290298},
-		{Name: "อาคารวิเคราะห์และบำบัดโรค", Latitude: 14.8655642066478, Longitude: 102.034149169922},
+		{Name: "ศูนย์สุขภาพช่องปาก", Latitude: 14.865616, Longitude: 102.035624},
+		{Name: "ศูนย์ความเป็นเลิศทางการแพทย์", Latitude: 14.867498, Longitude: 102.036364},
+		{Name: "ศูนย์รังสีวินิจฉัย", Latitude: 14.864439, Longitude: 102.034975},
+		{Name: "อาคารวิเคราะห์และบำบัดโรค", Latitude: 14.865564, Longitude: 102.034149},
 	}
 	for _, ml := range meterLocations {
 		db.FirstOrCreate(&ml, &entity.MeterLocation{Name: ml.Name})
@@ -97,18 +86,13 @@ func SetupDatabase() {
 		{MacAddress: "55:5B:48:15:1B:B5", Battery: 26, Wifi: true, Status: false, MeterLocationID: 5},
 		{MacAddress: "66:6B:49:16:2B:B4", Battery: 11, Wifi: true, Status: false, MeterLocationID: 6},
 	}
-
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
 	}
 
 	// Notifications
 	notifications := []entity.Notification{}
-	messages := []string{
-		"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง",
-		"ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์",
-		"ค่า OCR ผิดปกติ", "อุปกรณ์ออฟไลน์", "แบตเตอรี่ต่ำ",
-	}
+	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์", "ค่า OCR ผิดปกติ", "อุปกรณ์ออฟไลน์", "แบตเตอรี่ต่ำ"}
 	for _, cam := range cameraDevices {
 		for i, msg := range messages {
 			notifications = append(notifications, entity.Notification{
@@ -120,43 +104,32 @@ func SetupDatabase() {
 	}
 	db.Create(&notifications)
 
-	var imageSlice []entity.WaterMeterImage
-	db.Find(&imageSlice)
-
+	// Seed WaterMeterValue โดยตรง (ไม่ต้อง WaterMeterImage)
 	cameraDeviceID := uint(1)
-	prevValue := uint(33504) // เริ่ม MeterValue
-
-	// กำหนด array ของ Usage ต่อวัน (บวก/ลบตามต้องการ)
-	dailyUsages := []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7, 5}
-
-	// ปีนี้
+	prevValue := uint(33504)
+	dailyUsages := []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7}
 	year := time.Now().Year()
-	month := time.August
+	month := time.September
 
-	for day := 1; day <= 31; day++ {
-		ts := time.Date(year, month, day, 10, 0, 0, 0, time.Local) // เวลา 10:00 ทุกวัน
-
-		dailyUsage := dailyUsages[day-1] // ใช้ค่า array ตามวัน
-
-		// ค่ามิเตอร์สะสม
+	for day := 1; day <= len(dailyUsages); day++ {
+		ts := time.Date(year, month, day, 10, 0, 0, 0, time.Local)
+		dailyUsage := dailyUsages[day-1]
 		meterValue := int(prevValue) + dailyUsage
 
-		// เลือกรูปภาพวนตามลิสต์
-		img := imageSlice[day%len(imageSlice)]
+		// กำหนด path รูปตรง ๆ
+		imagePath := fmt.Sprintf("uploads/meter%d.jpg", day)
 
-		// สร้าง WaterMeterValue (ทุกวัน)
 		wm := entity.WaterMeterValue{
-			MeterValue:        int(meterValue),
-			Timestamp:         ts,
-			ModelConfidence:   95,
-			CameraDeviceID:    cameraDeviceID,
-			WaterMeterImageID: img.ID,
-			StatusID:          2,
+			MeterValue:      meterValue,
+			Timestamp:       ts,
+			ModelConfidence: 95,
+			CameraDeviceID:  cameraDeviceID,
+			StatusID:        2,
+			ImagePath:       imagePath,
 		}
 		db.Create(&wm)
 
-		// สร้าง DailyWaterUsage **ยกเว้นวันแรกสุด (day == 1)**
-
+		// Daily usage
 		du := entity.DailyWaterUsage{
 			Timestamp:      ts,
 			Usage:          dailyUsage,
@@ -166,7 +139,6 @@ func SetupDatabase() {
 
 		prevValue = uint(meterValue)
 	}
-
 }
 
 func hashOrPanic(password string) string {
