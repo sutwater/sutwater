@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/entity"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func sanitizeFilename(name string) string {
@@ -115,12 +116,15 @@ func UploadMeterImage(c *gin.Context) {
 	}
 
 	// บันทึก WaterMeterImage
-	image := entity.WaterMeterImage{
-		ImagePath:      savePath,
+	waterValue := entity.WaterMeterValue{
 		CameraDeviceID: camera.ID,
+		Timestamp:      timestamp,
+		ImagePath:      savePath,
+		StatusID:       2, // ตัวอย่างสมมติ
 	}
-	if err := db.Create(&image).Error; err != nil {
-		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterImage: %v", err)})
+
+	if err := db.Create(&waterValue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterValue: %v", err)})
 		return
 	}
 

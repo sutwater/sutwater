@@ -96,7 +96,7 @@ console.log("waterValue: ",waterValue)
     }
 
     // ตรวจสอบรูปภาพ
-    if (!uploadedFile && !waterValue.WaterMeterImage?.ImagePath) {
+    if (!uploadedFile && !waterValue?.ImagePath) {
       newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
     }
 
@@ -422,8 +422,9 @@ console.log("waterValue: ",waterValue)
               <div className="p-6 space-y-4">
                 <div className="relative group">
                   <img
-                    src={previewImage ?? (waterValue?.WaterMeterImage?.ImagePath ? getImageUrl(waterValue.WaterMeterImage.ImagePath) : undefined)}
-                    alt="Water Meter"
+                    src={previewImage ?? (waterValue?.ImagePath ? getImageUrl(waterValue.ImagePath) : undefined)}
+                    alt={"Meter Image"}
+                    title={waterValue?.ImagePath || "Meter Image"}
                     className="w-full aspect-[3/3.25] object-cover rounded-lg border border-gray-200 group-hover:shadow-lg transition-shadow"
                   />
 

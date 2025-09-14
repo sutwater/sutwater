@@ -65,9 +65,9 @@ export interface WaterMeterValueInterface {
   Time?: string;
   Date?: string;
   Note?: string;
+  ImagePath?: string;
   ModelConfidence?: number;
   CameraDevice?: CameraDeviceInterface;
-  WaterMeterImage?: WaterMeterImageInterface;
   WaterUsageLog?: WaterLogInterface[];
   User: UsersInterface; // ✅ เพิ่ม relation กับ Users
 }
