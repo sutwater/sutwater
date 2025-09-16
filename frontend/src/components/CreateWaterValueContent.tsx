@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { API_BASE_URL } from "../services/https";
-import type { WaterValueStatus, WaterMeterValueInterface } from "../interfaces/InterfaceAll";
+import { API_BASE_URL, CreateWaterMeterValue } from "../services/https";
+import type { WaterValueStatus, WaterMeterValueInterface, WaterMeterValueSaveInterface } from "../interfaces/InterfaceAll";
 
 import {
   Save,
@@ -20,7 +20,6 @@ import {
 } from "./ConfirmModal";
 
 import {
-  UpdateWaterMeterValue,
   fetchWaterValueStatus,
   fetchWaterValueById,
 } from "../services/https";
@@ -29,13 +28,19 @@ import { message } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
-const EditWaterValueContent = () => {
+const CreateWaterValueContent = () => {
   const [statusList, setStatusList] = useState<WaterValueStatus[]>([]);
-  const [previewImage, setPreviewImage] = useState<string | undefined>(undefined);
-
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [waterValue, setWaterValue] = useState<WaterMeterValueInterface | null>(null);
-  const LocationId = waterValue?.CameraDevice?.MeterLocation?.ID;
+  const [messageApi, contextHolder] = message.useMessage();
+  const [waterValue, setWaterValue] = useState<Partial<WaterMeterValueSaveInterface>>({
+      Date: "",
+      Time: "",
+      MeterValue: 0,
+      OCRConfidence: 100,
+      Note: "",
+      ImagePath: "",
+    });
   const { id } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -80,11 +85,25 @@ console.log("waterValue: ",waterValue)
   };
 
   const validateForm = () => {
-    if (!waterValue) return false;
     const newErrors: { [key: string]: string } = {};
 
+    // ตรวจสอบวันที่ เฉพาะกรณีเพิ่มข้อมูลใหม่
+    if (!waterValue.Date?.trim()) {
+      newErrors.Date = "กรุณาเลือกวันที่บันทึก";
+    } else {
+      const selectedDate = new Date(waterValue.Date);
+      selectedDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        newErrors.Date = "วันที่ต้องเป็นวันนี้หรืออนาคตเท่านั้น";
+      }
+    }
+
+
     // ตรวจสอบเวลา
-    if (!waterValue.Timestamp?.trim()) {
+    if (!waterValue.Time?.trim()) {
       newErrors.Time = "กรุณาเลือกเวลาที่บันทึก";
     }
 
@@ -96,7 +115,7 @@ console.log("waterValue: ",waterValue)
     }
 
     // ตรวจสอบรูปภาพ
-    if (!uploadedFile && !waterValue?.ImagePath) {
+    if (!uploadedFile && !waterValue.ImagePath) {
       newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
     }
 
@@ -114,60 +133,77 @@ console.log("waterValue: ",waterValue)
   };
 
   const handleSubmit = async () => {
-    if (!validateForm() || !waterValue || !id) return;
+    if (!validateForm()) return;
 
-    // ตรวจสอบว่า uploadedFile (ถ้ามี) ต้องเป็น File จริง
-    if (uploadedFile && !(uploadedFile instanceof File)) {
-      message.error("ไฟล์รูปภาพไม่ถูกต้อง");
+    if (!waterValue.Date || !waterValue.Time) {
+      message.error("กรุณาระบุวันที่และเวลา");
       return;
     }
 
-    setIsLoading(true);
-    setConfirmOpen(false); // ปิด confirm modal
-    setStatusType("loading");
-    setStatusMessage("กำลังบันทึกข้อมูล...");
-    setStatusOpen(true);
+    if (!uploadedFile) {
+      message.error("กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ");
+      return;
+    }
+
+    // ✅ ตรวจสอบ user ว่าไม่ null ก่อน
+    if (!user || !user.ID) {
+      console.error("User is not logged in");
+      return;
+    }
+
+    // ✅ ตรวจสอบ id ว่าไม่ undefined ก่อน
+    if (!id) {
+      console.error("CameraDeviceID is missing");
+      return;
+    }
 
     try {
       const formData = new FormData();
       formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
       formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
-      formData.append("MeterValue", String(waterValue.MeterValue ?? ""));
-      formData.append("ModelConfidence", String(waterValue.ModelConfidence ?? ""));
+      formData.append("MeterValue", waterValue.MeterValue!.toString());
+      formData.append("ModelConfidence", waterValue.OCRConfidence!.toString());
       formData.append("Note", waterValue.Note || "");
-      formData.append("UserID", user?.ID?.toString() ?? "0");
-      formData.append("CameraDeviceID", waterValue?.CameraDevice?.ID?.toString() || "0");
+      formData.append("ImagePath", uploadedFile);
+      formData.append("UserID", user.ID.toString() || "0");
+      formData.append("CameraDeviceID", id.toString() || "0");
 
-      if (uploadedFile) {
-        formData.append("ImagePath", uploadedFile);
-      }
 
-      await UpdateWaterMeterValue(id, formData);
+      const res = await CreateWaterMeterValue(formData);
 
-      setStatusType("success");
-      setStatusMessage("อัปเดตข้อมูลสำเร็จแล้ว!");
-    } catch (error: any) {
-      console.error("❌ อัปเดตข้อมูลล้มเหลว:", error);
+      if (res.status === 200) {
+        messageApi.success({
+          content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
+        });
 
-      if (error.response) {
-        console.error("🔴 Response:", error.response.data);
-        message.error(
-          `เกิดข้อผิดพลาด: ${error.response.data.message || "ไม่ทราบสาเหตุ"}`
-        );
+
+        setUploadedFile(null);
+        setWaterValue({
+          Date: "",
+          Time: "",
+          MeterValue: 0,
+          OCRConfidence: 0,
+          Note: "",
+          ImagePath: "",
+        });
+        setErrors({});
+        setUploadedFile(null);
+        setPreviewImage(null);
+
+        // ✅ ปิด modal
       } else {
-        message.error("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
       }
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
     }
   };
 
   useEffect(() => {
-    console.log("LocationId: ",LocationId) 
     if (statusOpen && statusType === "success") {
       const timeout = setTimeout(() => {
         setStatusOpen(false);
-        navigate(`/waterdetail/${LocationId}`);
+        navigate(`/waterdetail`);
       }, 5000);
 
       return () => clearTimeout(timeout);
@@ -200,6 +236,7 @@ console.log("waterValue: ",waterValue)
       }
     };
 
+
     loadWaterValue();
     loadStatus();
   }, [id]);
@@ -208,6 +245,7 @@ console.log("waterValue: ",waterValue)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
+      {contextHolder}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -253,9 +291,10 @@ console.log("waterValue: ",waterValue)
                     </label>
                     <input
                       type="date"
-                      value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("YYYY-MM-DD") : ""}
-                      readOnly
-                      className="w-full px-4 py-3 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                      required
+                      className="w-full px-4 py-3 border rounded-lg bg-gray-100 text-gray-600"
+                      value={waterValue.Date || ""}
+                      onChange={(e) => handleInputChange("Date", e.target.value)}
                       placeholder="กรอกวันที่..."
                     />
                     {errors.Date && (
@@ -272,10 +311,10 @@ console.log("waterValue: ",waterValue)
                     </label>
                     <input
                       type="time"
-                      value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("HH:mm") : ""}
-                      readOnly
-                      className="w-full px-4 py-3 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-                      placeholder="เลือกเวลา..."
+                      required
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none "border-gray-200 focus:ring-blue-500"`}
+                      value={waterValue.Time || ""}
+                      onChange={(e) => handleInputChange("Time", e.target.value)}
                     />
                     {errors.Time && (
                       <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
@@ -301,23 +340,15 @@ console.log("waterValue: ",waterValue)
                   {/* กล่อง input + หน่วย */}
                   <div className="relative">
                     <input
-                      type="number"
-                      min="1"
-
-                      max="100000"
-                      value={waterValue?.MeterValue ?? ""}
-                      onInput={(e) => {
-                        const value = Number((e.target as HTMLInputElement).value);
-                        if (value > 100000) (e.target as HTMLInputElement).value = "100000";
-                        if (value < 1) (e.target as HTMLInputElement).value = "1";
-                      }}
-                      onChange={(e) => handleInputChange("MeterValue", Number(e.target.value))}
-                      className={`w-full px-4 py-3 pr-16 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.MeterValue
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      placeholder="กรอกค่ามิเตอร์น้ำ..."
-                    />
+                    type="number"
+                    min="1"
+                    max="100000"
+                    placeholder="กรอกค่ามิเตอร์น้ำ..."
+                    required
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-base"
+                    value={waterValue.MeterValue || ""}
+                    onChange={(e) => handleInputChange("MeterValue", parseInt(e.target.value) || 0)}
+                  />
 
                     {/* หน่วยอยู่ขวาใน input */}
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
@@ -371,7 +402,7 @@ console.log("waterValue: ",waterValue)
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              {/* <div className="p-6 space-y-6">
                 <div className="p-0 space-y-0">
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
@@ -402,7 +433,7 @@ console.log("waterValue: ",waterValue)
                     )}
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -503,7 +534,7 @@ console.log("waterValue: ",waterValue)
         onClose={() => {
           setStatusOpen(false);
           if (statusType === "success") {
-            navigate(`/waterdetail/${LocationId}`);
+            navigate(`/waterdetail/`);
           }
         }}
         status={statusType}
@@ -516,4 +547,4 @@ console.log("waterValue: ",waterValue)
   );
 };
 
-export default EditWaterValueContent;
+export default CreateWaterValueContent;

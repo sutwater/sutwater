@@ -231,8 +231,8 @@ const WaterMeterMap = () => {
                     </p>
                     <p className="text-sm text-gray-700 mb-3">
                       🎯 OCR Confidence:{" "}
-                      {currentLog?.OCRConfidence !== undefined
-                        ? `${currentLog.OCRConfidence}%`
+                      {currentLog?.ModelConfidence !== undefined
+                        ? `${currentLog.ModelConfidence}%`
                         : "ไม่มีข้อมูล"}
                     </p>
                     <button

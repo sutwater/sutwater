@@ -60,6 +60,8 @@ func SetupDatabase() {
 		{Name: "ศูนย์ความเป็นเลิศทางการแพทย์", Latitude: 14.867498, Longitude: 102.036364},
 		{Name: "ศูนย์รังสีวินิจฉัย", Latitude: 14.864439, Longitude: 102.034975},
 		{Name: "อาคารวิเคราะห์และบำบัดโรค", Latitude: 14.865564, Longitude: 102.034149},
+		{Name: "B3102", Latitude: 14.865564, Longitude: 102.034149},
+		{Name: "B3106", Latitude: 14.865564, Longitude: 102.034149},
 	}
 	for _, ml := range meterLocations {
 		db.FirstOrCreate(&ml, &entity.MeterLocation{Name: ml.Name})
