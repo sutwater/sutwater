@@ -110,34 +110,7 @@ const WaterMonitoringDashboard: React.FC = () => {
       }));
     }
   };
-  const handleEdit = (record: any) => {
-    const timestamp = record.Timestamp ? new Date(record.Timestamp) : null;
-
-    setWaterValue({
-      Date: timestamp ? dayjs(timestamp).format("YYYY-MM-DD") : "",
-      Time: timestamp ? dayjs(timestamp).format("HH:mm:ss") : "",
-      MeterValue: record.MeterValue ?? 0,
-      OCRConfidence: record.OCRConfidence ?? 100,
-      Note: record.Note ?? "",
-      ImagePath: record.WaterMeterImage?.ImagePath ?? "",
-      UserID: record.UserID,
-      CameraDeviceID: record.CameraDeviceID,
-    });
-
-    // ถ้ามีรูปจาก database ให้เอามาโชว์เป็น preview
-    if (record.WaterMeterImage?.ImagePath) {
-      setUploadedFile(null); // กันสับสนถ้าเคยอัปโหลดไฟล์ใหม่
-      setPreviewImage(`http://localhost:8000/${record.WaterMeterImage.ImagePath}`);
-    } else {
-      setUploadedFile(null);
-      setPreviewImage(null);
-    }
-
-    setShowAddModal(true);
-  };
-
-
-
+  
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -282,7 +255,6 @@ const WaterMonitoringDashboard: React.FC = () => {
     const newErrors: { [key: string]: string } = {};
 
     // ตรวจสอบวันที่ เฉพาะกรณีเพิ่มข้อมูลใหม่
-
     if (!waterValue.Date?.trim()) {
       newErrors.Date = "กรุณาเลือกวันที่บันทึก";
     } else {
@@ -317,7 +289,6 @@ const WaterMonitoringDashboard: React.FC = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
 
   const handleDateRangeChange = (
     dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null,
@@ -391,35 +362,9 @@ const WaterMonitoringDashboard: React.FC = () => {
         min: minValue ?? null,
       })) || [];
 
-
   useEffect(() => {
     console.log("notification updated: ", notification);
   }, [notification]);
-
-  // ฟังก์ชันสำหรับแสดงชื่อผู้แก้ไข
-  const getUpdatedByNames = (waterUsageLog?: any[]) => {
-    if (!waterUsageLog || waterUsageLog.length === 0) {
-      return "ESP-32 Cam";
-    }
-
-    const names = waterUsageLog.map(log => {
-      const user = log.User;
-      if (user && user.ID && user.ID !== 0) {
-        // ถ้ามีชื่อ
-        if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`;
-        if (user.first_name) return user.first_name;
-        if (user.last_name) return user.last_name;
-        return `UserID: ${user.ID}`;
-      }
-      // ถ้า ID = 0 หรือไม่มี user
-      return "ESP-32 Cam";
-    });
-
-    // ลบชื่อซ้ำ
-    const uniqueNames = Array.from(new Set(names));
-    return uniqueNames.join(", ");
-  };
-
 
   return (
     <div className="min-h-screen bg-gray-50 px-2 sm:px-4 lg:px-30 pb-20 overflow-auto">

@@ -168,10 +168,31 @@ async function GetAllNotifications() {
 }
 
 //status
-
 async function fetchWaterValueStatus() {
   return await axios
     .get(`${apiUrl}/watervalue/status`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+//device
+async function fetchCameraDevice() {
+  return await axios
+    .get(`${apiUrl}/cameradevices`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function fetchCameraDeviceWithoutMac() {
+  return await axios
+    .get(`${apiUrl}/cameradevices/without-mac`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function fetchCameraDeviceByID(id: string) {
+  return await axios
+    .get(`${apiUrl}/cameradevice/${id}`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -195,4 +216,7 @@ export {
   GetNotificationsByMeterLocation,
   GetAllNotifications,
   fetchWaterValueStatus,
+  fetchCameraDevice,
+  fetchCameraDeviceWithoutMac,
+  fetchCameraDeviceByID,
 };

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"example.com/sa-67-example/config"
+	"example.com/sa-67-example/controller/device"
 	"example.com/sa-67-example/controller/genders"
 	"example.com/sa-67-example/controller/line"
 	"example.com/sa-67-example/controller/meter"
@@ -89,6 +90,9 @@ func main() {
 		router.PATCH("/watervalue/:id", watervalue.UpdateWaterMeterValue)
 		router.GET("/watervalue/:id", watervalue.GetWaterMeterValueByID)
 		router.GET("/watervalue/status", watervalue.GetWaterMeterValueStatus)
+		router.GET("/cameradevices", device.GetCameraDevices)
+		router.GET("/cameradevices/without-mac", device.GetMeterLocationsWithoutCamera)
+		router.GET("/cameradevice/:id", device.GetCameraDeviceByID)
 
 	}
 

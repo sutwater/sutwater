@@ -11,6 +11,7 @@ const WaterMeterMap = Loadable(
   lazy(() => import("../pages/water/WaterMeterMap"))
 );
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
+const DevicePage = Loadable(lazy(() => import("../pages/device/device")));
 const EditWaterValuePage = Loadable(lazy(() => import("../pages/water/EditWaterValue")));
 const ContactPage = Loadable(lazy(() => import("../pages/contact")));
 const Water = Loadable(lazy(() => import("../pages/water/Water")));
@@ -58,6 +59,14 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => ({
       element: (
         <RequireAuth isLoggedIn={isLoggedIn}>
           <WaterMeterMap />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "device",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn}>
+          <DevicePage />
         </RequireAuth>
       ),
     },
