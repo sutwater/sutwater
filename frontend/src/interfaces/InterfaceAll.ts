@@ -79,7 +79,7 @@ export interface WaterMeterValueSaveInterface {
   MeterValue?: number;
   Note?: string;
   ImagePath?: string;
-  OCRConfidence: number;
+  ModelConfidence: number;
   CameraDeviceID?: number;
   UserID: number; // ✅ เพิ่ม relation กับ Users
 }
