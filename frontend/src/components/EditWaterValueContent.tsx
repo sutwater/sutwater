@@ -137,6 +137,7 @@ console.log("waterValue: ",waterValue)
       formData.append("Note", waterValue.Note || "");
       formData.append("UserID", user?.ID?.toString() ?? "0");
       formData.append("CameraDeviceID", waterValue?.CameraDevice?.ID?.toString() || "0");
+      formData.append("StatusID", waterValue?.StatusID?.toString() || "0");
 
       if (uploadedFile) {
         formData.append("ImagePath", uploadedFile);

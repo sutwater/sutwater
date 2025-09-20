@@ -25,12 +25,13 @@ const WaterMonitoringDashboard: React.FC = () => {
   const [, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+  console.log(waterDetail)
   const { loading, setLoading, user } = useAppContext();
   const [waterValue, setWaterValue] = useState<Partial<WaterMeterValueSaveInterface>>({
     Date: "",
     Time: "",
     MeterValue: 0,
-    OCRConfidence: 100,
+    ModelConfidence: 100,
     Note: "",
     ImagePath: "",
   });
@@ -181,75 +182,83 @@ const WaterMonitoringDashboard: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-    if (!waterValue.Date || !waterValue.Time) {
-      message.error("กรุณาระบุวันที่และเวลา");
-      return;
+  if (!waterValue.Date || !waterValue.Time) {
+    message.error("กรุณาระบุวันที่และเวลา");
+    return;
+  }
+
+  if (!uploadedFile) {
+    message.error("กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ");
+    return;
+  }
+
+  if (!user || !user.ID) {
+    console.error("User is not logged in");
+    return;
+  }
+
+  if (!id) {
+    console.error("CameraDeviceID is missing");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
+    formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
+    formData.append("MeterValue", waterValue.MeterValue!.toString());
+    formData.append("ModelConfidence", waterValue.ModelConfidence!.toString());
+    formData.append("Note", waterValue.Note || "");
+    formData.append("ImagePath", uploadedFile);
+    formData.append("UserID", user.ID.toString() || "0");
+    formData.append("CameraDeviceID", id.toString() || "0");
+
+    setAddLoading(true);
+
+    const res = await CreateWaterMeterValue(formData);
+
+    if (res.status === 200) {
+      messageApi.success({
+        content: (
+          <span className="text-base font-semibold text-green-600">
+            บันทึกค่ามิเตอร์สำเร็จ!
+          </span>
+        ),
+      });
+
+      setUploadedFile(null);
+      setWaterValue({
+        Date: "",
+        Time: "",
+        MeterValue: 0,
+        ModelConfidence: 0,
+        Note: "",
+        ImagePath: "",
+      });
+      setErrors({});
+      setPreviewImage(null);
+      setShowAddModal(false);
+    } else {
+      console.error("❌ Response error:", res);
+      messageApi.error(`${res.data?.message || "Unknown error"}`);
     }
+  } catch (error: any) {
+    console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
 
-    if (!uploadedFile) {
-      message.error("กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ");
-      return;
+    // ✅ แสดงข้อความจาก backend ถ้ามี
+    if (error.response?.data?.error) {
+      messageApi.error(`❌ ${error.response.data.message}`);
+    } else {
+      messageApi.error("❌ เกิดข้อผิดพลาด ไม่สามารถบันทึกค่ามิเตอร์ได้");
     }
+  } finally {
+    setAddLoading(false);
+  }
+};
 
-    // ✅ ตรวจสอบ user ว่าไม่ null ก่อน
-    if (!user || !user.ID) {
-      console.error("User is not logged in");
-      return;
-    }
-
-    // ✅ ตรวจสอบ id ว่าไม่ undefined ก่อน
-    if (!id) {
-      console.error("CameraDeviceID is missing");
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
-      formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
-      formData.append("MeterValue", waterValue.MeterValue!.toString());
-      formData.append("ModelConfidence", waterValue.OCRConfidence!.toString());
-      formData.append("Note", waterValue.Note || "");
-      formData.append("ImagePath", uploadedFile);
-      formData.append("UserID", user.ID.toString() || "0");
-      formData.append("CameraDeviceID", id.toString() || "0");
-
-      setAddLoading(true);
-
-      const res = await CreateWaterMeterValue(formData);
-
-      if (res.status === 200) {
-        messageApi.success({
-          content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
-        });
-
-
-        setUploadedFile(null);
-        setWaterValue({
-          Date: "",
-          Time: "",
-          MeterValue: 0,
-          OCRConfidence: 0,
-          Note: "",
-          ImagePath: "",
-        });
-        setErrors({});
-        setUploadedFile(null);
-        setPreviewImage(null);
-
-        // ✅ ปิด modal
-        setAddLoading(false);
-        setShowAddModal(false);
-      } else {
-        message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
-      }
-    } catch (error: any) {
-      console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
-    }
-  };
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};

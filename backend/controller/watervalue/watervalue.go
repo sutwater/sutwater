@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"example.com/sa-67-example/config"
@@ -51,104 +50,158 @@ func GetWaterMeterValueByID(c *gin.Context) {
 func CreateWaterMeterValue(c *gin.Context) {
 	db := config.DB()
 
-	// รับค่าจากฟอร์ม
-	date := c.PostForm("Date")
-	timestr := c.PostForm("Time")
-	meterValue := c.PostForm("MeterValue")
-	modelConfidence := c.PostForm("ModelConfidence")
-	note := c.PostForm("Note")
-	userID := c.PostForm("UserID")
-	cameraDeviceID := c.PostForm("CameraDeviceID")
+	// ✅ ตรวจสอบว่าเป็น multipart/form-data หรือ JSON
+	var req struct {
+		Date            string  `json:"Date" form:"Date"`
+		Time            string  `json:"Time" form:"Time"`
+		MeterValue      int     `json:"MeterValue" form:"MeterValue"`
+		ModelConfidence float64 `json:"ModelConfidence" form:"ModelConfidence"`
+		Note            string  `json:"Note" form:"Note"`
+		UserID          uint    `json:"UserID" form:"UserID"`
+		CameraDeviceID  uint    `json:"CameraDeviceID" form:"CameraDeviceID"`
+	}
 
-	// แปลง Timestamp string → time.Time
-	timestamp, err := time.Parse("2006-01-02T15:04", date+"T"+timestr)
+	if c.ContentType() == "application/json" {
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+			return
+		}
+	} else {
+		if err := c.Bind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form-data"})
+			return
+		}
+	}
+
+	// ✅ แปลง timestamp + timezone
+	loc, err := time.LoadLocation("Asia/Bangkok")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot load timezone"})
+		return
+	}
+
+	// ใช้ ParseInLocation แทน
+	timestamp, err := time.ParseInLocation("2006-01-02T15:04", req.Date+"T"+req.Time, loc)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid timestamp"})
 		return
 	}
 
-	// แปลงค่าอื่น ๆ
-	meterValueInt, err := strconv.Atoi(meterValue)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid meter value"})
-		return
+	timestamp = timestamp.In(loc)
+
+	// ✅ ดึงค่าล่าสุดของ cameraDeviceID
+	var lastValue entity.WaterMeterValue
+	lastValueFound := false
+	err = db.Where("camera_device_id = ? AND timestamp < ?", req.CameraDeviceID, timestamp).
+		Order("timestamp desc").
+		First(&lastValue).Error
+	if err == nil {
+		lastValueFound = true
+		if req.MeterValue < lastValue.MeterValue {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "ค่ามิเตอร์ไม่ถูกต้อง",
+				"message": "ดูเหมือนว่าคุณใส่ค่ามิเตอร์ผิด กรุณาตรวจสอบ แล้วส่งฟอร์มอีกครั้ง",
+			})
+			return
+		}
 	}
 
-	modelConfidenceFloat, err := strconv.ParseFloat(modelConfidence, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OCR confidence"})
-		return
-	}
-
-	userID64, err := strconv.ParseUint(userID, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-	userIDuInt := uint(userID64)
-
-	cameraDeviceID64, err := strconv.ParseUint(cameraDeviceID, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid camera device ID"})
-		return
-	}
-	cameraDeviceIDuInt := uint(cameraDeviceID64)
-
-	// ดึง MeterLocation
+	// ✅ ดึง MeterLocation
 	var camera entity.CameraDevice
-	if err := db.Preload("MeterLocation").First(&camera, cameraDeviceIDuInt).Error; err != nil {
+	if err := db.Preload("MeterLocation").First(&camera, req.CameraDeviceID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
 		return
 	}
 	buildingName := camera.MeterLocation.Name
 
-	var imagePath string = ""
-
-	// ตรวจสอบว่ามีไฟล์รูปหรือไม่
+	// ✅ ตรวจสอบไฟล์รูป
+	var imagePath string
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
-		// สร้างโฟลเดอร์ uploads/ชื่ออาคาร
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
 		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create folder"})
 			return
 		}
 
-		// ตั้งชื่อไฟล์ตาม timestamp และ extension ของไฟล์จริง
-		ext := ""
-		if len(file.Filename) > 4 {
-			ext = file.Filename[len(file.Filename)-4:] // เช่น ".jpg" หรือ ".png"
-		} else {
+		ext := filepath.Ext(file.Filename)
+		if ext == "" {
 			ext = ".jpg"
 		}
 		timestampStr := timestamp.Format("2006-01-02_15-04")
 		fileName := fmt.Sprintf("%s%s", timestampStr, ext)
 		uploadPath := fmt.Sprintf("%s/%s", folderPath, fileName)
 
-		// บันทึกไฟล์
 		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
 			return
 		}
-
 		imagePath = uploadPath
 	}
 
-	// สร้าง WaterMeterValue พร้อม ImagePath
+	// ✅ บันทึก WaterMeterValue
 	waterValue := entity.WaterMeterValue{
 		Timestamp:       timestamp,
-		MeterValue:      meterValueInt,
-		ModelConfidence: modelConfidenceFloat,
-		Note:            note,
-		CameraDeviceID:  cameraDeviceIDuInt,
-		UserID:          userIDuInt,
-		StatusID:        2, // สมมุติคนสร้างเองผ่านการตรวจสอบแล้ว
+		MeterValue:      req.MeterValue,
+		ModelConfidence: req.ModelConfidence,
+		Note:            req.Note,
+		CameraDeviceID:  req.CameraDeviceID,
+		UserID:          req.UserID,
+		StatusID:        2,
 		ImagePath:       imagePath,
 	}
 
 	if err := db.Create(&waterValue).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create water meter value"})
 		return
+	}
+
+	// ✅ DailyWaterUsage
+	if lastValueFound && timestamp.Hour() == 8 && timestamp.Minute() == 0 {
+		yesterdayDate := timestamp.AddDate(0, 0, -1)
+		start := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 0, 0, 0, loc)
+		end := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 59, 59, 0, loc)
+
+		var yesterdayValue entity.WaterMeterValue
+		if err := db.Where("camera_device_id = ? AND timestamp BETWEEN ? AND ?", req.CameraDeviceID, start, end).First(&yesterdayValue).Error; err == nil {
+			usage := req.MeterValue - yesterdayValue.MeterValue
+			if usage >= 0 {
+				dailyUsage := entity.DailyWaterUsage{
+					Timestamp:      timestamp,
+					Usage:          usage,
+					CameraDeviceID: req.CameraDeviceID,
+				}
+				db.Create(&dailyUsage)
+			}
+
+			// หลังจากสร้าง dailyUsage
+			var avgUsage float64
+			db.Model(&entity.DailyWaterUsage{}).
+				Where("camera_device_id = ? AND YEAR(timestamp) = ? AND MONTH(timestamp) = ?",
+					req.CameraDeviceID,
+					timestamp.Year(),
+					int(timestamp.Month()),
+				).
+				Select("AVG(usage)").Scan(&avgUsage)
+
+			// เปรียบเทียบค่า usage กับค่าเฉลี่ย ±50
+			if float64(usage) > avgUsage+50 {
+				notification := entity.Notification{
+					Message:        "ค่าน้ำสูงกว่าปกติ",
+					IsRead:         false,
+					CameraDeviceID: req.CameraDeviceID,
+				}
+				db.Create(&notification)
+			} else if float64(usage) < avgUsage-50 {
+				notification := entity.Notification{
+					Message:        "ค่าน้ำต่ำกว่าปกติ",
+					IsRead:         false,
+					CameraDeviceID: req.CameraDeviceID,
+				}
+				db.Create(&notification)
+			}
+
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -159,7 +212,6 @@ func CreateWaterMeterValue(c *gin.Context) {
 
 func UpdateWaterMeterValue(c *gin.Context) {
 	db := config.DB()
-
 	id := c.Param("id")
 
 	var waterValue entity.WaterMeterValue
@@ -168,74 +220,149 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	meterValue := c.PostForm("MeterValue")
-	modelConfidence := c.PostForm("ModelConfidence")
-	note := c.PostForm("Note")
+	// ✅ ตรวจสอบว่าเป็น multipart/form-data หรือ JSON
+	var req struct {
+		Date            string  `json:"Date" form:"Date"`
+		Time            string  `json:"Time" form:"Time"`
+		MeterValue      int     `json:"MeterValue" form:"MeterValue"`
+		ModelConfidence float64 `json:"ModelConfidence" form:"ModelConfidence"`
+		Note            string  `json:"Note" form:"Note"`
+		StatusID        uint    `json:"StatusID" form:"StatusID"`
+	}
 
-	if meterValue != "" {
-		val, err := strconv.Atoi(meterValue)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid meter value"})
+	if c.ContentType() == "application/json" {
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 			return
 		}
-		waterValue.MeterValue = val
-	}
-
-	if modelConfidence != "" {
-		val, err := strconv.ParseFloat(modelConfidence, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid model confidence"})
+	} else {
+		if err := c.Bind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form-data"})
 			return
 		}
-		waterValue.ModelConfidence = val
 	}
 
-	if note != "" {
-		waterValue.Note = note
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+
+	// ✅ อัปเดต timestamp ถ้ามี
+	if req.Date != "" && req.Time != "" {
+		timestamp, err := time.ParseInLocation("2006-01-02T15:04", req.Date+"T"+req.Time, loc)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid timestamp"})
+			return
+		}
+		waterValue.Timestamp = timestamp
 	}
 
+	// ✅ อัปเดต MeterValue
+	if req.MeterValue != 0 {
+		// ตรวจสอบค่าล่าสุดก่อนวันนั้น
+		var lastValue entity.WaterMeterValue
+		if err := db.Where("camera_device_id = ? AND timestamp < ?", waterValue.CameraDeviceID, waterValue.Timestamp).
+			Order("timestamp desc").
+			First(&lastValue).Error; err == nil {
+			if req.MeterValue < lastValue.MeterValue {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error":   "ค่ามิเตอร์ไม่ถูกต้อง",
+					"message": "ดูเหมือนว่าคุณใส่ค่ามิเตอร์ผิด กรุณาตรวจสอบ",
+				})
+				return
+			}
+		}
+		waterValue.MeterValue = req.MeterValue
+	}
+
+	// ✅ อัปเดต ModelConfidence
+	if req.ModelConfidence != 0 {
+		waterValue.ModelConfidence = req.ModelConfidence
+	}
+
+	// ✅ อัปเดต Note
+	if req.Note != "" {
+		waterValue.Note = req.Note
+	}
+
+	// ✅ อัปเดต StatusID
+	if req.StatusID != 0 {
+		waterValue.StatusID = req.StatusID
+	}
+
+	// ✅ อัปเดตรูปภาพ
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
-		// ลบรูปเก่าออกถ้ามี
 		if waterValue.ImagePath != "" {
 			os.Remove(waterValue.ImagePath)
 		}
-
-		// ดึงชื่ออาคารจาก CameraDevice
 		var camera entity.CameraDevice
 		if err := db.Preload("MeterLocation").First(&camera, waterValue.CameraDeviceID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
 			return
 		}
 		buildingName := camera.MeterLocation.Name
-
-		// สร้างโฟลเดอร์
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
 		os.MkdirAll(folderPath, os.ModePerm)
 
-		// ดึงนามสกุลไฟล์จริง
 		ext := filepath.Ext(file.Filename)
 		if ext == "" {
 			ext = ".jpg"
 		}
-
 		timestampStr := waterValue.Timestamp.Format("2006-01-02_15-04")
 		fileName := fmt.Sprintf("%s%s", timestampStr, ext)
 		uploadPath := fmt.Sprintf("%s/%s", folderPath, fileName)
-
-		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new image"})
-			return
-		}
-
-		// อัปเดต path ใน WaterMeterValue
+		c.SaveUploadedFile(file, uploadPath)
 		waterValue.ImagePath = uploadPath
 	}
 
-	// บันทึกทุก field ที่แก้ไข
+	// ✅ บันทึก WaterMeterValue
 	if err := db.Save(&waterValue).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return
+	}
+
+	// ✅ DailyWaterUsage + Notification
+	if waterValue.Timestamp.Hour() == 8 && waterValue.Timestamp.Minute() == 0 {
+		yesterdayDate := waterValue.Timestamp.AddDate(0, 0, -1)
+		start := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 0, 0, 0, loc)
+		end := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 59, 59, 0, loc)
+
+		var yesterdayValue entity.WaterMeterValue
+		if err := db.Where("camera_device_id = ? AND timestamp BETWEEN ? AND ?", waterValue.CameraDeviceID, start, end).
+			First(&yesterdayValue).Error; err == nil {
+
+			usage := waterValue.MeterValue - yesterdayValue.MeterValue
+			if usage >= 0 {
+				dailyUsage := entity.DailyWaterUsage{
+					Timestamp:      waterValue.Timestamp,
+					Usage:          usage,
+					CameraDeviceID: waterValue.CameraDeviceID,
+				}
+				db.Create(&dailyUsage)
+
+				// ค่าเฉลี่ยเดือน
+				var avgUsage float64
+				db.Model(&entity.DailyWaterUsage{}).
+					Where("camera_device_id = ? AND YEAR(timestamp) = ? AND MONTH(timestamp) = ?",
+						waterValue.CameraDeviceID,
+						waterValue.Timestamp.Year(),
+						int(waterValue.Timestamp.Month()),
+					).
+					Select("AVG(usage)").Scan(&avgUsage)
+
+				if float64(usage) > avgUsage+50 {
+					db.Create(&entity.Notification{
+						Message:        "ค่าน้ำสูงกว่าปกติ",
+						IsRead:         false,
+						CameraDeviceID: waterValue.CameraDeviceID,
+					})
+				} else if float64(usage) < avgUsage-50 {
+					db.Create(&entity.Notification{
+						Message:        "ค่าน้ำต่ำกว่าปกติ",
+						IsRead:         false,
+						CameraDeviceID: waterValue.CameraDeviceID,
+					})
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
