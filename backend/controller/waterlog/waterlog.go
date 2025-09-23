@@ -1,6 +1,7 @@
 package waterlog
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -128,4 +129,62 @@ func GetAllCameraDevicesWithUsage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, cameraDevices)
+}
+
+func GetWaterMeterValueByCameraDeviceID(c *gin.Context) {
+	db := config.DB()
+	cameraID := c.Param("id")
+
+	var waterValues []entity.WaterMeterValue
+	if err := db.Preload("CameraDevice.MeterLocation").
+		Preload("User").
+		Where("camera_device_id = ? AND status_id = ?", cameraID, 1).
+		Order("timestamp DESC"). // ✅ เรียงตาม timestamp ใหม่สุดก่อน
+		Find(&waterValues).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to retrieve water meter values",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if len(waterValues) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Water meter values not found",
+			"message": fmt.Sprintf("ไม่พบข้อมูลสำหรับ CameraDeviceID = %s หรือ StatusID != 1", cameraID),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Water meter values retrieved successfully",
+		"data":    waterValues,
+	})
+}
+
+func GetAllPendingWaterMeterValues(c *gin.Context) {
+	db := config.DB()
+
+	var waterValues []entity.WaterMeterValue
+	if err := db.Where("status_id = ?", 1).Find(&waterValues).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to fetch water meter values",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if len(waterValues) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "No pending water meter values found",
+			"data":    []entity.WaterMeterValue{},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Pending water meter values retrieved successfully",
+		"data":    waterValues,
+	})
 }

@@ -225,16 +225,6 @@ const WaterMeterMap = () => {
                         ? `${currentLog.MeterValue} ลูกบาศก์เมตร`
                         : "ไม่มีข้อมูล"}
                     </p>
-
-                    <p className="text-sm text-gray-700 mb-1">
-                      🖥️ MacAddress: {currentLog?.CameraDevice?.MacAddress ?? "ไม่มีข้อมูล"}
-                    </p>
-                    <p className="text-sm text-gray-700 mb-3">
-                      🎯 OCR Confidence:{" "}
-                      {currentLog?.ModelConfidence !== undefined
-                        ? `${currentLog.ModelConfidence}%`
-                        : "ไม่มีข้อมูล"}
-                    </p>
                     <button
                       className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 rounded-md shadow cursor-pointer"
                       onClick={() => navigate(`/waterdetail/${meter.ID}`)}

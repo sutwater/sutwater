@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
-import { MapPin, Wifi, Battery, Network, ArrowLeft, Bell, Droplet, Building2, Calendar, WifiOff, Plus, Download, Edit } from 'lucide-react';
+import { MapPin, Wifi, ArrowLeft, Droplet, Building2, Calendar, WifiOff, Plus, Download, Edit, AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GetMeterLocationDetail, GetNotificationsByMeterLocation, CreateWaterMeterValue } from "../../services/https"
-import { CameraDeviceInterface, NotificationInterface, WaterMeterValueSaveInterface } from '../../interfaces/InterfaceAll';
+import { GetMeterLocationDetail, GetNotificationsByMeterLocation, CreateWaterMeterValue, fetchWaterValueReqByCameraId } from "../../services/https"
+import { CameraDeviceInterface, NotificationInterface, WaterMeterValueSaveInterface, WaterMeterValueInterface } from '../../interfaces/InterfaceAll';
 import { message } from 'antd';
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import dayjs from "dayjs";
 import { useAppContext } from '../../contexts/AppContext';
+import { DataTable } from '../../components/waterreq/DataTable';
+//import { useMockData } from '../../components/waterreq/useMockData';
+import { ImageModal } from '../../components/waterreq/ImageModal';
+
 
 const WaterMonitoringDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [waterDetail, setWaterDetail] = useState<CameraDeviceInterface | null>(null);
+  const [waterReq, setWaterReq] = useState<WaterMeterValueInterface | null>(null);
+  //const { data, stats, verifyReading, rejectReading } = useMockData();
+  const [selectedImage, setSelectedImage] = useState<string>('');
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [notification, setNotification] = useState<NotificationInterface[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -36,6 +44,7 @@ const WaterMonitoringDashboard: React.FC = () => {
     ImagePath: "",
   });
   console.log("CameraID: ", id?.toString())
+  
   const exportToExcel = () => {
     if (!waterDetail || !waterDetail.DailyWaterUsage || waterDetail.DailyWaterUsage.length === 0) {
       messageApi.open({ type: "warning", content: "ไม่มีข้อมูลให้ export" });
@@ -115,8 +124,8 @@ const WaterMonitoringDashboard: React.FC = () => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-gray-300 rounded-lg p-2 shadow-md text-sm">
-          <p className="font-semibold text-gray-700">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xl backdrop-blur-sm">
+          <p className="font-semibold text-gray-800 mb-2">
             วันที่: {new Date(label).toLocaleDateString("th-TH", {
               year: "numeric",
               month: "long",
@@ -132,7 +141,8 @@ const WaterMonitoringDashboard: React.FC = () => {
             if (p.dataKey === "min") color = "#0ea5e9";
 
             return (
-              <p key={index} className="flex items-center gap-2" style={{ color }}>
+              <p key={index} className="flex items-center gap-2 text-sm" style={{ color }}>
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></span>
                 <span>
                   {p.name === "ใช้น้ำ" && `ใช้น้ำ: ${p.value} ลบ.ม.`}
                   {p.dataKey === "avg" && `ค่าเฉลี่ย: ${p.value.toFixed(2)} ลบ.ม.`}
@@ -146,6 +156,10 @@ const WaterMonitoringDashboard: React.FC = () => {
       );
     }
     return null;
+  };
+  const handleViewImage = (imagePath: string) => {
+    setSelectedImage(imagePath);
+    setIsImageModalOpen(true);
   };
 
   const getNotificationById = async () => {
@@ -181,6 +195,23 @@ const WaterMonitoringDashboard: React.FC = () => {
       messageApi.open({ type: "error", content: "เกิดข้อผิดพลาดในการโหลดข้อมูล" });
     }
   };
+
+  const loadWaterValueReq = async () => {
+  try {
+    const res = await fetchWaterValueReqByCameraId(id!);
+    console.log("res: ", res.data);
+
+    if (res.status === 200) {
+      setWaterReq(res.data.data); // ✅ เก็บเฉพาะ array
+    } else {
+      setWaterReq(null);
+      messageApi.open({ type: "error", content: res.data.error });
+    }
+  } catch (error) {
+    setWaterReq(null);
+    messageApi.open({ type: "error", content: "เกิดข้อผิดพลาดในการโหลดข้อมูล" });
+  }
+};
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
@@ -351,11 +382,13 @@ const handleSubmit = async () => {
 
     Promise.all([
       getMeterLocationDetailById(sevenDaysAgo.format("YYYY-MM-DD"), today.format("YYYY-MM-DD")),
-      getNotificationById()
+      getNotificationById(),
+      loadWaterValueReq()
     ])
       .finally(() => {
         setTimeout(() => setLoading(false), 1000);
       });
+      
   }, []);
 
 
@@ -375,14 +408,24 @@ const handleSubmit = async () => {
     console.log("notification updated: ", notification);
   }, [notification]);
 
+  console.log("waterreq", waterReq)
+
   return (
-    <div className="min-h-screen bg-gray-50 px-2 sm:px-4 lg:px-30 pb-20 overflow-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 px-2 sm:px-4 lg:px-8 pb-20">
+      <div className="max-w-7xl mx-auto space-y-6">
       {contextHolder}
+      
+      {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-16 h-16 border-4 border-t-blue-500 border-blue-200 rounded-full animate-spin"></div>
+            <p className="text-gray-600 font-medium">กำลังโหลดข้อมูล...</p>
+          </div>
         </div>
       )}
+
+      {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden my-8">
@@ -409,7 +452,6 @@ const handleSubmit = async () => {
               </p>
             </div>
 
-
             {/* Form */}
             <div className="space-y-6">
               {/* Date and Time Row */}
@@ -423,8 +465,7 @@ const handleSubmit = async () => {
                     <input
                       type="date"
                       required
-                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none  "border-gray-200 focus:ring-blue-500"
-      `}
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none border-gray-200 focus:ring-blue-500`}
                       value={waterValue.Date || ""}
                       onChange={(e) => handleInputChange("Date", e.target.value)}
                     />
@@ -448,8 +489,7 @@ const handleSubmit = async () => {
                     <input
                       type="time"
                       required
-                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none "border-gray-200 focus:ring-blue-500"
-      `}
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:ring-2 focus:border-blue-500 transition-all outline-none border-gray-200 focus:ring-blue-500`}
                       value={waterValue.Time || ""}
                       onChange={(e) => handleInputChange("Time", e.target.value)}
                     />
@@ -460,7 +500,6 @@ const handleSubmit = async () => {
                     </p>
                   )}
                 </div>
-
               </div>
 
               {/* Meter Value */}
@@ -625,129 +664,58 @@ const handleSubmit = async () => {
         </div>
       )}
 
-      {/* Header - Responsive */}
-
-      <div className="bg-white rounded-lg shadow-sm mb-4 sm:mb-6 p-3 sm:p-4">
-
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg mb-6 p-4 border border-white/20">
         <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
           {/* Left Section */}
-          <div className="flex flex-row items-center xs:flex-row xs:items-center gap-2 xs:gap-4">
+          <div className="flex flex-row items-center gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm text-gray-700 rounded-xl shadow-lg hover:bg-white/80 transition-all duration-300 border border-black/10 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl shadow-md hover:shadow-lg hover:bg-white transition-all duration-300 border border-gray-200"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden xs:inline">ย้อนกลับ</span>
+              <span className="hidden xs:inline font-medium">ย้อนกลับ</span>
             </button>
             <div className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-2xl shadow-xl">
-              <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="font-semibold text-sm sm:text-xl">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
+              <Building2 className="w-5 h-5" />
+              <span className="font-bold text-lg">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
             </div>
           </div>
 
-          {/* Right Section - Stack on mobile */}
-          <div className="flex items-center space-x-6 text-sm">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl shadow-md">
+          {/* Right Section */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-gray-200">
               <MapPin className="w-4 h-4 text-blue-500" />
-              <span className="hidden md:inline text-gray-700">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
+              <span className="hidden md:inline text-gray-700 font-medium">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบตำแหน่ง"}</span>
             </div>
 
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md backdrop-blur-sm ${waterDetail?.Wifi ? 'bg-green-100/80 text-green-700' : 'bg-red-100/80 text-red-700'
-              }`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md backdrop-blur-sm border ${waterDetail?.Wifi 
+              ? 'bg-green-50/80 text-green-700 border-green-200' 
+              : 'bg-red-50/80 text-red-700 border-red-200'
+            }`}>
               {waterDetail?.Wifi ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-              <span className="hidden md:inline">{waterDetail?.Wifi ? 'เชื่อมต่อ' : 'ไม่ได้เชื่อมต่อ'}</span>
+              <span className="hidden md:inline font-medium">{waterDetail?.Wifi ? 'เชื่อมต่อ' : 'ไม่ได้เชื่อมต่อ'}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Metrics - Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
-        {/* Flow Meter Device */}
-        <div className="bg-white p-8 rounded-3xl text-blue-600 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex items-center mb-4 space-x-4">
-            <div className="bg-gray-100 p-3 rounded-2xl backdrop-blur-sm">
-              <Bell className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-semibold">การแจ้งเตือน</h3>
+      {/* Main Metrics */}
+     
 
+      {/* Chart Section */}
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+              ปริมาณการใช้น้ำ
+            </h3>
+            <p className="text-gray-600">แสดงข้อมูลการใช้น้ำรายวัน</p>
           </div>
-          <p className="text-black text-base">รายการแจ้งเตือนทั้งหมด</p>
-        </div>
-
-        {/* Cumulative Data */}
-        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-          <div className="flex flex-row sm:flex-col md:flex-row justify-around gap-4 sm:gap-6">
-            {/* Water Data */}
-            <div className="flex flex-col items-center bg-blue-50 rounded-lg p-3 sm:p-4 flex-1 sm:w-40 hover:shadow-md transition-shadow duration-200">
-              <div className="bg-blue-100 p-2 sm:p-3 rounded-full mb-2">
-                <Droplet className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
-              </div>
-              <div className="text-xl sm:text-3xl font-bold text-blue-600">
-                {waterDetail?.WaterMeterValue && waterDetail.WaterMeterValue.length > 0
-                  ? waterDetail.WaterMeterValue.length
-                  : "ไม่มี"}
-
-              </div>
-              <div className="text-xs sm:text-base text-gray-500 mt-1 text-center">จำนวนข้อมูล</div>
-            </div>
-
-            {/* Notifications */}
-            <div className="flex flex-col items-center bg-red-50 rounded-3xl p-3 sm:p-4 flex-1 sm:w-40 hover:shadow-md transition-shadow duration-200">
-              <div className="bg-red-100 p-2 sm:p-3 rounded-full mb-2">
-                <Bell className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />
-              </div>
-              <div className="text-xl sm:text-3xl font-bold text-red-600">
-                {notification && notification.length > 0 ? notification.length : "ไม่มี"}
-              </div>
-              <div className="text-xs sm:text-base text-gray-500 mt-1 text-center">การแจ้งเตือน</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Device Info */}
-        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 ">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg sm:text-2xl font-semibold text-gray-800">ข้อมูลมิเตอร์</h3>
-          </div>
-
-          <div className="space-y-4">
-            {/* Mac Address */}
-            <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Network className="w-5 h-5 text-blue-500" />
-                <span className="text-sm sm:text-base text-gray-600">Mac Address</span>
-              </div>
-              <div className="text-sm sm:text-base font-semibold text-gray-800 break-all text-right">
-                {waterDetail?.MacAddress || "ไม่มีข้อมูล"}
-              </div>
-            </div>
-
-            {/* Battery */}
-            <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Battery className="w-5 h-5 text-yellow-500" />
-                <span className="text-sm sm:text-base text-gray-600">แบตเตอรี่</span>
-              </div>
-              <div className="text-sm sm:text-base font-semibold text-gray-800 text-right">
-                {waterDetail?.Battery ? `${waterDetail.Battery}%` : "ไม่มีข้อมูล"}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Chart Section - Mobile Optimized */}
-      <div className="bg-white rounded-3xl border border-white/20 shadow-xl p-4 sm:p-6 mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-          <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">ปริมาณการใช้น้ำ</h3>
-          <div className="flex items-center w-full sm:w-auto ">
-            {/* Start Date */}
-            <div className="relative w-full sm:w-auto bg-white ">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none ">
-                <Calendar className="w-4 h-4 text-gray-500 " />
-              </div>
+          
+          <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-gray-200">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
                 type="date"
                 value={startDate}
@@ -758,18 +726,14 @@ const handleSubmit = async () => {
                     handleDateRangeChange([newStart, dayjs(endDate)]);
                   }
                 }}
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg 
-             focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 "
+                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 pr-3 py-2"
               />
             </div>
 
-            <span className="mx-4 text-gray-500">ถึง</span>
+            <span className="text-gray-500 font-medium">ถึง</span>
 
-            {/* End Date */}
-            <div className="relative w-full sm:w-auto">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Calendar className="w-4 h-4 text-gray-500 " />
-              </div>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
                 type="date"
                 value={endDate}
@@ -780,126 +744,106 @@ const handleSubmit = async () => {
                     handleDateRangeChange([dayjs(startDate), newEnd]);
                   }
                 }}
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg 
-             focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5"
+                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 pr-3 py-2"
               />
             </div>
           </div>
         </div>
 
         {dailyMeterData.length === 0 ? (
-          <div className="text-gray-500 text-center h-64 flex items-center justify-center">
-            ไม่พบข้อมูลการใช้น้ำในช่วงเวลาที่เลือก กรุณาเลือกช่วงเวลาใหม่
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <AlertTriangle className="w-16 h-16 text-gray-400 mb-4" />
+            <h4 className="text-lg font-semibold mb-2">ไม่พบข้อมูล</h4>
+            <p className="text-center">ไม่พบข้อมูลการใช้น้ำในช่วงเวลาที่เลือก<br />กรุณาเลือกช่วงเวลาใหม่</p>
           </div>
         ) : (
-          /* Chart Container - Scrollable on mobile */
-          <div className="h-80 sm:h-96 w-full overflow-x-auto">
-            <div
-              className="h-full"
-              style={{ width: `${dailyMeterData.length * 60}px`, minWidth: "100%" }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyMeterData} margin={{ bottom: 50 }}> {/* เพิ่ม margin bottom */}
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    interval={0}
-
-                    label={{
-                      value: "วันที่",
-                      position: "bottom",
-                      offset: 38 // ดัน label ลงด้านล่าง
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    label={{ value: 'ปริมาณน้ำ (ลบ.ม.)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="linear"
-                    dataKey="usage"
-                    name="ใช้น้ำ"
-                    stroke="#3B82F6"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                  {avgValue != null && (
-                    <ReferenceLine
-                      y={avgValue}
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      label={{
-                        position: "right",
-                        value: "ค่าเฉลี่ย",
-                        fill: "#ef4444",
-                        fontWeight: "bold",
-                      }}
-                    />
-                  )}
-                  {maxValue != null && (
-                    <Line
-                      type="monotone"
-                      dataKey="max"
-                      name="ค่าสูงสุด"
-                      stroke="#22c55e"
-                      strokeDasharray="4 4"
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-                  {minValue != null && (
-                    <Line
-                      type="monotone"
-                      dataKey="min"
-                      name="ค่าต่ำสุด"
-                      stroke="#a855f7"
-                      strokeDasharray="4 4"
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <div className="overflow-x-auto w-full">
+  <div style={{ minWidth: `${Math.max(dailyMeterData.length * 60, 800)}px`, height: "320px" }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={dailyMeterData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 12, fill: '#6b7280' }}
+          angle={-45}
+          textAnchor="end"
+          interval={0}
+          height={60}
+        />
+        <YAxis
+          tick={{ fontSize: 12, fill: '#6b7280' }}
+          label={{ 
+            value: 'ปริมาณน้ำ (ลบ.ม.)', 
+            angle: -90, 
+            position: 'insideLeft', 
+            style: { textAnchor: 'middle', fill: '#6b7280', fontWeight: 'bold' } 
+          }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Line
+          type="monotone"
+          dataKey="usage"
+          name="ใช้น้ำ"
+          stroke="#3B82F6"
+          strokeWidth={3}
+          dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: '#ffffff' }}
+          activeDot={{ r: 6, fill: '#1D4ED8' }}
+        />
+        {avgValue != null && (
+          <ReferenceLine
+            y={avgValue}
+            stroke="#ef4444"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            label={{
+              value: `ค่าเฉลี่ย: ${avgValue.toFixed(1)}`,
+              fill: "#ef4444",
+              fontWeight: "bold",
+              fontSize: 12
+            }}
+          />
+        )}
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+</div>
 
         )}
 
-        {/* Chart Legend - Mobile friendly */}
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span>การใช้น้ำ</span>
+        {/* Chart Legend */}
+        <div className="mt-6 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+            <span className="font-medium text-blue-700">การใช้น้ำรายวัน</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-500 rounded"></div>
-            <span>ค่าเฉลี่ย</span>
+          <div className="flex items-center gap-2 bg-red-50 px-3 py-2 rounded-lg">
+            <div className="w-4 h-1 bg-red-500"></div>
+            <span className="font-medium text-red-700">ค่าเฉลี่ย</span>
           </div>
         </div>
       </div>
 
-      {/* Data Table - Mobile Responsive */}
-      <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-8">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
+      {/* Data Table */}
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
           <div>
             <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
               ประวัติการบันทึกค่ามิเตอร์
             </h3>
-            <p className="text-gray-500">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
+            <p className="text-gray-600">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
           </div>
 
           <div className="flex gap-3">
-            <button onClick={exportToExcel} className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+            <button 
+              onClick={exportToExcel} 
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+            >
               <Download className="w-5 h-5" />
               Export Excel
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-3 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+              className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               <Plus className="w-5 h-5" />
               เพิ่มข้อมูล
@@ -907,102 +851,94 @@ const handleSubmit = async () => {
           </div>
         </div>
 
-
-
         {/* Mobile Card Layout */}
-        <div className="block lg:hidden space-y-4">
-          {waterDetail?.WaterMeterValue?.map((wmv, index) => (
-            <div key={index} className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg transition-all duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-lg font-semibold text-gray-800">
-                  {wmv.Timestamp && (
-                    <div className="text-lg font-semibold text-gray-800">
-                      {new Date(wmv.Timestamp).toLocaleDateString("th-TH")}
-                    </div>
-                  )}
 
+        
 
-                </div>
-                <div className="text-2xl font-bold text-blue-600">{wmv.MeterValue} ลบ.ม.</div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <span>{wmv.Timestamp
-                  ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH")
-                  : "-"}</span>
-
-              </div>
-              {wmv.Note && (
-                <p className="text-gray-600 mb-4 bg-white/60 p-3 rounded-lg">{wmv.Note}</p>
-              )}
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all">
-                <Edit className="w-4 h-4" />
-                แก้ไขข้อมูล
-              </button>
-            </div>
-          ))}
-        </div>
-
+       
         {/* Desktop Table */}
         {waterDetail?.WaterMeterValue && waterDetail.WaterMeterValue.length > 0 ? (
-          <div className="hidden sm:block overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-gray-200 shadow-sm">
-            <table className="w-full text-sm border-collapse">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="text-left p-3 font-medium text-gray-600">วัน/เดือน/ปี</th>
-                  <th className="text-left p-3 font-medium text-gray-600">เวลา</th>
-                  <th className="text-left p-3 font-medium text-gray-600">ค่าที่อ่านได้</th>
-                  <th className="text-left p-3 font-medium text-gray-600">หมายเหตุ</th>
-                  <th className="text-left p-3 font-medium text-gray-600">การจัดการ</th>
-                  {/* <th className="text-left p-3 font-medium text-gray-600">แก้ไขโดย</th> */}
-                </tr>
-              </thead>
-              <tbody>
-                {waterDetail.WaterMeterValue.map((wmv, index) => (
-                  <tr
-                    key={index}
-                    className="border-t last:border-b hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="p-3 text-gray-800">
-                      {wmv.Timestamp
-                        ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "2-digit",
-                        })
-                        : "-"}
-                    </td>
-                    <td className="p-3 text-gray-800">
-                      {wmv.Timestamp
-                        ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })
-                        : "-"}
-                    </td>
-
-                    <td className="p-3 text-gray-800 font-medium">{wmv.MeterValue} ลบ.ม.</td>
-                    <td className="p-3 text-gray-800">{wmv.Note || "-"}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => {
-                          navigate(`/waterdetail/edit/${wmv.ID}`);
-                        }}
-                        className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                      >
-                        แก้ไข
-                      </button>
-                    </td>
-                    {/* <td className="p-3 text-gray-800">{getUpdatedByNames(wmv.WaterUsageLog)}</td> */}
+          <div className="hidden lg:block overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+                  <tr>
+                    <th className="text-left p-4 font-bold text-gray-700 border-b border-gray-200">วัน/เดือน/ปี</th>
+                    <th className="text-left p-4 font-bold text-gray-700 border-b border-gray-200">เวลา</th>
+                    <th className="text-left p-4 font-bold text-gray-700 border-b border-gray-200">ค่าที่อ่านได้</th>
+                    <th className="text-left p-4 font-bold text-gray-700 border-b border-gray-200">หมายเหตุ</th>
+                    <th className="text-left p-4 font-bold text-gray-700 border-b border-gray-200">การจัดการ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {waterDetail.WaterMeterValue.map((wmv, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-200"
+                    >
+                      <td className="p-4 text-gray-800 font-medium">
+                        {wmv.Timestamp
+                          ? new Date(wmv.Timestamp).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "long",
+                            day: "2-digit",
+                          })
+                          : "-"}
+                      </td>
+                      <td className="p-4 text-gray-800">
+                        {wmv.Timestamp
+                          ? new Date(wmv.Timestamp).toLocaleTimeString("th-TH", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })
+                          : "-"}
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">
+                          <Droplet className="w-4 h-4" />
+                          {wmv.MeterValue} ลบ.ม.
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-800">{wmv.Note || "-"}</td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => navigate(`/waterdetail/edit/${wmv.ID}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 font-medium shadow-md"
+                        >
+                          <Edit className="w-4 h-4" />
+                          แก้ไข
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        ) : (
-          <div className="text-gray-500 text-center mt-6 italic">ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก กรุณาเลือกช่วงเวลาใหม่</div>
+        ) 
+        : (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <AlertTriangle className="w-16 h-16 text-gray-400 mb-4" />
+            <h4 className="text-lg font-semibold mb-2">ไม่พบข้อมูล</h4>
+            <p className="text-center">ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก<br />กรุณาเลือกช่วงเวลาใหม่</p>
+          </div>
         )}
 
+        
+      </div>
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 mb-6 p-6">
+          <DataTable
+            data={waterReq  || []} 
+            onReload={loadWaterValueReq}
+          />
+          <ImageModal
+            imagePath={selectedImage}
+            isOpen={isImageModalOpen}
+            onClose={() => setIsImageModalOpen(false)}
+          />
+        </div>
+      
       </div>
     </div>
   );

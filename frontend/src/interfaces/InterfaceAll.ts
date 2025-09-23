@@ -122,4 +122,14 @@ export interface NotificationInterface {
   UpdatedAt?: string;
 }
 
+export interface DashboardStats {
+  totalReadings: number;
+  pendingVerification: number;
+  verifiedToday: number;
+  averageConfidence: number;
+  activeDevices: number;
+}
+
+export type StatusType = 'รอการอนุมัติ' | 'อนุมัติ' ;
+
 
