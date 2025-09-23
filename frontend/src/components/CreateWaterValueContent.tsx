@@ -37,7 +37,7 @@ const CreateWaterValueContent = () => {
       Date: "",
       Time: "",
       MeterValue: 0,
-      OCRConfidence: 100,
+      ModelConfidence: 100,
       Note: "",
       ImagePath: "",
     });
@@ -162,7 +162,7 @@ console.log("waterValue: ",waterValue)
       formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
       formData.append("Time", dayjs(waterValue.Time, "HH:mm").format("HH:mm"));
       formData.append("MeterValue", waterValue.MeterValue!.toString());
-      formData.append("ModelConfidence", waterValue.OCRConfidence!.toString());
+      formData.append("ModelConfidence", waterValue.ModelConfidence!.toString());
       formData.append("Note", waterValue.Note || "");
       formData.append("ImagePath", uploadedFile);
       formData.append("UserID", user.ID.toString() || "0");
@@ -182,7 +182,7 @@ console.log("waterValue: ",waterValue)
           Date: "",
           Time: "",
           MeterValue: 0,
-          OCRConfidence: 0,
+          ModelConfidence: 0,
           Note: "",
           ImagePath: "",
         });

@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/entity"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func GetWaterMeterValueStatus(c *gin.Context) {
@@ -212,6 +214,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 
 func UpdateWaterMeterValue(c *gin.Context) {
 	db := config.DB()
+
 	id := c.Param("id")
 
 	var waterValue entity.WaterMeterValue
@@ -220,153 +223,176 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	// ✅ ตรวจสอบว่าเป็น multipart/form-data หรือ JSON
-	var req struct {
-		Date            string  `json:"Date" form:"Date"`
-		Time            string  `json:"Time" form:"Time"`
-		MeterValue      int     `json:"MeterValue" form:"MeterValue"`
-		ModelConfidence float64 `json:"ModelConfidence" form:"ModelConfidence"`
-		Note            string  `json:"Note" form:"Note"`
-		StatusID        uint    `json:"StatusID" form:"StatusID"`
-	}
+	meterValue := c.PostForm("MeterValue")
+	modelConfidence := c.PostForm("ModelConfidence")
+	note := c.PostForm("Note")
 
-	if c.ContentType() == "application/json" {
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-			return
-		}
-	} else {
-		if err := c.Bind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form-data"})
-			return
-		}
-	}
-
-	loc, _ := time.LoadLocation("Asia/Bangkok")
-
-	// ✅ อัปเดต timestamp ถ้ามี
-	if req.Date != "" && req.Time != "" {
-		timestamp, err := time.ParseInLocation("2006-01-02T15:04", req.Date+"T"+req.Time, loc)
+	if meterValue != "" {
+		val, err := strconv.Atoi(meterValue)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid timestamp"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid meter value"})
 			return
 		}
-		waterValue.Timestamp = timestamp
+		waterValue.MeterValue = val
 	}
 
-	// ✅ อัปเดต MeterValue
-	if req.MeterValue != 0 {
-		// ตรวจสอบค่าล่าสุดก่อนวันนั้น
-		var lastValue entity.WaterMeterValue
-		if err := db.Where("camera_device_id = ? AND timestamp < ?", waterValue.CameraDeviceID, waterValue.Timestamp).
-			Order("timestamp desc").
-			First(&lastValue).Error; err == nil {
-			if req.MeterValue < lastValue.MeterValue {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error":   "ค่ามิเตอร์ไม่ถูกต้อง",
-					"message": "ดูเหมือนว่าคุณใส่ค่ามิเตอร์ผิด กรุณาตรวจสอบ",
-				})
-				return
-			}
+	if modelConfidence != "" {
+		val, err := strconv.ParseFloat(modelConfidence, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid model confidence"})
+			return
 		}
-		waterValue.MeterValue = req.MeterValue
+		waterValue.ModelConfidence = val
 	}
 
-	// ✅ อัปเดต ModelConfidence
-	if req.ModelConfidence != 0 {
-		waterValue.ModelConfidence = req.ModelConfidence
+	if note != "" {
+		waterValue.Note = note
 	}
 
-	// ✅ อัปเดต Note
-	if req.Note != "" {
-		waterValue.Note = req.Note
-	}
-
-	// ✅ อัปเดต StatusID
-	if req.StatusID != 0 {
-		waterValue.StatusID = req.StatusID
-	}
-
-	// ✅ อัปเดตรูปภาพ
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
+		// ลบรูปเก่าออกถ้ามี
 		if waterValue.ImagePath != "" {
 			os.Remove(waterValue.ImagePath)
 		}
+
+		// ดึงชื่ออาคารจาก CameraDevice
 		var camera entity.CameraDevice
 		if err := db.Preload("MeterLocation").First(&camera, waterValue.CameraDeviceID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
 			return
 		}
 		buildingName := camera.MeterLocation.Name
+
+		// สร้างโฟลเดอร์
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
 		os.MkdirAll(folderPath, os.ModePerm)
 
+		// ดึงนามสกุลไฟล์จริง
 		ext := filepath.Ext(file.Filename)
 		if ext == "" {
 			ext = ".jpg"
 		}
+
 		timestampStr := waterValue.Timestamp.Format("2006-01-02_15-04")
 		fileName := fmt.Sprintf("%s%s", timestampStr, ext)
 		uploadPath := fmt.Sprintf("%s/%s", folderPath, fileName)
-		c.SaveUploadedFile(file, uploadPath)
+
+		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new image"})
+			return
+		}
+
+		// อัปเดต path ใน WaterMeterValue
 		waterValue.ImagePath = uploadPath
 	}
 
-	// ✅ บันทึก WaterMeterValue
+	// บันทึกทุก field ที่แก้ไข
 	if err := db.Save(&waterValue).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return
 	}
 
-	// ✅ DailyWaterUsage + Notification
-	if waterValue.Timestamp.Hour() == 8 && waterValue.Timestamp.Minute() == 0 {
-		yesterdayDate := waterValue.Timestamp.AddDate(0, 0, -1)
-		start := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 0, 0, 0, loc)
-		end := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 59, 59, 0, loc)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Water meter value updated",
+		"data":    waterValue,
+	})
+}
 
-		var yesterdayValue entity.WaterMeterValue
-		if err := db.Where("camera_device_id = ? AND timestamp BETWEEN ? AND ?", waterValue.CameraDeviceID, start, end).
-			First(&yesterdayValue).Error; err == nil {
+func DeleteCameraDeviceDataByID(c *gin.Context) {
+	db := config.DB()
+	cameraIDStr := c.Param("id")
+	cameraID, err := strconv.ParseUint(cameraIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid camera device ID"})
+		return
+	}
+	camID := uint(cameraID)
 
-			usage := waterValue.MeterValue - yesterdayValue.MeterValue
-			if usage >= 0 {
-				dailyUsage := entity.DailyWaterUsage{
-					Timestamp:      waterValue.Timestamp,
-					Usage:          usage,
-					CameraDeviceID: waterValue.CameraDeviceID,
-				}
-				db.Create(&dailyUsage)
+	// 1. ดึง WaterMeterValue ทั้งหมดของ CameraDeviceID เพื่อลบไฟล์รูป
+	var waterValues []entity.WaterMeterValue
+	if err := db.Where("camera_device_id = ?", camID).Find(&waterValues).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch water meter values"})
+		return
+	}
 
-				// ค่าเฉลี่ยเดือน
-				var avgUsage float64
-				db.Model(&entity.DailyWaterUsage{}).
-					Where("camera_device_id = ? AND YEAR(timestamp) = ? AND MONTH(timestamp) = ?",
-						waterValue.CameraDeviceID,
-						waterValue.Timestamp.Year(),
-						int(waterValue.Timestamp.Month()),
-					).
-					Select("AVG(usage)").Scan(&avgUsage)
-
-				if float64(usage) > avgUsage+50 {
-					db.Create(&entity.Notification{
-						Message:        "ค่าน้ำสูงกว่าปกติ",
-						IsRead:         false,
-						CameraDeviceID: waterValue.CameraDeviceID,
-					})
-				} else if float64(usage) < avgUsage-50 {
-					db.Create(&entity.Notification{
-						Message:        "ค่าน้ำต่ำกว่าปกติ",
-						IsRead:         false,
-						CameraDeviceID: waterValue.CameraDeviceID,
-					})
-				}
+	for _, w := range waterValues {
+		if w.ImagePath != "" {
+			if err := os.Remove(w.ImagePath); err != nil && !os.IsNotExist(err) {
+				// ถ้าไฟล์ไม่มีอยู่แล้วก็ไม่เป็นไร
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete image: %s", w.ImagePath)})
+				return
 			}
 		}
 	}
 
+	// 2. ลบ DailyWaterUsage
+	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.DailyWaterUsage{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete daily water usage"})
+		return
+	}
+
+	// 3. ลบ Notifications
+	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.Notification{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete notifications"})
+		return
+	}
+
+	// 4. ลบ WaterMeterValue
+	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.WaterMeterValue{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete water meter values"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Water meter value updated",
+		"message": fmt.Sprintf("All data and images for CameraDeviceID %d deleted", camID),
+	})
+}
+
+func DeleteAllWaterMeterValues(c *gin.Context) {
+	db := config.DB()
+
+	// 1. ดึงค่า WaterMeterValue ทั้งหมดเพื่อเก็บไฟล์รูป
+	var waterValues []entity.WaterMeterValue
+	db.Find(&waterValues)
+
+	// 2. ลบไฟล์รูปทั้งหมด
+	for _, w := range waterValues {
+		if w.ImagePath != "" {
+			os.Remove(w.ImagePath)
+		}
+	}
+
+	// 3. ลบข้อมูลทั้งหมดในตาราง
+	if err := db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&entity.WaterMeterValue{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete all water meter values"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "All water meter values deleted successfully",
+	})
+}
+
+func UpdateWaterMeterStatusByID(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var waterValue entity.WaterMeterValue
+	if err := db.First(&waterValue, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Water meter value not found"})
+		return
+	}
+
+	// อัปเดต StatusID เป็น 2
+	waterValue.StatusID = 2
+	if err := db.Save(&waterValue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update StatusID"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "StatusID updated to 2",
 		"data":    waterValue,
 	})
 }
