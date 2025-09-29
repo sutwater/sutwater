@@ -35,6 +35,7 @@ func SetupDatabase() {
 		&entity.WaterMeterValue{},
 		&entity.DailyWaterUsage{},
 		&entity.WaterUsage{},
+		&entity.DeviceCredential{},
 	)
 
 	// Gender
@@ -78,6 +79,14 @@ func SetupDatabase() {
 	for _, u := range users {
 		db.FirstOrCreate(&u, &entity.Users{Email: u.Email})
 	}
+
+	devices := []entity.DeviceCredential{
+		{CameraDeviceID: 1, Username: "esp32_cam_01", Password: hashOrPanic("esp32_secret")},
+	}
+	for _, d := range devices {
+		db.FirstOrCreate(&d, &entity.DeviceCredential{Username: d.Username})
+	}
+
 
 	// Camera Devices
 	cameraDevices := []entity.CameraDevice{
