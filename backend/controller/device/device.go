@@ -79,3 +79,48 @@ func GetMeterLocationsWithoutCamera(c *gin.Context) {
 
 	c.JSON(http.StatusOK, locations)
 }
+
+func CreateCameraDevice(c *gin.Context) {
+	db := config.DB()
+	var input struct {
+		MacAddress      string `json:"macAddress" binding:"required"`
+		MeterLocationID uint   `json:"meterLocationId" binding:"required"`
+		Note            string `json:"note"`
+	}
+
+	// Bind JSON
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "ข้อมูลไม่ครบถ้วน: " + err.Error(),
+		})
+		return
+	}
+
+	// สร้าง Camera Device
+	camera := entity.CameraDevice{
+		MacAddress:      input.MacAddress,
+		MeterLocationID: input.MeterLocationID,
+	}
+
+	// สมมติ db คือ *gorm.DB
+	if err := db.Create(&camera).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "ไม่สามารถบันทึกข้อมูลได้: " + err.Error(),
+		})
+		return
+	}
+
+	// Response สำเร็จ
+	c.JSON(http.StatusOK, gin.H{
+		"message": "สร้างอุปกรณ์กล้องสำเร็จ",
+		"data":    camera,
+	})
+}
+
+func UpdateCameraDevice(c *gin.Context) {
+
+}
+
+func DeleteCameraDevice(c *gin.Context) {
+
+}

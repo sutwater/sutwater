@@ -144,10 +144,38 @@ async function UpdateWaterMeterValue(id: string, formData: FormData) {
   }
 }
 
-
 async function fetchWaterValueById(id: string) {
   return await axios
     .get(`${apiUrl}/watervalue/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function fetchWaterValueReqByCameraId(id: string) {
+  return await axios
+    .get(`${apiUrl}/watervalue/req/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function fetchAllWaterValueReq() {
+  return await axios
+    .get(`${apiUrl}/watervalue/req`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+async function updateWaterValueStatusById(id: string) {
+  return await axios
+    .patch(`${apiUrl}/watervalue/status/${id}`, null, authHeader()) // null สำหรับ body
+    .then(res => res)
+    .catch(e => e.response);
+}
+
+
+async function deleteWaterValueById(id: string) {
+  return await axios
+    .delete(`${apiUrl}/watervalue/${id}`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -197,6 +225,40 @@ async function fetchCameraDeviceByID(id: string) {
     .catch((e) => e.response);
 }
 
+async function CreateCameraDevice(formData: FormData) {
+  try {
+    const res = await axios.post(`${apiUrl}/cameradevice`, formData, {
+      headers: {
+        ...authHeader().headers, // เอา header เดิมที่คุณมี เช่น Authorization
+        "Content-Type": "multipart/form-data", // ให้ axios จัดการ boundary เอง
+      },
+    });
+    return res;
+  } catch (e: any) {
+    return e.response;
+  }
+}
+
+async function UpdateCameraDevice(id: string, formData: FormData) {
+  try {
+    return await axios.patch(`${apiUrl}/cameradevice/${id}`, formData, {
+      headers: {
+        ...authHeader().headers,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  } catch (e: any) {
+    throw e.response;
+  }
+}
+
+async function deleteCameraDeviceById(id: string) {
+  return await axios
+    .delete(`${apiUrl}/watervalue/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 export {
   SignIn,
   GetGender,
@@ -212,11 +274,19 @@ export {
   CreateWaterMeterValue,
   UpdateWaterMeterValue,
   GetAllWaterDaily,
+  updateWaterValueStatusById,
+  deleteWaterValueById,
   fetchWaterValueById,
   GetNotificationsByMeterLocation,
   GetAllNotifications,
   fetchWaterValueStatus,
+  CreateCameraDevice,
+  UpdateCameraDevice,
+  deleteCameraDeviceById,
   fetchCameraDevice,
   fetchCameraDeviceWithoutMac,
   fetchCameraDeviceByID,
+  fetchWaterValueReqByCameraId,
+  fetchAllWaterValueReq,
+  
 };

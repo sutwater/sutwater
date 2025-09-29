@@ -74,25 +74,45 @@ func main() {
 	router := r.Group("/")
 	{
 		router.Use(middlewares.Authorizes())
-
+		//User
 		router.PUT("/user/:id", users.Update)
 		router.GET("/users", users.GetAll)
 		router.GET("/user/:id", users.Get)
 		router.DELETE("/user/:id", users.Delete)
-		router.GET("/meters", meter.GetAllMeters)
+
+		//Waterlog
 		router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
-		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
 		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
-		router.GET("/notifications/:id", notification.GetNotificationsByMeterLocation)
-		router.GET("/notifications", notification.GetAllNotifications)
-		router.POST("/meters", meter.CreateMeter)
-		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
-		router.PATCH("/watervalue/:id", watervalue.UpdateWaterMeterValue)
+		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
+		router.GET("/watervalue/req/:id", waterlog.GetWaterMeterValueByCameraDeviceID)
+		//router.GET("/watervalue/req", waterlog.GetAllPendingWaterMeterValues)
 		router.GET("/watervalue/:id", watervalue.GetWaterMeterValueByID)
 		router.GET("/watervalue/status", watervalue.GetWaterMeterValueStatus)
+		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
+		router.PATCH("/watervalue/:id", watervalue.UpdateWaterMeterValue)
+		router.PATCH("/watervalue/status/:id", watervalue.UpdateWaterMeterStatusByID)
+		router.DELETE("/watervalue/:id", watervalue.DeleteCameraDeviceDataByID)
+
+		//Notification
+		router.GET("/notifications/:id", notification.GetNotificationsByMeterLocation)
+		router.GET("/notifications", notification.GetAllNotifications)
+		router.PATCH("/notifications", notification.ReadAllNotifications)
+		router.PATCH("/notifications/:id", notification.ReadNotificationByID)
+		router.DELETE("/notifications/:id", notification.DeleteNotificationByID)
+
+		//Meter
+		router.GET("/meters", meter.GetAllMeters)
+		router.POST("/meters", meter.CreateMeter)
+		router.PATCH("/meters", meter.CreateMeter)
+		router.DELETE("/meters", meter.CreateMeter)
+
+		//CameraDevice
 		router.GET("/cameradevices", device.GetCameraDevices)
 		router.GET("/cameradevices/without-mac", device.GetMeterLocationsWithoutCamera)
 		router.GET("/cameradevice/:id", device.GetCameraDeviceByID)
+		router.POST("/cameradevice", device.CreateCameraDevice)
+		router.PATCH("/cameradevice/:id", device.UpdateCameraDevice)
+		router.DELETE("/cameradevice/:id", device.DeleteCameraDevice)
 
 	}
 

@@ -93,7 +93,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4 animate-fadeIn">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all animate-slideIn">
         {/* Header */}
         <div className={`px-6 py-4 border-b rounded-t-xl ${getHeaderStyle()}`}>
@@ -239,8 +240,8 @@ export const StatusModal: React.FC<StatusModalProps> = ({
   const config = getStatusConfig();
 
   return (
-    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all animate-slideIn">
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all animate-slideIn">
         {/* Header */}
         <div className={`${config.headerBg} ${config.borderColor} border-b px-6 py-4 rounded-t-xl`}>
           <div className="flex items-center justify-between">

@@ -49,3 +49,72 @@ func GetAllNotifications(c *gin.Context) {
 
 	c.JSON(http.StatusOK, notifications)
 }
+
+func ReadNotificationByID(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var notif entity.Notification
+	if err := db.First(&notif, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
+		return
+	}
+
+	// ✅ mark as read
+	if !notif.IsRead {
+		notif.IsRead = true
+		if err := db.Save(&notif).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark notification as read"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Notification marked as read",
+		"data":    notif,
+	})
+}
+
+// อ่านแจ้งเตือนทั้งหมดและ mark as read
+func ReadAllNotifications(c *gin.Context) {
+	db := config.DB()
+
+	var notifications []entity.Notification
+	if err := db.Find(&notifications).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
+		return
+	}
+
+	// ✅ mark all as read
+	for i := range notifications {
+		if !notifications[i].IsRead {
+			notifications[i].IsRead = true
+			db.Save(&notifications[i])
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "All notifications marked as read",
+		"data":    notifications,
+	})
+}
+
+func DeleteNotificationByID(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var notif entity.Notification
+	if err := db.First(&notif, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
+		return
+	}
+
+	if err := db.Delete(&notif).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete notification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Notification deleted successfully",
+	})
+}
