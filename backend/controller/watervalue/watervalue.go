@@ -384,15 +384,62 @@ func UpdateWaterMeterStatusByID(c *gin.Context) {
 		return
 	}
 
-	// อัปเดต StatusID เป็น 2
+	// ✅ รับค่าจาก body
+	var req struct {
+		MeterValue int `json:"meterValue"` // เปลี่ยน type ตาม entity ของคุณ
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// ✅ อัปเดตทั้ง StatusID และ MeterValue
 	waterValue.StatusID = 2
+	waterValue.MeterValue = req.MeterValue
+
 	if err := db.Save(&waterValue).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update StatusID"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "StatusID updated to 2",
+		"message": "StatusID updated to 2 and meterValue updated",
+		"data":    waterValue,
+	})
+}
+
+func UpdateWaterMeterStatusToReJect(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var waterValue entity.WaterMeterValue
+	if err := db.First(&waterValue, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Water meter value not found"})
+		return
+	}
+
+	// ✅ หากไม่ต้องการรับค่าอะไรเลยจาก client ก็ไม่ต้อง bind JSON
+	// หรือ ถ้ายังอยากรับ MeterValue จาก body ก็ใช้แบบนี้:
+	var req struct {
+		MeterValue *int `json:"meterValue"` // ใช้ pointer เพื่อแยกแยะกรณีไม่ส่งมาเลย
+	}
+	_ = c.ShouldBindJSON(&req) // ไม่ต้องเช็ค error ถ้าไม่บังคับ
+
+	// ✅ อัปเดต StatusID เป็น 3
+	waterValue.StatusID = 3
+
+	// ถ้า client ส่งค่า MeterValue มา ก็อัปเดตด้วย
+	if req.MeterValue != nil {
+		waterValue.MeterValue = *req.MeterValue
+	}
+
+	if err := db.Save(&waterValue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "StatusID updated to 3",
 		"data":    waterValue,
 	})
 }

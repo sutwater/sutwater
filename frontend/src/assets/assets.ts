@@ -17,6 +17,7 @@ export const menuLinks: MenuLink[] = [
     { name: "หน้าแรก", path: "/" },
     { name: "ตรวจสอบการใช้น้ำ", path: "/water" },
     { name: "อุปกรณ์", path: "/device" },
+    { name: "มิเตอร์", path: "/meter" },
     { name: "ติดต่อและสอบถาม", path: "/contact" },
 ];
 

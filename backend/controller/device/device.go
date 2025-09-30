@@ -1,8 +1,11 @@
 package device
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/entity"
@@ -82,45 +85,190 @@ func GetMeterLocationsWithoutCamera(c *gin.Context) {
 
 func CreateCameraDevice(c *gin.Context) {
 	db := config.DB()
-	var input struct {
-		MacAddress      string `json:"macAddress" binding:"required"`
-		MeterLocationID uint   `json:"meterLocationId" binding:"required"`
-		Note            string `json:"note"`
+
+	// อ่านค่าโดยตรงจาก FormData
+	macAddress := c.PostForm("MacAddress")
+	password := c.PostForm("PassWord")
+	meterLocationIDStr := c.PostForm("CameraDeviceID")
+
+	if macAddress == "" || password == "" || meterLocationIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ข้อมูลไม่ครบถ้วน"})
+		return
 	}
 
-	// Bind JSON
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "ข้อมูลไม่ครบถ้วน: " + err.Error(),
-		})
+	// แปลง ID เป็น uint
+	meterLocationID64, err := strconv.ParseUint(meterLocationIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "CameraDeviceID ต้องเป็นตัวเลข"})
+		return
+	}
+	meterLocationID := uint(meterLocationID64)
+
+	// หา MeterLocation
+	var meterLocation entity.MeterLocation
+	if err := db.First(&meterLocation, meterLocationID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบ MeterLocation"})
 		return
 	}
 
 	// สร้าง Camera Device
 	camera := entity.CameraDevice{
-		MacAddress:      input.MacAddress,
-		MeterLocationID: input.MeterLocationID,
+		MacAddress:      macAddress,
+		MeterLocationID: meterLocationID,
 	}
 
-	// สมมติ db คือ *gorm.DB
 	if err := db.Create(&camera).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "ไม่สามารถบันทึกข้อมูลได้: " + err.Error(),
-		})
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "UNIQUE constraint") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "MacAddress นี้มีอยู่แล้ว"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถบันทึกข้อมูลกล้องได้: " + err.Error()})
 		return
 	}
 
-	// Response สำเร็จ
+	// Hash password
+	hashedPassword, err := config.HashPassword(password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถเข้ารหัส Password ได้: " + err.Error()})
+		return
+	}
+
+	// สร้าง DeviceCredential
+	credential := entity.DeviceCredential{
+		CameraDeviceID: camera.ID,
+		Username:       macAddress,
+		Password:       hashedPassword,
+	}
+
+	if err := db.Create(&credential).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "UNIQUE constraint") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "MacAddress (Username) นี้มีอยู่แล้ว"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถบันทึก Credential ได้: " + err.Error()})
+		return
+	}
+
+	// สร้าง Notification
+	notification := entity.Notification{
+		Message:        fmt.Sprintf("ลงทะเบียนอุปกรณ์ %s สำเร็จ ที่ %s", macAddress, meterLocation.Name),
+		CameraDeviceID: camera.ID,
+		IsRead:         false,
+	}
+
+	if err := db.Create(&notification).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "สร้าง Notification ไม่สำเร็จ: " + err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "สร้างอุปกรณ์กล้องสำเร็จ",
-		"data":    camera,
+		"message": "สร้างอุปกรณ์กล้องและ Credential สำเร็จ",
+		"data": gin.H{
+			"camera":       camera,
+			"credential":   credential,
+			"notification": notification,
+		},
 	})
 }
 
-func UpdateCameraDevice(c *gin.Context) {
+func UpdateCameraDeviceMacAddress(c *gin.Context) {
+	db := config.DB()
 
+	// ดึง ID จาก param
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ต้องระบุ ID"})
+		return
+	}
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID ต้องเป็นตัวเลข"})
+		return
+	}
+
+	// ดึงค่า MacAddress จาก body
+	var input struct {
+		MacAddress string `json:"MacAddress"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ข้อมูลไม่ถูกต้อง"})
+		return
+	}
+
+	// อัปเดต MAC Address
+	result := db.Model(&entity.CameraDevice{}).
+		Where("id = ?", id).
+		Update("mac_address", input.MacAddress)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "อัปเดต MAC Address ล้มเหลว: " + result.Error.Error()})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "ไม่พบอุปกรณ์ที่ตรงกับ ID นี้"})
+		return
+	}
+
+	// โหลด CameraDevice พร้อม MeterLocation
+	var camera entity.CameraDevice
+	if err := db.Preload("MeterLocation").First(&camera, id).Error; err != nil {
+		log.Println("ไม่สามารถโหลด CameraDevice สำหรับ Notification:", err)
+	}
+
+	locationName := "ไม่ทราบตำแหน่ง"
+	if camera.MeterLocation != nil {
+		locationName = camera.MeterLocation.Name
+	}
+
+	// สร้าง Notification หลังจากอัปเดตสำเร็จ
+	notif := entity.Notification{
+		Message:        fmt.Sprintf("อุปกรณ์ที่ %s ถูกอัปเดต MAC Address เป็น %s เรียบร้อยแล้ว", locationName, input.MacAddress),
+		CameraDeviceID: uint(id),
+		IsRead:         false,
+	}
+
+	if err := db.Create(&notif).Error; err != nil {
+		log.Println("ไม่สามารถสร้าง Notification ได้:", err)
+	}
+
+	// ตอบกลับ client
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "อัปเดต MAC Address สำเร็จ",
+		"rows_affected": result.RowsAffected,
+	})
 }
 
-func DeleteCameraDevice(c *gin.Context) {
+func DeleteCameraDevicesByMeterLocationID(c *gin.Context) {
+	db := config.DB()
 
+	// อ่านค่า MeterLocationID จาก param
+	meterLocationIDStr := c.Param("id") // ใช้ param ตาม route
+	if meterLocationIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ต้องระบุ MeterLocationID"})
+		return
+	}
+
+	meterLocationID, err := strconv.ParseUint(meterLocationIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "MeterLocationID ต้องเป็นตัวเลข"})
+		return
+	}
+
+	result := db.Unscoped().Where("meter_location_id = ?", meterLocationID).Delete(&entity.CameraDevice{})
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ลบข้อมูลอุปกรณ์ล้มเหลว: " + result.Error.Error()})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "ไม่พบอุปกรณ์ที่ตรงกับ MeterLocationID นี้"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "ลบอุปกรณ์สำเร็จ",
+		"rows_affected": result.RowsAffected,
+	})
 }

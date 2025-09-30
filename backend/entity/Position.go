@@ -6,5 +6,5 @@ import (
 
 type Position struct {
 	gorm.Model
-	Name string
+	Position string `json:"position"`
 }

@@ -20,6 +20,7 @@ type AppContextType = {
   setUser: (user: UsersInterface | null) => void;
   meters: MeterLocationInterface[];
   getMeters: () => Promise<void>;
+  getNotification: () => Promise<void>;
   loading: boolean;
   setLoading: (loading: boolean) => void;
   waterusage: WaterMeterValueInterface[];
@@ -32,6 +33,7 @@ const AppContext = createContext<AppContextType>({
   setUser: () => {},
   meters: [],
   getMeters: async () => {},
+  getNotification: async () => {},
   loading: true,
   setLoading: () => {},
   waterusage: [],
@@ -51,11 +53,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
   const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
   const [waterDaily, setWaterDaily] = useState<CameraDeviceInterface[]>([]);
-  const [notifications, setNotifications] = useState<NotificationInterface[]>(
-    []
-  );
+  const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
+  
+  console.log("notifications from API:", notifications.length, notifications);
   const getUserById = async () => {
     if (!id || !token) return;
     try {
@@ -185,6 +187,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser,
         meters,
         getMeters,
+        getNotification,
         loading,
         setLoading,
         waterusage,
