@@ -27,15 +27,11 @@ function SignInPages() {
       localStorage.setItem("id", res.data.id);
       localStorage.setItem("email", lowerEmail);
 
-      // สมมติ res.data.user คือ object user ที่ backend ส่งกลับมา
-      const userObj = res.data.user || {};
-      // ใช้ role_id ตาม backend response
-      localStorage.setItem(
-        "roleId",
-        userObj.role_id !== undefined ? String(userObj.role_id) : ""
-      );
-      const isAdmin = String(userObj.role_id) === "2";
-      localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+      if (lowerEmail === "suthadmin@gmail.com") {
+        localStorage.setItem("isAdmin", "true");
+      } else {
+        localStorage.setItem("isAdmin", "false");
+      }
 
       setTimeout(() => {
         location.href = "/";
@@ -59,14 +55,8 @@ function SignInPages() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
           <div className="flex flex-col items-center mb-6">
-            <img
-              alt="logo"
-              src={logo}
-              className="w-24 h-24 object-contain mb-4"
-            />
-            <h1 className="text-2xl font-bold text-gray-800">
-              ยินดีต้อนรับเข้าสู่ระบบ
-            </h1>
+            <img alt="logo" src={logo} className="w-24 h-24 object-contain mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800">ยินดีต้อนรับเข้าสู่ระบบ</h1>
             <p className="text-gray-500 mt-1 text-center text-sm">
               กรุณาเข้าสู่ระบบเพื่อใช้งานระบบตรวจสอบการใช้น้ำ
             </p>
@@ -87,13 +77,9 @@ function SignInPages() {
             </Form.Item>
 
             <Form.Item
-              label={
-                <span className="font-medium text-gray-700">รหัสผ่าน</span>
-              }
+              label={<span className="font-medium text-gray-700">รหัสผ่าน</span>}
               name="password"
-              rules={[
-                { required: true, message: "Please input your password!" },
-              ]}
+              rules={[{ required: true, message: "Please input your password!" }]}
             >
               <Input.Password className="rounded-lg py-2" />
             </Form.Item>

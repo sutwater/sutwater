@@ -71,11 +71,7 @@ function SignUpPages() {
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8">
           {/* Logo + Welcome text */}
           <div className="flex flex-col items-center mb-6">
-            <img
-              alt="logo"
-              src={logo}
-              className="w-24 h-24 object-contain mb-4"
-            />
+            <img alt="logo" src={logo} className="w-24 h-24 object-contain mb-4" />
             <h1 className="text-2xl font-bold text-gray-800">สร้างบัญชีใหม่</h1>
             <p className="text-gray-500 mt-1 text-center text-sm">
               กรอกข้อมูลด้านล่างเพื่อสมัครสมาชิกเข้าสู่ระบบ
@@ -90,9 +86,7 @@ function SignUpPages() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Form.Item
-                label={
-                  <span className="font-medium text-gray-700">ชื่อจริง</span>
-                }
+                label={<span className="font-medium text-gray-700">ชื่อจริง</span>}
                 name="first_name"
                 rules={[{ required: true, message: "กรุณากรอกชื่อ!" }]}
               >
@@ -100,9 +94,7 @@ function SignUpPages() {
               </Form.Item>
 
               <Form.Item
-                label={
-                  <span className="font-medium text-gray-700">นามสกุล</span>
-                }
+                label={<span className="font-medium text-gray-700">นามสกุล</span>}
                 name="last_name"
                 rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}
               >
@@ -123,21 +115,19 @@ function SignUpPages() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Form.Item
-                label={
-                  <span className="font-medium text-gray-700">รหัสผ่าน</span>
-                }
+                label={<span className="font-medium text-gray-700">รหัสผ่าน</span>}
                 name="Password"
                 rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน!" }]}
               >
                 <Input.Password className="rounded-lg py-2" />
               </Form.Item>
+
+              
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Form.Item
-                label={
-                  <span className="font-medium text-gray-700">วันเกิด</span>
-                }
+                label={<span className="font-medium text-gray-700">วันเกิด</span>}
                 name="BirthDay"
                 rules={[{ required: true, message: "กรุณาเลือกวันเกิด!" }]}
               >

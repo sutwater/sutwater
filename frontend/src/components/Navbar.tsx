@@ -4,29 +4,7 @@ function getThaiInitial(name: string): string {
   if (!name) return "U";
   // รายการสระนำหน้าที่ไม่ควรใช้เป็น Avatar
   const vowels = [
-    "ะ",
-    "ั",
-    "า",
-    "ำ",
-    "ิ",
-    "ี",
-    "ึ",
-    "ื",
-    "ุ",
-    "ู",
-    "เ",
-    "แ",
-    "โ",
-    "ใ",
-    "ไ",
-    "ๅ",
-    "็",
-    "๋",
-    "้",
-    "๊",
-    "์",
-    "่",
-    "ํ",
+    "ะ","ั","า","ำ","ิ","ี","ึ","ื","ุ","ู","เ","แ","โ","ใ","ไ","ๅ","็","๋","้","๊","์","่","ํ"
   ];
   for (const ch of name) {
     if (!vowels.includes(ch)) {
@@ -37,11 +15,7 @@ function getThaiInitial(name: string): string {
 }
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import {
-  readAllNotifications,
-  readNotificationByID,
-  deleteNotificationByID,
-} from "../services/https";
+import { readAllNotifications, readNotificationByID, deleteNotificationByID } from "../services/https";
 import { useAppContext } from "../contexts/AppContext";
 import {
   ChevronDown,
@@ -91,6 +65,12 @@ const UserProfileDropdown = ({
     setIsOpen(false);
   };
 
+  const handleSettings = () => {
+    console.log("การตั้งค่า");
+    // ใส่โค้ดการตั้งค่าที่นี่
+    setIsOpen(false);
+  };
+
   const handleAdminDashboard = () => {
     window.location.href = "/admin";
     setIsOpen(false);
@@ -130,14 +110,17 @@ const UserProfileDropdown = ({
         </div>
 
         <div
-          className="flex flex-col items-start sm:hidden" // 👈 แก้ตรงนี้
-          style={{ cursor: "pointer" }}
-        >
-          <span className="text-xs text-gray-600 leading-tight"></span>
-          <span className="text-sm font-semibold text-gray-900 leading-tight">
-            {user?.first_name} {user?.last_name}
-          </span>
-        </div>
+            className="flex flex-col items-start sm:hidden" // 👈 แก้ตรงนี้
+            style={{ cursor: "pointer" }}
+          >
+            <span className="text-xs text-gray-600 leading-tight">
+              
+            </span>
+            <span className="text-sm font-semibold text-gray-900 leading-tight">
+              {user?.first_name} {user?.last_name}
+            </span>
+          </div>
+
 
         {/* Arrow */}
         <ChevronDown
@@ -184,16 +167,14 @@ const UserProfileDropdown = ({
               แก้ไขข้อมูลส่วนตัว
             </button>
 
-            {user?.role_id === 2 && (
-              <button
-                onClick={handleAdminDashboard}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
-                style={{ cursor: "pointer" }}
-              >
-                <Settings className="w-4 h-4" />
-                Admin Dashboard
-              </button>
-            )}
+            <button
+              onClick={handleAdminDashboard}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
+              style={{ cursor: "pointer" }} // เพิ่ม cursor: pointer
+            >
+              <Settings className="w-4 h-4" />
+              Admin Dashboard
+            </button>
 
             <div className="border-t border-gray-100 mt-2 pt-2 hidden sm:block">
               <button
@@ -220,11 +201,14 @@ const NotificationDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const { getNotification } = useAppContext();
   const [localNotifications, setLocalNotifications] =
+
+  
     useState<NotificationInterface[]>(notification);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  localNotifications.forEach((n, i) => {
-    console.log(i, n.IsRead, typeof n.IsRead);
-  });
+localNotifications.forEach((n, i) => {
+  console.log(i, n.IsRead, typeof n.IsRead);
+});
+
 
   useEffect(() => {
     setLocalNotifications(notification);
@@ -247,10 +231,10 @@ const NotificationDropdown = ({
   }, []);
 
   const unreadCount = localNotifications.filter((n) => !n.IsRead).length;
-
   console.log("unreadCount:", unreadCount);
 
-  const markAsRead = async (id: string) => {
+  
+const markAsRead = async (id: string) => {
     try {
       await readNotificationByID(id);
       await getNotification(); // โหลดใหม่หลังอ่าน
@@ -404,9 +388,7 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
   const { setUser, user, notifications } = useAppContext();
-
-  console.log(notifications);
-
+  console.log(notifications)
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
@@ -419,10 +401,12 @@ const Navbar: React.FC = () => {
         xl:px-32 text-gray-600 border-b border-borderColor relative transition-all
         ${location.pathname === "/" && "bg-light"}`}
     >
+      {/* Logo */}
       <Link to="/">
         <img src={assets.suth_logo} alt="logo" className="logo" />
       </Link>
 
+      {/* เมนู (จอใหญ่) */}
       <div
         className={`max-sm:fixed max-sm:h-screen max-sm:w-full max-sm:top-20 
             max-sm:border-t border-borderColor right-0 flex flex-col sm:flex-row 
@@ -432,36 +416,33 @@ const Navbar: React.FC = () => {
             } 
             ${open ? "max-sm:translate-x-0" : "max-sm:-translate-x-full"}`}
       >
-        {menuLinks.map(
-          (link: { name: string; path: string }, index: number) => {
-            const isActive = location.pathname === link.path;
-            return (
-              <Link
-                key={index}
-                to={link.path}
-                onClick={() => setOpen(false)}
-                className={`
+        {menuLinks.map((link: { name: string; path: string }, index: number) => {
+  const isActive = location.pathname === link.path;
+  return (
+    <Link
+      key={index}
+      to={link.path}
+      onClick={() => setOpen(false)}
+      className={`
         relative px-3 py-2 rounded transition-all duration-300 cursor-pointer
-        ${
-          isActive
-            ? "text-blue-600 font-semibold"
-            : "text-gray-600 hover:text-blue-500"
-        }
+        ${isActive ? "text-blue-600 font-semibold" : "text-gray-600 hover:text-blue-500"}
       `}
-              >
-                {link.name}
+    >
+      {link.name}
 
-                {/* underline animation */}
-                <span
-                  className={`
+      {/* underline animation */}
+      <span
+        className={`
           absolute left-0 bottom-0 h-0.5 bg-blue-500 transition-all duration-300
           ${isActive ? "w-full" : "w-0 group-hover:w-full"}
         `}
-                />
-              </Link>
-            );
-          }
-        )}
+      />
+    </Link>
+  );
+})}
+
+
+        
 
         {/* แสดงแจ้งเตือนเฉพาะจอใหญ่ */}
         {notifications && (
@@ -480,18 +461,21 @@ const Navbar: React.FC = () => {
         )}
 
         {user && (
-          <button
-            onClick={handleLogout}
-            className="sm:hidden text-red-600 font-bold text-xl underline cursor-pointer"
-          >
-            ออกจากระบบ
-          </button>
-        )}
+    <button
+      onClick={handleLogout}
+      className="sm:hidden text-red-600 font-bold text-xl underline cursor-pointer"
+    >
+      ออกจากระบบ
+    </button>
+  )}
       </div>
+      
 
       {/* Mobile Right Side (แจ้งเตือน + Hamburger) */}
       <div className="flex items-center gap-8 sm:hidden">
-        {notifications && <NotificationDropdown notification={notifications} />}
+        {notifications && (
+          <NotificationDropdown notification={notifications} />
+        )}
         <button
           className="cursor-pointer"
           aria-label="Menu"
@@ -503,5 +487,6 @@ const Navbar: React.FC = () => {
     </div>
   );
 };
+
 
 export default Navbar;

@@ -372,7 +372,6 @@ func UpdateWaterMeterStatusByID(c *gin.Context) {
 		return
 	}
 
-	// อัปเดต StatusID เป็น 2
 	// ✅ รับค่าจาก body
 	var req struct {
 		MeterValue int `json:"meterValue"` // เปลี่ยน type ตาม entity ของคุณ
@@ -421,6 +420,7 @@ func UpdateWaterMeterStatusToReJect(c *gin.Context) {
 	if req.MeterValue != nil {
 		waterValue.MeterValue = *req.MeterValue
 	}
+
 	if err := db.Save(&waterValue).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return

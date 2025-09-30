@@ -31,7 +31,7 @@ export interface MeterLocationInterface {
   Name: string;
   Latitude: number;
   Longitude: number;
-  CameraDevice?: CameraDeviceInterface[]; 
+  CameraDevice?: CameraDeviceInterface[];
   DailyWaterUsage?: DailyWaterUsageInterface[];
 }
 
@@ -42,9 +42,9 @@ export interface CameraDeviceInterface {
   Wifi?: boolean;
   Status?: boolean;
   MeterLocation?: MeterLocationInterface;
-  WaterMeterValue?: WaterMeterValueInterface[]; 
-  DailyWaterUsage?: DailyWaterUsageInterface[]; 
-  User?: UsersInterface[]; 
+  WaterMeterValue?: WaterMeterValueInterface[];
+  DailyWaterUsage?: DailyWaterUsageInterface[];
+  User?: UsersInterface[];
 }
 
 export interface CameraDeviceSaveInterface {
@@ -101,11 +101,10 @@ export interface WaterDetailInterface {
   Note?: string;
   UpdatedAt?: string;
   DeletedAt?: string | null;
-  MeterLocation?: MeterLocationInterface;   // ✅ มี MeterLocation ซ้อนอยู่
+  MeterLocation?: MeterLocationInterface; // ✅ มี MeterLocation ซ้อนอยู่
   CameraDevice?: CameraDeviceInterface | null;
   DailyWaterUsage?: DailyWaterUsageInterface[];
 }
-
 
 export interface DailyWaterUsageInterface {
   ID?: number;
@@ -113,7 +112,6 @@ export interface DailyWaterUsageInterface {
   Timestamp?: string;
   CameraDevice?: CameraDeviceInterface;
 }
-
 
 export interface WaterMeterImageInterface {
   ID?: number;
@@ -126,7 +124,7 @@ export interface NotificationInterface {
   IsRead?: boolean;
   CameraDeviceID?: number;
   CameraDevice?: CameraDeviceInterface; // relation กับ CameraDevice
-  CreatedAt?: string;   
+  CreatedAt?: string;
   UpdatedAt?: string;
 }
 
@@ -138,6 +136,4 @@ export interface DashboardStats {
   activeDevices: number;
 }
 
-export type StatusType = 'รอการอนุมัติ' | 'อนุมัติ' ;
-
-
+export type StatusType = "รอการอนุมัติ" | "อนุมัติ";
