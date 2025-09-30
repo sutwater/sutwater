@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"example.com/sa-67-example/config"
-	"example.com/sa-67-example/entity"
+	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/entity"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 	"gorm.io/gorm"
 )

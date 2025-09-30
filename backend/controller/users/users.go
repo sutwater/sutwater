@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"example.com/sa-67-example/config"
+	"github.com/watermeter/suth/config"
 
-	"example.com/sa-67-example/entity"
+	"github.com/watermeter/suth/entity"
 )
 
 func GetAll(c *gin.Context) {

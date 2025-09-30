@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"example.com/sa-67-example/config"
-	"example.com/sa-67-example/entity"
+	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/entity"
 	"github.com/gin-gonic/gin"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )

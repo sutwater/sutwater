@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"example.com/sa-67-example/entity"
-	"example.com/sa-67-example/services"
+	"github.com/watermeter/suth/entity"
+	"github.com/watermeter/suth/services"
 )
 
 // POST /api/water-usage

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"example.com/sa-67-example/entity"
+	"github.com/watermeter/suth/entity"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

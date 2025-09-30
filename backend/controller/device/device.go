@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"example.com/sa-67-example/config"
-	"example.com/sa-67-example/entity"
+	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/entity"
 	"github.com/gin-gonic/gin"
 )
 
