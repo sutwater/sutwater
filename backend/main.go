@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/controller/device"
 	"github.com/watermeter/suth/controller/genders"
@@ -17,7 +18,6 @@ import (
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
 	"github.com/watermeter/suth/services"
-	"github.com/gin-gonic/gin"
 )
 
 const PORT = "8000"
@@ -124,8 +124,8 @@ func main() {
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 
 	// ✅ Run server
-	r.Run("0.0.0.0:" + PORT)
-	//r.Run("localhost:" + PORT)
+	//r.Run("0.0.0.0:" + PORT)
+	r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {
