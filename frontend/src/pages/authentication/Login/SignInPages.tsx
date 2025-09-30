@@ -1,10 +1,9 @@
-import { Button, Card, Form, Input, message, Flex, Row, Col } from "antd";
+import { Button, Form, Input, message } from "antd";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignIn } from "../../../services/https";
 import { SignInInterface } from "../../../interfaces/SignIn";
 import logo from "../../../assets/suth.png";
-import "./SignInPages.css";
 
 function SignInPages() {
   const navigate = useNavigate();
@@ -43,12 +42,9 @@ function SignInPages() {
   };
 
   useEffect(() => {
-    // ✅ ปิด scroll ตอนแสดงหน้า Login
-    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = "auto";
     };
   }, []);
 
@@ -56,49 +52,60 @@ function SignInPages() {
     <>
       {contextHolder}
 
-      <Flex justify="center" align="center" className="login-container">
-        <Card className="login-card">
-          <Row align="middle" justify="center">
-            <Col span={24}>
-              <img alt="logo" src={logo} className="login-logo" />
-            </Col>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+          <div className="flex flex-col items-center mb-6">
+            <img alt="logo" src={logo} className="w-24 h-24 object-contain mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800">ยินดีต้อนรับเข้าสู่ระบบ</h1>
+            <p className="text-gray-500 mt-1 text-center text-sm">
+              กรุณาเข้าสู่ระบบเพื่อใช้งานระบบตรวจสอบการใช้น้ำ
+            </p>
+          </div>
 
-            <Col span={24}>
-              <Form
-                name="basic"
-                onFinish={onFinish}
-                autoComplete="off"
-                layout="vertical"
+          <Form
+            name="basic"
+            onFinish={onFinish}
+            autoComplete="off"
+            layout="vertical"
+          >
+            <Form.Item
+              label={<span className="font-medium text-gray-700">อีเมล</span>}
+              name="email"
+              rules={[{ required: true, message: "Please input your email!" }]}
+            >
+              <Input className="rounded-lg py-2" />
+            </Form.Item>
+
+            <Form.Item
+              label={<span className="font-medium text-gray-700">รหัสผ่าน</span>}
+              name="password"
+              rules={[{ required: true, message: "Please input your password!" }]}
+            >
+              <Input.Password className="rounded-lg py-2" />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
               >
-                <Form.Item
-                  label="Email"
-                  name="email"
-                  rules={[{ required: true, message: "Please input your email!" }]}
+                เข้าสู่ระบบ
+              </Button>
+              <p className="text-center text-gray-600 mt-4">
+                หรือ{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/signup")}
+                  className="text-blue-600 font-medium hover:underline"
                 >
-                  <Input />
-                </Form.Item>
-
-                <Form.Item
-                  label="Password"
-                  name="password"
-                  rules={[{ required: true, message: "Please input your password!" }]}
-                >
-                  <Input.Password />
-                </Form.Item>
-
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" className="login-button">
-                    Log in
-                  </Button>
-                  <p style={{ marginTop: "10px" }}>
-                    Or <a onClick={() => navigate("/signup")}>signup now!</a>
-                  </p>
-                </Form.Item>
-              </Form>
-            </Col>
-          </Row>
-        </Card>
-      </Flex>
+                  สมัครตอนนี้!
+                </button>
+              </p>
+            </Form.Item>
+          </Form>
+        </div>
+      </div>
     </>
   );
 }

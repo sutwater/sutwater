@@ -48,6 +48,7 @@ func SetupDatabase() {
 	statuses := []entity.StatusWaterValue{
 		{Name: "pending", Description: "รอการอนุมัติ"},
 		{Name: "approved", Description: "อนุมัติแล้ว"},
+		{Name: "rejected", Description: "ไม่อนุมัติ"},
 	}
 	for _, s := range statuses {
 		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
@@ -87,7 +88,6 @@ func SetupDatabase() {
 		db.FirstOrCreate(&d, &entity.DeviceCredential{Username: d.Username})
 	}
 
-
 	// Camera Devices
 	cameraDevices := []entity.CameraDevice{
 		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
@@ -103,7 +103,7 @@ func SetupDatabase() {
 
 	// Notifications
 	notifications := []entity.Notification{}
-	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์", "ค่า OCR ผิดปกติ", "อุปกรณ์ออฟไลน์", "แบตเตอรี่ต่ำ"}
+	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "ค่ามิเตอร์น้ำสูงผิดปกติ", "ค่ามิเตอร์น้ำต่ำผิดปกติ"}
 	for _, cam := range cameraDevices {
 		for i, msg := range messages {
 			notifications = append(notifications, entity.Notification{
@@ -135,7 +135,7 @@ func SetupDatabase() {
 			Timestamp:       ts,
 			ModelConfidence: 95,
 			CameraDeviceID:  cameraDeviceID,
-			StatusID:        2,
+			StatusID:        1,
 			ImagePath:       imagePath,
 		}
 		db.Create(&wm)

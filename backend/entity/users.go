@@ -19,5 +19,11 @@ type Users struct {
 	GenderID uint     `json:"gender_id"`
 	Gender   *Genders `gorm:"foreignKey: gender_id" json:"gender"`
 
+	RoleID uint  `json:"role_id"`
+	Role   *Role `gorm:"foreignKey: role_id" json:"role"`
+
+	PositionID uint  `json:"position_id"`
+	Position   *Role `gorm:"foreignKey: position_id" json:"position"`
+
 	IsSelectedForLine bool `json:"is_selected_for_line" gorm:"default:false"`
 }

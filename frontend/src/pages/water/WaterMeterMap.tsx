@@ -34,7 +34,7 @@ const LocationMarker = ({ onAdd }: { onAdd: (lat: number, lng: number) => void }
 const WaterMeterMap = () => {
   //const [meters, setMeters] = useState<MeterInterface[]>([]);
   const [newMarker, setNewMarker] = useState<{ lat: number; lng: number } | null>(null);
-  const [messageApi] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
   const [newName, setNewName] = useState('');
@@ -128,7 +128,7 @@ const WaterMeterMap = () => {
     setLoading(true);
     getMeters()
       .finally(() => {
-        setTimeout(() => setLoading(false), 1000);
+        setTimeout(() => setLoading(false), 500);
       });
   }, []);
 
@@ -141,8 +141,9 @@ const WaterMeterMap = () => {
   }
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
-      {/* ปุ่มสลับโหมดแผนที่ */}
-      <div className="absolute top-40 right-15 z-[10] bg-white p-2 rounded-xl shadow-lg flex gap-2">
+      {contextHolder}
+      {/* ปุ่มสลับโหมดแผนที่ จอใหญ๋ */}
+      <div className="hidden lg:flex absolute top-30 right-34 z-[10] bg-white p-2 rounded-2xl shadow-lg gap-2">
         <button
           onClick={() => setMode('satellite')}
           className={`flex flex-col items-center p-2 rounded-lg border ${mode === 'satellite'
@@ -166,9 +167,15 @@ const WaterMeterMap = () => {
         </button>
       </div>
 
-      <div className="absolute top-40 right-50 z-[10] bg-white p-2 rounded-xl shadow-lg flex flex-col items-center gap-1 w-22 select-none">
+
+      <div className="hidden lg:flex absolute top-30 right-70 z-[10] bg-white p-2 rounded-2xl shadow-lg flex-col items-center gap-1 w-22 select-none">
         <button
-          onClick={() => setAddingMode(!addingMode)}
+          onClick={() => {
+    const newState = !addingMode;
+    setAddingMode(newState);
+    messageApi.info(newState ? "เข้าสู่โหมดเพิ่มจุด" : "ยกเลิกโหมดเพิ่มจุด");
+    if (!newState) setNewMarker(null); // ลบค่า newMarker ถ้าออกจากโหมด
+  }}
           className={`flex flex-col items-center p-2 rounded-lg border w-full
             ${addingMode
               ? 'border-orange-500 bg-orange-50 text-orange-600'
@@ -179,6 +186,50 @@ const WaterMeterMap = () => {
           <span className="text-xs font-medium">{addingMode ? 'กำลังเพิ่ม' : 'เพิ่มจุด'}</span>
         </button>
       </div>
+          {/* จอเล็ก */}
+      {/* Layer Switcher - ซ่อนบนจอใหญ่ */}
+<div className="flex lg:hidden fixed top-24 right-4 z-50 bg-white p-2 rounded-2xl shadow-lg gap-2">
+  <button
+    onClick={() => setMode('satellite')}
+    className={`flex flex-col items-center p-2 rounded-xl border ${
+      mode === 'satellite' ? 'border-green-500 bg-green-50' : 'border-transparent hover:bg-gray-100'
+    }`}
+  >
+    <Satellite className="w-5 h-5 mb-1" />
+    <span className="text-[10px] font-medium">ดาวเทียม</span>
+  </button>
+
+  <button
+    onClick={() => setMode('road')}
+    className={`flex flex-col items-center p-2 rounded-xl border ${
+      mode === 'road' ? 'border-green-500 bg-green-50' : 'border-transparent hover:bg-gray-100'
+    }`}
+  >
+    <Map className="w-5 h-5 mb-1" />
+    <span className="text-[10px] font-medium">ถนน</span>
+  </button>
+</div>
+
+{/* Add Button - Floating Bottom Right */}
+<div className="lg:hidden fixed bottom-6 right-4 z-50">
+  <button
+    onClick={() => {
+    const newState = !addingMode;
+    setAddingMode(newState);
+    messageApi.info(newState ? "เข้าสู่โหมดเพิ่มจุด" : "ยกเลิกโหมดเพิ่มจุด");
+    if (!newState) setNewMarker(null); // ลบค่า newMarker ถ้าออกจากโหมด
+  }}
+    className={`flex items-center justify-center p-4 rounded-full shadow-xl transition-all duration-200
+      ${addingMode ? 'bg-orange-50 border-2 border-orange-500 text-orange-600' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'}
+    `}
+  >
+    <Plus className={`w-6 h-6 ${addingMode ? 'text-orange-600' : 'text-gray-500'}`} />
+  </button>
+  <span className="block mt-1 text-center text-[10px] text-gray-700 font-medium select-none">
+    {addingMode ? 'กำลังเพิ่ม' : 'เพิ่มจุด'}
+  </span>
+</div>
+
 
       <MapContainer key={mode} center={[14.86750, 102.03415]} zoom={17} style={{ height: '100%', width: '100%' }}>
         <TileLayer attribution={tileAttribution} url={tileUrl} />
@@ -192,6 +243,7 @@ const WaterMeterMap = () => {
             const currentLog = waterusage.find(
               (log) => log.CameraDevice?.MeterLocation?.ID === meter.ID
             );
+            console.log("currentLog ",currentLog)
 
             return (
               <Marker key={meter.ID} position={[meter.Latitude, meter.Longitude]} icon={getMeterIcon(currentLog?.MeterValue)}>
@@ -212,15 +264,18 @@ const WaterMeterMap = () => {
                     <p className="text-sm text-gray-700 mb-1">
                       📅 วันที่อ่านล่าสุด:{" "}
                       {currentLog?.Timestamp
-                        ? new Date(currentLog.Timestamp).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
+                        ? new Date(currentLog.Timestamp).toLocaleString("th-TH", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : "ไม่มีข้อมูล"}
                     </p>
+
                     <p className="text-sm text-gray-700 mb-1">
-                      💧 ค่าที่อ่าน:{" "}
+                      💧 ค่ามิเตอร์น้ำ:{" "}
                       {currentLog?.MeterValue !== undefined
                         ? `${currentLog.MeterValue} ลูกบาศก์เมตร`
                         : "ไม่มีข้อมูล"}

@@ -1,17 +1,12 @@
 import {
   Button,
-  Card,
   Form,
   Input,
   message,
-  Flex,
-  Row,
-  Col,
   DatePicker,
   Select,
   InputNumber,
 } from "antd";
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CreateUser, GetGender } from "../../../services/https";
@@ -19,8 +14,6 @@ import { UsersInterface } from "../../../interfaces/IUser";
 import { GenderInterface } from "../../../interfaces/Gender";
 import logo from "../../../assets/suth.png";
 import dayjs from "dayjs";
-
-import "./SignUpPages.css";
 
 function SignUpPages() {
   const navigate = useNavigate();
@@ -59,19 +52,10 @@ function SignUpPages() {
     let res = await CreateUser(payload);
 
     if (res.status == 201) {
-      messageApi.open({
-        type: "success",
-        content: res.data.message,
-      });
-
-      setTimeout(function () {
-        navigate("/");
-      }, 2000);
+      messageApi.success(res.data.message);
+      setTimeout(() => navigate("/"), 2000);
     } else {
-      messageApi.open({
-        type: "error",
-        content: res.data.error,
-      });
+      messageApi.error(res.data.error);
     }
   };
 
@@ -83,125 +67,113 @@ function SignUpPages() {
     <>
       {contextHolder}
 
-      <Flex justify="center" align="center" className="signup-container">
-        <Card className="signup-card">
-          <Row align="middle" justify="center">
-            <Col xs={24} sm={24} md={24} lg={8} xl={6} style={{ textAlign: "center" }}>
-              <img alt="logo" src={logo} className="signup-logo" />
-            </Col>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-4">
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8">
+          {/* Logo + Welcome text */}
+          <div className="flex flex-col items-center mb-6">
+            <img alt="logo" src={logo} className="w-24 h-24 object-contain mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800">สร้างบัญชีใหม่</h1>
+            <p className="text-gray-500 mt-1 text-center text-sm">
+              กรอกข้อมูลด้านล่างเพื่อสมัครสมาชิกเข้าสู่ระบบ
+            </p>
+          </div>
 
-            <Col xs={24}>
-              <h2 className="signup-header">Sign Up</h2>
-
-              <Form
-                name="signup-form"
-                layout="vertical"
-                onFinish={onFinish}
-                autoComplete="off"
+          <Form
+            name="signup-form"
+            layout="vertical"
+            onFinish={onFinish}
+            autoComplete="off"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="font-medium text-gray-700">ชื่อจริง</span>}
+                name="first_name"
+                rules={[{ required: true, message: "กรุณากรอกชื่อ!" }]}
               >
-                <Row gutter={[16, 0]} align="middle">
-                  <Col xs={24}>
-                    <Form.Item
-                      label="ชื่อจริง"
-                      name="first_name"
-                      rules={[{ required: true, message: "กรุณากรอกชื่อ!" }]}
-                    >
-                      <Input />
-                    </Form.Item>
-                  </Col>
+                <Input className="rounded-lg py-2" />
+              </Form.Item>
 
-                  <Col xs={24}>
-                    <Form.Item
-                      label="นามสกุล"
-                      name="last_name"
-                      rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}
-                    >
-                      <Input />
-                    </Form.Item>
-                  </Col>
+              <Form.Item
+                label={<span className="font-medium text-gray-700">นามสกุล</span>}
+                name="last_name"
+                rules={[{ required: true, message: "กรุณากรอกนามสกุล!" }]}
+              >
+                <Input className="rounded-lg py-2" />
+              </Form.Item>
+            </div>
 
-                  <Col xs={24}>
-                    <Form.Item
-                      label="อีเมล"
-                      name="Email"
-                      rules={[
-                        { required: true, message: "กรุณากรอกอีเมล!" },
-                        { type: "email", message: "อีเมลไม่ถูกต้อง!" },
-                      ]}
-                    >
-                      <Input />
-                    </Form.Item>
-                  </Col>
+            <Form.Item
+              label={<span className="font-medium text-gray-700">อีเมล</span>}
+              name="Email"
+              rules={[
+                { required: true, message: "กรุณากรอกอีเมล!" },
+                { type: "email", message: "อีเมลไม่ถูกต้อง!" },
+              ]}
+            >
+              <Input className="rounded-lg py-2" />
+            </Form.Item>
 
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      label="รหัสผ่าน"
-                      name="Password"
-                      rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน!" }]}
-                    >
-                      <Input.Password />
-                    </Form.Item>
-                  </Col>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="font-medium text-gray-700">รหัสผ่าน</span>}
+                name="Password"
+                rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน!" }]}
+              >
+                <Input.Password className="rounded-lg py-2" />
+              </Form.Item>
 
-                  <Col xs={24} sm={12}>
-                    <Form.Item label="อายุ">
-                      <InputNumber
-                        value={calculatedAge ?? 0}
-                        disabled
-                        style={{ width: "100%" }}
-                      />
-                    </Form.Item>
-                  </Col>
+              
+            </div>
 
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      label="วันเกิด"
-                      name="BirthDay"
-                      rules={[{ required: true, message: "กรุณาเลือกวันเกิด!" }]}
-                    >
-                      <DatePicker
-                        style={{ width: "100%" }}
-                        onChange={handleBirthDayChange}
-                      />
-                    </Form.Item>
-                  </Col>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="font-medium text-gray-700">วันเกิด</span>}
+                name="BirthDay"
+                rules={[{ required: true, message: "กรุณาเลือกวันเกิด!" }]}
+              >
+                <DatePicker
+                  className="w-full rounded-lg"
+                  onChange={handleBirthDayChange}
+                />
+              </Form.Item>
 
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      label="เพศ"
-                      name="gender_id"
-                      rules={[{ required: true, message: "กรุณาเลือกเพศ!" }]}
-                    >
-                      <Select placeholder="เลือกเพศ">
-                        {genderList.map((g) => (
-                          <Select.Option key={g.ID} value={g.ID}>
-                            {g.gender}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
+              <Form.Item
+                label={<span className="font-medium text-gray-700">เพศ</span>}
+                name="gender_id"
+                rules={[{ required: true, message: "กรุณาเลือกเพศ!" }]}
+              >
+                <Select placeholder="เลือกเพศ" className="rounded-lg">
+                  {genderList.map((g) => (
+                    <Select.Option key={g.ID} value={g.ID}>
+                      {g.gender}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-                  <Col xs={24}>
-                    <Form.Item>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        className="signup-button"
-                      >
-                        Sign up
-                      </Button>
-                      <p style={{ marginTop: "10px" }}>
-                        Or <a onClick={() => navigate("/login")}>Sign in</a>
-                      </p>
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </Form>
-            </Col>
-          </Row>
-        </Card>
-      </Flex>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="w-full h-11 rounded-lg bg-pink-600 hover:bg-pink-700 transition-colors"
+              >
+                สมัครสมาชิก
+              </Button>
+              <p className="text-center text-gray-600 mt-4">
+                หรือ{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="text-blue-600 font-medium hover:underline"
+                >
+                  เข้าสู่ระบบ
+                </button>
+              </p>
+            </Form.Item>
+          </Form>
+        </div>
+      </div>
     </>
   );
 }
