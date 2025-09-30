@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/watermeter/suth/entity"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -16,7 +16,9 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-	database, err := gorm.Open(sqlite.Open("watermeter.db?cache=shared"), &gorm.Config{})
+	dsn := "host=localhost user=watermeter password=watermeter dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -27,6 +29,8 @@ func ConnectionDB() {
 func SetupDatabase() {
 	db.AutoMigrate(
 		&entity.Genders{},
+		&entity.Position{},
+		&entity.Role{},
 		&entity.Users{},
 		&entity.MeterLocation{},
 		&entity.CameraDevice{},
@@ -37,14 +41,51 @@ func SetupDatabase() {
 		&entity.WaterUsage{},
 		&entity.DeviceCredential{},
 	)
+	seedRoles()
+	seedPositions()
+	seedGenders()
+	seedStatuses()
+	seedMeterLocations()
+	seedUsers()
+	seedDeviceCredentials()
+	cameraDevices := seedCameraDevices()
+	seedNotifications(cameraDevices)
+	seedWaterMeterValues()
+}
 
-	// Gender
-	GenderMale := entity.Genders{Gender: "Male"}
-	GenderFemale := entity.Genders{Gender: "Female"}
-	db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
-	db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
+func seedGenders() {
+	genders := []entity.Genders{
+		{Gender: "Male"},
+		{Gender: "Female"},
+	}
+	for _, g := range genders {
+		db.FirstOrCreate(&g, entity.Genders{Gender: g.Gender})
+	}
+}
 
-	// Statuses
+func seedPositions() map[string]entity.Position {
+	positions := []string{"Manager", "Engineer", "Staff", "Technician"}
+	posMap := make(map[string]entity.Position)
+
+	for _, name := range positions {
+		var p entity.Position
+		db.FirstOrCreate(&p, entity.Position{Position: name})
+		posMap[name] = p
+	}
+	return posMap
+}
+
+func seedRoles() {
+	roles := []entity.Role{
+		{Role: "User"},  // id = 1
+		{Role: "Admin"}, // id = 2
+	}
+	for _, r := range roles {
+		db.FirstOrCreate(&r, entity.Role{Role: r.Role})
+	}
+}
+
+func seedStatuses() {
 	statuses := []entity.StatusWaterValue{
 		{Name: "pending", Description: "รอการอนุมัติ"},
 		{Name: "approved", Description: "อนุมัติแล้ว"},
@@ -53,8 +94,9 @@ func SetupDatabase() {
 	for _, s := range statuses {
 		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
 	}
+}
 
-	// Meter Locations
+func seedMeterLocations() {
 	meterLocations := []entity.MeterLocation{
 		{Name: "อาคารรัตนเวชพัฒน์", Latitude: 14.86412, Longitude: 102.03557},
 		{Name: "โรงอาหาร", Latitude: 14.86447, Longitude: 102.03611},
@@ -68,27 +110,53 @@ func SetupDatabase() {
 	for _, ml := range meterLocations {
 		db.FirstOrCreate(&ml, &entity.MeterLocation{Name: ml.Name})
 	}
+}
 
-	// Users
+func seedUsers() {
+	// Gender & Role
+	var male, female entity.Genders
+	var roleUser, roleAdmin entity.Role
+	db.FirstOrCreate(&male, entity.Genders{Gender: "Male"})
+	db.FirstOrCreate(&female, entity.Genders{Gender: "Female"})
+	db.FirstOrCreate(&roleUser, entity.Role{Role: "User"})
+	db.FirstOrCreate(&roleAdmin, entity.Role{Role: "Admin"})
+
+	// Positions
+	positions := seedPositions()
+
 	users := []entity.Users{
-		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderFemale.ID, RoleID: 2},
-		{FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID, RoleID: 1},
-		{FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderMale.ID, RoleID: 1},
-		{FirstName: "นนทกานต์", LastName: "ใสโสก", Email: "nontakarn@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID, RoleID: 1},
-		{FirstName: "ณัฐวุฒิ", LastName: "ถินราช", Email: "nattawut@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1983-09-05"), GenderID: GenderMale.ID, RoleID: 1},
-	}
-	for _, u := range users {
-		db.FirstOrCreate(&u, &entity.Users{Email: u.Email})
+		{
+			FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25,
+			Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"),
+			GenderID: female.ID, RoleID: roleAdmin.ID, PositionID: positions["Manager"].ID,
+		},
+		{
+			FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22,
+			Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"),
+			GenderID: male.ID, RoleID: roleUser.ID, PositionID: positions["Engineer"].ID,
+		},
+		{
+			FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22,
+			Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"),
+			GenderID: male.ID, RoleID: roleUser.ID, PositionID: positions["Engineer"].ID,
+		},
 	}
 
+	for _, u := range users {
+		db.FirstOrCreate(&u, entity.Users{Email: u.Email})
+	}
+}
+
+func seedDeviceCredentials() {
 	devices := []entity.DeviceCredential{
 		{CameraDeviceID: 1, Username: "esp32_cam_01", Password: hashOrPanic("esp32_secret")},
 	}
 	for _, d := range devices {
 		db.FirstOrCreate(&d, &entity.DeviceCredential{Username: d.Username})
 	}
+}
 
-	// Camera Devices
+func seedCameraDevices() []entity.CameraDevice {
 	cameraDevices := []entity.CameraDevice{
 		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
 		{MacAddress: "22:2B:45:12:3A:B9", Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
@@ -100,10 +168,13 @@ func SetupDatabase() {
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
 	}
+	return cameraDevices
+}
 
-	// Notifications
+func seedNotifications(cameraDevices []entity.CameraDevice) {
 	notifications := []entity.Notification{}
 	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "ค่ามิเตอร์น้ำสูงผิดปกติ", "ค่ามิเตอร์น้ำต่ำผิดปกติ"}
+
 	for _, cam := range cameraDevices {
 		for i, msg := range messages {
 			notifications = append(notifications, entity.Notification{
@@ -114,8 +185,9 @@ func SetupDatabase() {
 		}
 	}
 	db.Create(&notifications)
+}
 
-	// Seed WaterMeterValue โดยตรง (ไม่ต้อง WaterMeterImage)
+func seedWaterMeterValues() {
 	cameraDeviceID := uint(1)
 	prevValue := uint(33504)
 	dailyUsages := []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7}
@@ -127,8 +199,10 @@ func SetupDatabase() {
 		dailyUsage := dailyUsages[day-1]
 		meterValue := int(prevValue) + dailyUsage
 
-		// กำหนด path รูปตรง ๆ
 		imagePath := fmt.Sprintf("uploads/meter%d.jpg", day)
+
+		var adminUser entity.Users
+		db.First(&adminUser, "email = ?", "suthadmin@gmail.com") // หรือ user อื่นที่มีอยู่จริง
 
 		wm := entity.WaterMeterValue{
 			MeterValue:      meterValue,
@@ -137,10 +211,11 @@ func SetupDatabase() {
 			CameraDeviceID:  cameraDeviceID,
 			StatusID:        1,
 			ImagePath:       imagePath,
+			UserID:          adminUser.ID, // <-- เพิ่มตรงนี้
 		}
+
 		db.Create(&wm)
 
-		// Daily usage
 		du := entity.DailyWaterUsage{
 			Timestamp:      ts,
 			Usage:          dailyUsage,
