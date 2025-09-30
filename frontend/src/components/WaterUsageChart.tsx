@@ -1,45 +1,203 @@
-import React from 'react';
-import { WaterUsageData, DailyStats } from '../interfaces/types';
+import React, { useState } from "react";
+import { WaterUsageData, DailyStats } from "../interfaces/types";
+import {
+  MeterLocationInterface,
+  CameraDeviceInterface,
+  WaterMeterValueInterface,
+  WaterValueStatus,
+} from "../interfaces/InterfaceAll";
+import { GetMeterLocationDetail } from "../services/https";
+import { message } from "antd";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
 interface WaterUsageChartProps {
   data: WaterUsageData[];
   dailyStats: DailyStats[];
   selectedView: string;
+  meterLocations: MeterLocationInterface[];
+  selectedPeriod: string;
+}
+
+// Custom tooltip for the chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 rounded shadow border border-gray-200">
+        <p className="text-sm font-semibold text-gray-800">{label}</p>
+        <p className="text-sm text-blue-600">
+          ใช้น้ำ: {payload[0].value} ลบ.ม.
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// ฟังก์ชันกรองข้อมูลตามช่วงเวลา
+function filterDataByPeriod<T extends { Timestamp?: string; Date?: string }>(
+  data: T[],
+  selectedPeriod: string
+) {
+  const now = new Date();
+  let start: Date, end: Date;
+  end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+  if (selectedPeriod === "today") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  } else if (selectedPeriod === "week") {
+    start = new Date(now);
+    start.setDate(now.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+  } else if (selectedPeriod === "month") {
+    start = new Date(now);
+    start.setMonth(now.getMonth() - 1);
+    start.setHours(0, 0, 0, 0);
+  } else if (selectedPeriod === "year") {
+    start = new Date(now);
+    start.setFullYear(now.getFullYear() - 1);
+    start.setHours(0, 0, 0, 0);
+  }
+  return data.filter((item) => {
+    const ts = item.Timestamp
+      ? new Date(item.Timestamp)
+      : item.Date
+      ? new Date(item.Date)
+      : null;
+    return ts && ts >= start && ts <= end;
+  });
 }
 
 export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
-  data,
-  dailyStats,
-  selectedView
+  meterLocations,
+  selectedPeriod,
 }) => {
-  const chartData = selectedView === 'daily' ? dailyStats : data;
-  const maxValue = Math.max(...chartData.map(item => 
-    selectedView === 'daily' ? (item as any).totalUsage : (item as WaterUsageData).usage
-  ));
-  const avgValue = chartData.reduce((sum, item) => 
-    sum + (selectedView === 'daily' ? (item as any).totalUsage : (item as WaterUsageData).usage), 0
-  ) / chartData.length;
+  const [waterDetail, setWaterDetail] = useState<CameraDeviceInterface | null>(
+    null
+  );
+  const [messageApi] = message.useMessage();
 
-  const getBarHeight = (value: number) => {
-    return (value / maxValue) * 200;
-  };
-
-  const getBarColor = (value: number, type?: string) => {
-    if (selectedView !== 'daily' && type) {
-      const colorMap = {
-        drinking: 'bg-blue-500',
-        cooking: 'bg-green-500',
-        cleaning: 'bg-purple-500',
-        irrigation: 'bg-orange-500',
-        other: 'bg-gray-500'
-      };
-      return colorMap[type as keyof typeof colorMap] || 'bg-gray-500';
+  const getMeterLocationDetailById = async (
+    meterLocationId: string | number,
+    startDate?: string,
+    endDate?: string
+  ) => {
+    try {
+      const res = await GetMeterLocationDetail(
+        String(meterLocationId),
+        startDate,
+        endDate
+      );
+      if (res.status === 200) {
+        setWaterDetail(res.data);
+      } else {
+        setWaterDetail(null);
+        messageApi.open({ type: "error", content: res.data.error });
+      }
+    } catch (error) {
+      setWaterDetail(null);
+      messageApi.open({
+        type: "error",
+        content: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+      });
     }
-    
-    if (value > avgValue * 1.2) return 'bg-red-500';
-    if (value < avgValue * 0.8) return 'bg-green-500';
-    return 'bg-blue-500';
   };
+  const [selectedMeterId, setSelectedMeterId] = React.useState<string | number>(
+    ""
+  );
+
+  // เมื่อ meterLocations เปลี่ยน ให้เลือก ID ที่น้อยที่สุดเสมอ
+  React.useEffect(() => {
+    if (meterLocations && meterLocations.length > 0) {
+      const minId = Math.min(
+        ...meterLocations
+          .map((loc) => loc.ID)
+          .filter((id): id is number => typeof id === "number" && !isNaN(id))
+      );
+      setSelectedMeterId(minId);
+    }
+  }, [meterLocations]);
+  // ...existing code...
+  // ...existing code...
+
+  // โหลดข้อมูล waterDetail ทุกครั้งที่ selectedMeterId เปลี่ยน
+  React.useEffect(() => {
+    if (selectedMeterId) {
+      getMeterLocationDetailById(selectedMeterId);
+    }
+  }, [selectedMeterId]);
+
+  // รวม CameraDevice ทั้งหมดจาก waterDetail
+  let cameraDevices: CameraDeviceInterface[] = [];
+  if (waterDetail) {
+    if (Array.isArray((waterDetail as any).CameraDevice)) {
+      cameraDevices = (waterDetail as any).CameraDevice;
+    } else if ((waterDetail as any).CameraDevice) {
+      cameraDevices = [(waterDetail as any).CameraDevice];
+    } else {
+      cameraDevices = [waterDetail as CameraDeviceInterface];
+    }
+  }
+  // รวม WaterMeterValue ทั้งหมดจากทุก CameraDevice
+  const waterMeterValues: WaterMeterValueInterface[] = cameraDevices.flatMap(
+    (cd) => cd.WaterMeterValue || []
+  );
+  // รวม WaterValueStatus ทั้งหมดจาก WaterMeterValue (ถ้ามี relation preload)
+  const waterValueStatuses: WaterValueStatus[] = waterMeterValues
+    .map((wmv) => (wmv as any).WaterValueStatus)
+    .filter((s): s is WaterValueStatus => !!s && typeof s.ID === "number");
+
+  // สร้าง dailyMeterData จาก waterDetail.DailyWaterUsage และกรองตามช่วงเวลา
+  const dailyMeterData = filterDataByPeriod(
+    waterDetail?.DailyWaterUsage?.filter(
+      (item) => item?.Timestamp && item?.Usage !== undefined
+    ) || [],
+    selectedPeriod
+  ).map((item) => {
+    // หา WaterMeterValue ที่ Timestamp ตรงกัน
+    const matchedWMV = waterMeterValues.find(
+      (v) => v.Timestamp === item.Timestamp
+    );
+    // Note: ใช้ Note จาก WaterMeterValueInterface ก่อน ถ้าไม่มีข้อมูลจริง (null, '', ช่องว่าง) ให้ fallback เป็น Description จาก WaterValueStatus
+    let note = matchedWMV?.Note;
+    if (!note || note.trim().length === 0) {
+      note = "-";
+      if (matchedWMV && matchedWMV.StatusID) {
+        const statusObj = waterValueStatuses.find(
+          (s) => s.ID === matchedWMV.StatusID
+        );
+        if (statusObj && statusObj.Description) {
+          note = statusObj.Description;
+        }
+      }
+    }
+    return {
+      ID: item.ID,
+      Timestamp: item.Timestamp,
+      MeterValue: item.Usage ?? 0,
+      MeterLocation: waterDetail?.MeterLocation ?? undefined,
+      ModelConfidence: undefined,
+      ImagePath: undefined,
+      StatusID: matchedWMV?.StatusID ?? undefined,
+      Note: note,
+      Time: undefined,
+    };
+  });
+
+  // คำนวณค่าเฉลี่ยจาก dailyMeterData ที่กรองแล้วตามช่วงเวลา
+  const validUsages = dailyMeterData.map(d => d.MeterValue).filter((u) => typeof u === "number" && !isNaN(u));
+  const avgValue =
+    validUsages.length > 0
+      ? validUsages.reduce((a, b) => a + b, 0) / validUsages.length
+      : null;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
@@ -47,102 +205,195 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
         <h3 className="text-xl font-semibold text-gray-900">
           ปริมาณการใช้น้ำแต่ละอาคาร
         </h3>
-        {/* <div className="flex items-center space-x-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span className="text-gray-600">สูงกว่าค่าเฉลี่ย</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span className="text-gray-600">ปกติ</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span className="text-gray-600">ต่ำกว่าค่าเฉลี่ย</span>
-          </div>
-        </div> */}
       </div>
 
-      <div className="relative">
-        {/* Chart container */}
-        <div className="flex items-end justify-between space-x-2 h-64 mb-4 p-4 bg-gray-50 rounded-lg overflow-x-auto">
-          {chartData.map((item, index) => {
-            const value = selectedView === 'daily' ? (item as any).totalUsage : (item as WaterUsageData).usage;
-            const barHeight = getBarHeight(value);
-            const barColor = getBarColor(value, selectedView !== 'daily' ? (item as WaterUsageData).type : undefined);
-            
-            return (
-              <div key={index} className="flex flex-col items-center group relative">
-                <div
-                  className={`${barColor} rounded-t-md transition-all duration-300 hover:opacity-80 min-w-[24px]`}
-                  style={{ height: `${barHeight}px` }}
-                >
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    <div className="font-medium">{value} ลิตร</div>
-                    {selectedView === 'daily' ? (
-                      <div className="text-gray-300">{(item as any).date}</div>
-                    ) : (
-                      <>
-                        <div className="text-gray-300">{(item as WaterUsageData).period}</div>
-                        <div className="text-gray-300 capitalize">
-                          {(item as WaterUsageData).type === 'drinking' ? 'ดื่ม' :
-                           (item as WaterUsageData).type === 'cooking' ? 'ทำอาหาร' :
-                           (item as WaterUsageData).type === 'cleaning' ? 'ทำความสะอาด' :
-                           (item as WaterUsageData).type === 'irrigation' ? 'รดน้ำต้นไม้' : 'อื่นๆ'}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500 mt-2 text-center max-w-[60px] truncate">
-                  {selectedView === 'daily' ? 
-                    new Date((item as any).date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) :
-                    (item as WaterUsageData).period.split('-')[0]
-                  }
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* รายชื่ออาคารแบบ inline และ scroll แนวนอน */}
+      <div className="mb-4 flex flex-nowrap items-center gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 py-1">
+        <span className="font-semibold text-gray-700 mr-2 shrink-0">
+          เลือกอาคาร :
+        </span>
+        {meterLocations && meterLocations.length > 0 ? (
+          meterLocations.map((loc) => (
+            <button
+              key={loc.ID}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0 ${
+                selectedMeterId === loc.ID
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-black border-gray-300 hover:bg-gray-50"
+              }`}
+              onClick={() => setSelectedMeterId(loc.ID ?? "")}
+            >
+              {loc.Name}
+            </button>
+          ))
+        ) : (
+          <span className="text-gray-400">ไม่พบข้อมูลอาคาร</span>
+        )}
+      </div>
 
-        {/* Average line */}
-        <div className="absolute left-4 right-4 pointer-events-none" style={{ bottom: `${60 + (avgValue / maxValue) * 200}px` }}>
-          <div className="border-t-2 border-dashed border-amber-500 relative">
-            <div className="absolute -top-6 right-0 bg-amber-500 text-white text-xs px-2 py-1 rounded">
-              เฉลี่ย: {Math.round(avgValue)} ลิตร
-            </div>
-          </div>
+      <div className="overflow-x-auto w-full">
+        <div
+          style={{
+            minWidth: `${Math.max(dailyMeterData.length * 60, 800)}px`,
+            height: "320px",
+          }}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={dailyMeterData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+              <XAxis
+                dataKey="Timestamp"
+                tick={{ fontSize: 12, fill: "#6b7280" }}
+                angle={-45}
+                textAnchor="end"
+                interval={0}
+                tickFormatter={(value) =>
+                  value
+                    ? new Date(value).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "2-digit",
+                      })
+                    : "-"
+                }
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <YAxis
+                tick={{ fontSize: 12, fill: "#6b7280" }}
+                label={{
+                  value: "ปริมาณน้ำ (ลบ.ม.)",
+                  angle: -90,
+                  position: "insideLeft",
+                  style: {
+                    textAnchor: "middle",
+                    fill: "#6b7280",
+                    fontWeight: "bold",
+                  },
+                }}
+              />
+              <Tooltip content={CustomTooltip} />
+              <Line
+                type="monotone"
+                dataKey="MeterValue"
+                name="ใช้น้ำ"
+                stroke="#3B82F6"
+                strokeWidth={3}
+                dot={{
+                  r: 4,
+                  fill: "#3B82F6",
+                  strokeWidth: 2,
+                  stroke: "#ffffff",
+                }}
+                activeDot={{ r: 6, fill: "#1D4ED8" }}
+              />
+              {avgValue != null && (
+                <ReferenceLine
+                  y={avgValue}
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  label={{
+                    value: `ค่าเฉลี่ย: ${avgValue.toFixed(1)}`,
+                    fill: "#ef4444",
+                    fontWeight: "bold",
+                    fontSize: 12,
+                  }}
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Statistics summary */}
-      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">{maxValue} ลิตร</div>
-          <div className="text-sm text-gray-600">สูงสุด</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">
-            {Math.min(...chartData.map(item => 
-              selectedView === 'daily' ? (item as any).totalUsage : (item as WaterUsageData).usage
-            ))} ลิตร
+      <div className="mt-8">
+        <div className="hidden lg:block overflow-hidden rounded-2xl border border-gray-200 shadow-lg">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <table
+              className="w-full text-sm border-separate rounded-xl"
+              style={{ borderSpacing: 0 }}
+            >
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100 sticky top-0 z-10">
+                <tr>
+                  <th className="px-6 py-4 font-semibold text-gray-700 text-center">
+                    วัน/เดือน/ปี
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-700 text-center">
+                    เวลา
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-700 text-center">
+                    ค่าที่อ่านได้
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-700 text-center">
+                    หมายเหตุ
+                  </th>
+                  <th className="px-6 py-4 font-semibold text-gray-700 text-center">
+                    สถานะ
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyMeterData.length > 0 ? (
+                  dailyMeterData.map((item, idx) => (
+                    <tr
+                      key={item.ID ?? idx}
+                      className="bg-white"
+                      style={{ borderRadius: 12 }}
+                    >
+                      <td className="px-6 py-4 text-center rounded-l-xl">
+                        {item.Timestamp
+                          ? new Date(item.Timestamp).toLocaleDateString("th-TH")
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {item.Timestamp
+                          ? new Date(item.Timestamp).toLocaleTimeString("th-TH")
+                          : item.Time ?? "-"}
+                      </td>
+                      <td className="px-6 py-4 text-center font-bold text-blue-600">
+                        {item.MeterValue ?? 0} ลบ.ม.
+                      </td>
+                      <td className="px-6 py-4 text-center text-gray-600">
+                        {item.Note ?? "-"}
+                      </td>
+                      <td className="px-6 py-4 text-center rounded-r-xl">
+                        <span
+                          className={
+                            item.StatusID === 1
+                              ? "inline-block px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold border border-yellow-300"
+                              : item.StatusID === 2
+                              ? "inline-block px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold border border-green-300"
+                              : "inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold border border-gray-300"
+                          }
+                        >
+                          {item.StatusID === 1
+                            ? "รอการอนุมัติ"
+                            : item.StatusID === 2
+                            ? "อนุมัติ"
+                            : "รอการอนุมัติ"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center py-12 text-gray-500 rounded-xl"
+                    >
+                      ไม่พบข้อมูลมิเตอร์ในช่วงเวลาที่เลือก
+                      <br />
+                      กรุณาเลือกช่วงเวลาใหม่
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="text-sm text-gray-600">ต่ำสุด</div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">{Math.round(avgValue)} ลิตร</div>
-          <div className="text-sm text-gray-600">ค่าเฉลี่ย</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">
-            {chartData.reduce((sum, item) => 
-              sum + (selectedView === 'daily' ? (item as any).totalUsage : (item as WaterUsageData).usage), 0
-            )} ลิตร
-          </div>
-          <div className="text-sm text-gray-600">รวม</div>
-        </div>
-      </div> */}
+      </div>
     </div>
   );
 };

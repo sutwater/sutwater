@@ -47,6 +47,7 @@ func SetupDatabase() {
 	statuses := []entity.StatusWaterValue{
 		{Name: "pending", Description: "รอการอนุมัติ"},
 		{Name: "approved", Description: "อนุมัติแล้ว"},
+		{Name: "rejected", Description: "ไม่อนุมัติ"},
 	}
 	for _, s := range statuses {
 		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
@@ -69,11 +70,11 @@ func SetupDatabase() {
 
 	// Users
 	users := []entity.Users{
-		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderFemale.ID},
-		{FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID},
-		{FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderMale.ID},
-		{FirstName: "นนทกานต์", LastName: "ใสโสก", Email: "nontakarn@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID},
-		{FirstName: "ณัฐวุฒิ", LastName: "ถินราช", Email: "nattawut@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1983-09-05"), GenderID: GenderMale.ID},
+		{FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25, Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"), GenderID: GenderFemale.ID, RoleID: 2},
+		{FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"), GenderID: GenderMale.ID, RoleID: 1},
+		{FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22, Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"), GenderID: GenderMale.ID, RoleID: 1},
+		{FirstName: "นนทกานต์", LastName: "ใสโสก", Email: "nontakarn@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1995-02-10"), GenderID: GenderMale.ID, RoleID: 1},
+		{FirstName: "ณัฐวุฒิ", LastName: "ถินราช", Email: "nattawut@gmail.com", Age: 21, Password: hashOrPanic("123456"), BirthDay: parseDate("1983-09-05"), GenderID: GenderMale.ID, RoleID: 1},
 	}
 	for _, u := range users {
 		db.FirstOrCreate(&u, &entity.Users{Email: u.Email})
@@ -94,7 +95,7 @@ func SetupDatabase() {
 
 	// Notifications
 	notifications := []entity.Notification{}
-	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "สัญญาณ Wi-Fi ต่ำ", "ต้องปรับเทียบมิเตอร์", "ค่า OCR ผิดปกติ", "อุปกรณ์ออฟไลน์", "แบตเตอรี่ต่ำ"}
+	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "ค่ามิเตอร์น้ำสูงผิดปกติ", "ค่ามิเตอร์น้ำต่ำผิดปกติ"}
 	for _, cam := range cameraDevices {
 		for i, msg := range messages {
 			notifications = append(notifications, entity.Notification{
@@ -126,7 +127,7 @@ func SetupDatabase() {
 			Timestamp:       ts,
 			ModelConfidence: 95,
 			CameraDeviceID:  cameraDeviceID,
-			StatusID:        2,
+			StatusID:        1,
 			ImagePath:       imagePath,
 		}
 		db.Create(&wm)

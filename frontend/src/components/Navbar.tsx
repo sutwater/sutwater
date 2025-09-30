@@ -4,7 +4,29 @@ function getThaiInitial(name: string): string {
   if (!name) return "U";
   // รายการสระนำหน้าที่ไม่ควรใช้เป็น Avatar
   const vowels = [
-    "ะ","ั","า","ำ","ิ","ี","ึ","ื","ุ","ู","เ","แ","โ","ใ","ไ","ๅ","็","๋","้","๊","์","่","ํ"
+    "ะ",
+    "ั",
+    "า",
+    "ำ",
+    "ิ",
+    "ี",
+    "ึ",
+    "ื",
+    "ุ",
+    "ู",
+    "เ",
+    "แ",
+    "โ",
+    "ใ",
+    "ไ",
+    "ๅ",
+    "็",
+    "๋",
+    "้",
+    "๊",
+    "์",
+    "่",
+    "ํ",
   ];
   for (const ch of name) {
     if (!vowels.includes(ch)) {
@@ -15,10 +37,14 @@ function getThaiInitial(name: string): string {
 }
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import {
+  readAllNotifications,
+  readNotificationByID,
+  deleteNotificationByID,
+} from "../services/https";
 import { useAppContext } from "../contexts/AppContext";
 import {
   ChevronDown,
-  User,
   Settings,
   LogOut,
   Edit,
@@ -65,12 +91,6 @@ const UserProfileDropdown = ({
     setIsOpen(false);
   };
 
-  const handleSettings = () => {
-    console.log("การตั้งค่า");
-    // ใส่โค้ดการตั้งค่าที่นี่
-    setIsOpen(false);
-  };
-
   const handleAdminDashboard = () => {
     window.location.href = "/admin";
     setIsOpen(false);
@@ -104,6 +124,16 @@ const UserProfileDropdown = ({
           <span className="text-xs text-gray-600 leading-tight">
             ยินดีต้อนรับ
           </span>
+          <span className="text-sm font-semibold text-gray-900 leading-tight">
+            {user?.first_name} {user?.last_name}
+          </span>
+        </div>
+
+        <div
+          className="flex flex-col items-start sm:hidden" // 👈 แก้ตรงนี้
+          style={{ cursor: "pointer" }}
+        >
+          <span className="text-xs text-gray-600 leading-tight"></span>
           <span className="text-sm font-semibold text-gray-900 leading-tight">
             {user?.first_name} {user?.last_name}
           </span>
@@ -154,16 +184,18 @@ const UserProfileDropdown = ({
               แก้ไขข้อมูลส่วนตัว
             </button>
 
-            <button
-              onClick={handleAdminDashboard}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
-              style={{ cursor: "pointer" }} // เพิ่ม cursor: pointer
-            >
-              <Settings className="w-4 h-4" />
-              Admin Dashboard
-            </button>
+            {user?.role_id === 2 && (
+              <button
+                onClick={handleAdminDashboard}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
+                style={{ cursor: "pointer" }}
+              >
+                <Settings className="w-4 h-4" />
+                Admin Dashboard
+              </button>
+            )}
 
-            <div className="border-t border-gray-100 mt-2 pt-2">
+            <div className="border-t border-gray-100 mt-2 pt-2 hidden sm:block">
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
@@ -186,9 +218,13 @@ const NotificationDropdown = ({
   notification: NotificationInterface[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { getNotification } = useAppContext();
   const [localNotifications, setLocalNotifications] =
     useState<NotificationInterface[]>(notification);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  localNotifications.forEach((n, i) => {
+    console.log(i, n.IsRead, typeof n.IsRead);
+  });
 
   useEffect(() => {
     setLocalNotifications(notification);
@@ -212,18 +248,33 @@ const NotificationDropdown = ({
 
   const unreadCount = localNotifications.filter((n) => !n.IsRead).length;
 
-  const markAsRead = (id: number) => {
-    setLocalNotifications((prev) =>
-      prev.map((n) => (n.ID === id ? { ...n, isRead: true } : n))
-    );
+  console.log("unreadCount:", unreadCount);
+
+  const markAsRead = async (id: string) => {
+    try {
+      await readNotificationByID(id);
+      await getNotification(); // โหลดใหม่หลังอ่าน
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setLocalNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  const markAllAsRead = async () => {
+    try {
+      await readAllNotifications();
+      await getNotification(); // โหลดใหม่หลังอ่านทั้งหมด
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const clearNotification = (id: number) => {
-    setLocalNotifications((prev) => prev.filter((n) => n.ID !== id));
+  const clearNotification = async (id: string) => {
+    try {
+      await deleteNotificationByID(id);
+      await getNotification(); // โหลดใหม่หลังลบ
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -231,7 +282,7 @@ const NotificationDropdown = ({
       {/* Main Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200"
+        className="relative p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-200 cursor-pointer"
         aria-label="การแจ้งเตือน"
       >
         <Bell className="w-6 h-6" />
@@ -254,14 +305,14 @@ const NotificationDropdown = ({
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors cursor-pointer"
                 >
                   อ่านทั้งหมด
                 </button>
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
@@ -300,6 +351,11 @@ const NotificationDropdown = ({
                       >
                         {n.Message}
                       </p>
+                      {n.CameraDevice?.MeterLocation?.Name && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          📍 ตำแหน่ง: {n.CameraDevice?.MeterLocation?.Name}
+                        </p>
+                      )}
                       {n.CreatedAt && (
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(n.CreatedAt).toLocaleString("th-TH", {
@@ -317,16 +373,16 @@ const NotificationDropdown = ({
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!n.IsRead && (
                         <button
-                          onClick={() => markAsRead(n.ID)}
-                          className="p-1 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                          onClick={() => markAsRead(n.ID.toString())}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded-full transition-colors cursor-pointer"
                           title="ทำเครื่องหมายว่าอ่านแล้ว"
                         >
                           <Check className="w-4 h-4" />
                         </button>
                       )}
                       <button
-                        onClick={() => clearNotification(n.ID)}
-                        className="p-1 text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                        onClick={() => clearNotification(n.ID.toString())}
+                        className="p-1 text-red-600 hover:bg-red-100 rounded-full transition-colors cursor-pointer"
                         title="ลบการแจ้งเตือน"
                       >
                         <X className="w-4 h-4" />
@@ -349,13 +405,13 @@ const Navbar: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const { setUser, user, notifications } = useAppContext();
 
+  console.log(notifications);
+
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
     navigate("/login");
   };
-
-  console.log(user);
 
   return (
     <div
@@ -368,23 +424,53 @@ const Navbar: React.FC = () => {
       </Link>
 
       <div
-        className={`max-sm:fixed max-sm:h-screen max-sm:w-full max-sm:top-16 
+        className={`max-sm:fixed max-sm:h-screen max-sm:w-full max-sm:top-20 
             max-sm:border-t border-borderColor right-0 flex flex-col sm:flex-row 
-            items-start sm:items-center gap-4 sm:gap-8 max-sm:p-4 transition-all 
+            items-center sm:items-center gap-4 sm:gap-8 max-sm:p-4 transition-all 
             duration-300 z-40 ${
               location.pathname === "/" ? "bg-light" : "bg-white"
             } 
             ${open ? "max-sm:translate-x-0" : "max-sm:-translate-x-full"}`}
       >
         {menuLinks.map(
-          (link: { name: string; path: string }, index: number) => (
-            <Link key={index} to={link.path} onClick={() => setOpen(false)}>
-              {link.name}
-            </Link>
-          )
+          (link: { name: string; path: string }, index: number) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={index}
+                to={link.path}
+                onClick={() => setOpen(false)}
+                className={`
+        relative px-3 py-2 rounded transition-all duration-300 cursor-pointer
+        ${
+          isActive
+            ? "text-blue-600 font-semibold"
+            : "text-gray-600 hover:text-blue-500"
+        }
+      `}
+              >
+                {link.name}
+
+                {/* underline animation */}
+                <span
+                  className={`
+          absolute left-0 bottom-0 h-0.5 bg-blue-500 transition-all duration-300
+          ${isActive ? "w-full" : "w-0 group-hover:w-full"}
+        `}
+                />
+              </Link>
+            );
+          }
         )}
-        {notifications && <NotificationDropdown notification={notifications} />}
-        {/* แทนที่ส่วนเดิมด้วย UserProfileDropdown */}
+
+        {/* แสดงแจ้งเตือนเฉพาะจอใหญ่ */}
+        {notifications && (
+          <div className="hidden sm:block">
+            <NotificationDropdown notification={notifications} />
+          </div>
+        )}
+
+        {/* User Profile */}
         {user ? (
           <UserProfileDropdown user={user} onLogout={handleLogout} />
         ) : (
@@ -392,15 +478,28 @@ const Navbar: React.FC = () => {
             เข้าสู่ระบบ
           </Link>
         )}
+
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="sm:hidden text-red-600 font-bold text-xl underline cursor-pointer"
+          >
+            ออกจากระบบ
+          </button>
+        )}
       </div>
 
-      <button
-        className="sm:hidden cursor-pointer"
-        aria-label="Menu"
-        onClick={() => setOpen(!open)}
-      >
-        <img src={open ? assets.close_icon : assets.menu_icon} alt="menu" />
-      </button>
+      {/* Mobile Right Side (แจ้งเตือน + Hamburger) */}
+      <div className="flex items-center gap-8 sm:hidden">
+        {notifications && <NotificationDropdown notification={notifications} />}
+        <button
+          className="cursor-pointer"
+          aria-label="Menu"
+          onClick={() => setOpen(!open)}
+        >
+          <img src={open ? assets.close_icon : assets.menu_icon} alt="menu" />
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,0 +1,94 @@
+
+.contactblock-container {
+  width: 100%;
+  margin: 0;
+  padding: 32px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background: #fff;
+  margin-top: 80px;
+}
+
+.contactblock-box {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  padding: 32px 256px;
+  width: 100%;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: row;
+  gap: 64px;
+  justify-content: space-between;
+}
+
+.contactblock-section {
+  flex: 1;
+}
+
+.contactblock-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.contactblock-highlight {
+  color: #e53935;
+  font-weight: bold;
+}
+
+.contactblock-section p {
+  font-size: 1rem;
+  color: #444;
+  margin: 0 0 8px 0;
+  line-height: 1.6;
+}
+
+.contactblock-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.contactblock-outline-btn {
+  border: 1px solid #e53935 !important;
+  color: #e53935 !important;
+  background: #fff !important;
+  border-radius: 8px !important;
+}
+
+.contactblock-link-btn {
+  color: #1976d2 !important;
+  font-weight: 500;
+}
+
+.contactblock-footer {
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+  margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+  .contactblock-box {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    padding: 24px 8px;
+  }
+  .contactblock-section {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  .contactblock-buttons {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 16px;
+  }
+}

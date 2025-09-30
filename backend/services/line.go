@@ -108,3 +108,23 @@ func UpdateLineUserIDByUserID(userID uint, lineUserID string) error {
 	log.Printf("[line] ✅ Updated lineUserID=%s for userID=%d", lineUserID, userID)
 	return nil
 }
+
+// SendAlertNotificationToUser ใช้สำหรับส่งข้อความแจ้งเตือน (Alert) ไปยัง LINE user เมื่อพบข้อผิดพลาดหรือ usage ผิดปกติ
+func SendAlertNotificationToUser(lineUserID string, errorDetail string) error {
+	bot, err := linebot.New(config.Cfg.LineChannelSecret, config.Cfg.LineChannelAccessToken)
+	if err != nil {
+		log.Printf("[line] ❌ bot init error: %v\n", err)
+		return errors.New("failed to initialize LINE bot")
+	}
+
+	alertMsg := "แจ้งเตือน: " + errorDetail
+	msg := linebot.NewTextMessage(alertMsg)
+	_, err = bot.PushMessage(lineUserID, msg).Do()
+	if err != nil {
+		log.Printf("[line] ❌ push alert message error: %v\n", err)
+		return errors.New("failed to send alert notification")
+	}
+
+	log.Printf("[line] ✅ ส่งแจ้งเตือนไปยัง lineUserID=%s", lineUserID)
+	return nil
+}

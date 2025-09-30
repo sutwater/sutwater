@@ -1,3 +1,4 @@
+// ...existing code...
 package services
 
 import (
@@ -12,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// ...existing code...
+
 var db *gorm.DB
 
 // เรียกใช้ใน main.go เพื่อ set database connection
@@ -22,6 +25,22 @@ func SetDatabase(database *gorm.DB) {
 // ✅ บันทึกข้อมูลการใช้น้ำ
 func SaveWaterUsage(usage entity.WaterUsage) error {
 	return db.Create(&usage).Error
+}
+
+// ดึง LineUserID ของผู้ใช้ที่เลือกไว้สำหรับรับแจ้งเตือน LINE
+func getSelectedLineUserIDs() ([]string, error) {
+	var users []entity.Users
+	err := db.Model(&entity.Users{}).Where("is_selected_for_line = ?", true).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, u := range users {
+		if u.LineUserID != nil && *u.LineUserID != "" {
+			ids = append(ids, *u.LineUserID)
+		}
+	}
+	return ids, nil
 }
 
 // ✅ ดึงข้อมูลล่าสุดแต่ละจุด (group by LocationID)
@@ -75,8 +94,6 @@ var DefaultUsageThreshold = UsageThreshold{
 	MinIntervalMin:    0.5,
 }
 
-// ✅ ฟังก์ชันใหม่: ใช้แทน SaveWaterUsage ใน controller
-//
 //	บันทึกแล้วตรวจความผิดปกติ ถ้าผิดจะยิง LINE หาผู้ดูแลจาก .env
 func SaveWaterUsageAndNotify(usage entity.WaterUsage) error {
 	// 1) บันทึกเหมือนเดิม
@@ -104,16 +121,17 @@ func getPrevUsage(locationId any, before time.Time) (*entity.WaterUsage, error) 
 	return &prev, err
 }
 
-// ส่งข้อความถึง admin ตามที่ตั้งไว้ใน .env (LINE_CHANNEL_SECRET/ACCESS_TOKEN/LINE_ADMIN_USER_IDS)
-func multicastToAdmins(text string) error {
-	if len(config.Cfg.LineAdminUserIDs) == 0 {
-		return nil
+// ส่งข้อความถึงผู้ใช้ที่เลือกไว้ใน DB (is_selected_for_line)
+func multicastToSelectedUsers(text string) error {
+	ids, err := getSelectedLineUserIDs()
+	if err != nil || len(ids) == 0 {
+		return err
 	}
 	bot, err := linebot.New(config.Cfg.LineChannelSecret, config.Cfg.LineChannelAccessToken)
 	if err != nil {
 		return err
 	}
-	_, err = bot.Multicast(config.Cfg.LineAdminUserIDs, linebot.NewTextMessage(text)).Do()
+	_, err = bot.Multicast(ids, linebot.NewTextMessage(text)).Do()
 	return err
 }
 
@@ -122,17 +140,17 @@ func checkAbnormalAndNotify(u entity.WaterUsage, th UsageThreshold) error {
 	reasons := []string{}
 
 	// 1) ค่าติดลบถือว่าผิดปกติแน่ ๆ
-	if u.Usage < 0 { // ← ปรับชื่อฟิลด์ถ้าไม่ตรง
+	if u.Usage < 0 {
 		reasons = append(reasons, "ค่าการใช้น้ำติดลบ")
 	}
 
 	// 2) ค่าสูงเกินเกณฑ์ต่อเรคคอร์ด
-	if u.Usage > th.MaxUsagePerRecord { // ← ปรับชื่อฟิลด์ถ้าไม่ตรง
+	if u.Usage > th.MaxUsagePerRecord {
 		reasons = append(reasons, fmt.Sprintf("Usage %.2f L > %.2f L", u.Usage, th.MaxUsagePerRecord))
 	}
 
 	// 3) อัตราการไหล (L/min) เทียบกับเรคคอร์ดก่อนหน้า
-	prev, err := getPrevUsage(u.LocationID, u.Timestamp) // ← ปรับ field ถ้าไม่ตรง
+	prev, err := getPrevUsage(u.LocationID, u.Timestamp)
 	if err != nil {
 		return err
 	}
@@ -153,7 +171,7 @@ func checkAbnormalAndNotify(u entity.WaterUsage, th UsageThreshold) error {
 	}
 
 	// สร้างข้อความแจ้งเตือน
-	loc := fmt.Sprintf("%v", u.LocationID) // ← ถ้าเป็น int จะถูก format เป็นตัวเลข
+	loc := fmt.Sprintf("%v", u.LocationID)
 	msg := fmt.Sprintf(
 		"🚨 น้ำผิดปกติ\nLocation: %s\nUsage: %.2f L\nเวลา: %s\nเหตุผล: %s",
 		loc,
@@ -162,6 +180,6 @@ func checkAbnormalAndNotify(u entity.WaterUsage, th UsageThreshold) error {
 		strings.Join(reasons, "; "),
 	)
 
-	// ยิง LINE
-	return multicastToAdmins(msg)
+	// ยิง LINE เฉพาะผู้ใช้ที่เลือกไว้
+	return multicastToSelectedUsers(msg)
 }

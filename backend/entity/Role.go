@@ -6,5 +6,5 @@ import (
 
 type Role struct {
 	gorm.Model
-	Name string
+	Role string `json:"role"`
 }

@@ -74,8 +74,8 @@ export default function LiffLink() {
         });
 
         if (res.ok) {
-          // แสดงข้อความสำเร็จพร้อมไอคอน
-          setValidationMessage("เชื่อมต่อ LINE สำเร็จ");
+          // แสดงข้อความสำเร็จแบบทางการ
+          setValidationMessage("เชื่อมต่อ LINE สำเร็จเรียบร้อย");
 
           // เปลี่ยนเส้นทางไปยังหน้า Profile หลังจาก 2 วินาที
           setTimeout(() => {
@@ -138,18 +138,18 @@ export default function LiffLink() {
           <div className="validation-message-container">
             <div
               className={`validation-icon ${
-                validationMessage.includes("✅") ? "success" : "error"
+                validationMessage.toLowerCase().includes("สำเร็จ") ? "success" : "error"
               }`}
             >
-              {validationMessage.includes("✅") ? (
-                <span className="checkmark-icon">✔</span> // ไอคอนติ๊กถูก
+              {validationMessage.toLowerCase().includes("สำเร็จ") ? (
+                <span className="checkmark-icon">✔</span>
               ) : (
-                <span className="error-icon">✖</span> // ไอคอนผิดพลาด
+                <span className="error-icon">✖</span>
               )}
             </div>
             <p
               className={`validation-message ${
-                validationMessage.includes("✅") ? "success" : "error"
+                validationMessage.toLowerCase().includes("สำเร็จ") ? "success" : "error"
               }`}
             >
               {validationMessage}

@@ -47,6 +47,13 @@ export interface CameraDeviceInterface {
   User?: UsersInterface[]; 
 }
 
+export interface CameraDeviceSaveInterface {
+  ID?: number;
+  MacAddress?: string;
+  Password?: string;
+  MeterLocationID?: number;
+}
+
 export interface WaterLogInterface {
   ID?: number;
   AverageValue?: number;
@@ -58,6 +65,7 @@ export interface WaterLogInterface {
 }
 
 export interface WaterMeterValueInterface {
+  MeterLocation: any;
   ID?: number;
   MeterValue?: number;
   StatusID?: number;

@@ -3,22 +3,21 @@ import { WaterMeterValueInterface, StatusType } from '../../interfaces/Interface
 import { StatusBadge } from './StatusBadge';
 import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
-import { Eye, Check, X, Camera, FileText, Calendar, Droplets } from 'lucide-react';
+import { Eye, FileText, Calendar, Droplets } from 'lucide-react';
 import { updateWaterValueStatusById, deleteWaterValueById } from "../../services/https"
-import { useNavigate } from 'react-router-dom';
 
 interface DataTableProps {
   data: WaterMeterValueInterface[];
-  onViewImage: (imagePath: string) => void;
+  onViewModal: (Data: WaterMeterValueInterface) => void;
   onReload?: () => void; // ✅ เพิ่ม prop
 }
 
 export const DataTable: React.FC<DataTableProps> = ({ 
   data, 
+  onViewModal, 
   onReload 
 }) => {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const navigate = useNavigate();
   const {
     currentPage,
     totalPages,
@@ -72,26 +71,6 @@ export const DataTable: React.FC<DataTableProps> = ({
     // ถ้าต้องการ fetch ข้อมูลใหม่: fetchDataFromAPI();
   } catch (error) {
     console.error('Batch reject failed', error);
-  }
-};
-
-const handleVerify = async (id: number) => {
-  try {
-    await updateWaterValueStatusById(id.toString());
-    // ถ้าต้องการ refresh ข้อมูลหลัง verify ให้เรียก fetchDataFromAPI()
-    onReload?.(); 
-  } catch (error) {
-    console.error(`Verify failed for ID ${id}`, error);
-  }
-};
-
-const handleReject = async (id: number) => {
-  try {
-    await deleteWaterValueById(id.toString());
-    // ถ้าต้องการ refresh ข้อมูลหลัง reject ให้เรียก fetchDataFromAPI()
-    onReload?.(); 
-  } catch (error) {
-    console.error(`Reject failed for ID ${id}`, error);
   }
 };
 
@@ -177,7 +156,7 @@ const handleReject = async (id: number) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {paginatedData.map((item) => {
-              console.log("item: ", item)
+              console.log("item: ", item.ImagePath)
               return (
               
               <tr key={item.ID} className="hover:bg-gray-50 transition-colors duration-200">
@@ -229,27 +208,13 @@ const handleReject = async (id: number) => {
                   <div className="flex items-center gap-2">
                     {item.ImagePath && (
                       <button
-                        onClick={() => navigate(`/waterdetail/edit/${item.ID}`)}
+                        onClick={() => onViewModal(item!)}
                         className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-colors duration-200 cursor-pointer"
                         title="View Image"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => handleVerify(item.ID!)}
-                      className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition-colors duration-200 cursor-pointer"
-                      title="Verify"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleReject(item.ID!)}
-                      className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-colors duration-200 cursor-pointer"
-                      title="Reject"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
                 </td>
               </tr>

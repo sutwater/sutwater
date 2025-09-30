@@ -41,6 +41,7 @@ func GetAllNotifications(c *gin.Context) {
 	if err := config.DB().
 		Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
+		Order("created_at DESC"). // เรียงจากล่าสุด
 		Find(&notifications).Error; err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

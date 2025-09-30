@@ -1,26 +1,137 @@
-import { useState } from 'react';
-import { Droplets, BarChart3, Calendar, TrendingUp } from 'lucide-react';
-import { StatisticsCards } from '../../components/StatisticsCard';
-import { TimeFilter } from '../../components/TimeFilter';
-import { WaterUsageChart } from '../../components/WaterUsageChart';
-import { WaterUsageTable } from '../../components/WaterUsageTable';
+import { useState, useEffect } from "react";
+import { Droplets } from "lucide-react";
+import { StatisticsCards } from "../../components/StatisticsCard";
+import { TimeFilter } from "../../components/TimeFilter";
+import { WaterUsageChart } from "../../components/WaterUsageChart";
 import {
-    waterUsageData,
-    dailyStats,
-    monthlyStats,
-    notificationStats,
-    periodComparisons,
-} from '../../data/mockData';
-import { useAppContext } from '../../contexts/AppContext';
+  notificationStats,
+  periodComparisons,
+} from "../../data/mockData";
+import { useAppContext } from "../../contexts/AppContext";
+import { GetAllWaterDaily } from "../../services/https";
+
+import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 
 const WaterDashboard = () => {
-    const [selectedPeriod, setSelectedPeriod] = useState('สัปดาห์');
-    const [selectedView, setSelectedView] = useState('ชั่วโมง');
-    const { waterDaily } = useAppContext();
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  const { waterusage } = useAppContext();
+  const [, setSelectedMeterId] = useState<number | null>(null);
 
+  // สร้าง state สำหรับ meterLocations
+  const [meterLocations, setMeterLocations] = useState<
+    MeterLocationInterface[]
+  >([]);
+  // ไม่ใช้ currentTime แบบเรียลไทม์อีกต่อไป
 
-    console.log("waterDaily: ", waterDaily)
-    return (
+  // เมื่อ meterLocations เปลี่ยน ให้เลือก ID ที่น้อยที่สุดเสมอ
+  useEffect(() => {
+    if (meterLocations && meterLocations.length > 0) {
+      const minId = Math.min(
+        ...meterLocations
+          .map((loc) => loc.ID)
+          .filter((id): id is number => typeof id === "number" && !isNaN(id))
+      );
+      setSelectedMeterId(minId);
+    }
+  }, [meterLocations]);
+  const [selectedPeriod, setSelectedPeriod] = useState("today");
+  const [selectedView, setSelectedView] = useState("daily");
+
+  // ดึงข้อมูลจาก backend ด้วย useEffect
+  useEffect(() => {
+    const fetchMeterLocations = async () => {
+      const res = await GetAllWaterDaily();
+      const data = res.data;
+      // ดึง MeterLocation เฉพาะที่มี Name และไม่ซ้ำ
+      const meterLocations = (data as any[])
+        .map((item: any) => item.MeterLocation)
+        .filter(
+          (loc: any, idx: number, arr: any[]) =>
+            loc &&
+            loc.Name &&
+            arr.findIndex((l: any) => l.ID === loc.ID) === idx
+        );
+      setMeterLocations(meterLocations);
+      setLastFetchTime(new Date());
+    };
+    fetchMeterLocations();
+  }, []);
+
+  // ไม่ต้องอัปเดตเวลาแบบเรียลไทม์
+
+  // ฟังก์ชัน filter ข้อมูลตามช่วงเวลา (ใช้ Timestamp หรือ Date)
+  const filterDataByPeriod = (data: any[], period: string) => {
+    const now = new Date();
+    return data.filter((item) => {
+      let itemDate: Date | null = null;
+      const dateStr = item.Date || item.Timestamp;
+      if (!dateStr) return false;
+      // robust parse YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split("-");
+        itemDate = new Date(Number(year), Number(month) - 1, Number(day));
+      } else {
+        itemDate = new Date(dateStr);
+      }
+      if (!(itemDate instanceof Date) || isNaN(itemDate.getTime()))
+        return false;
+      switch (period) {
+        case "today": {
+          return (
+            itemDate.getFullYear() === now.getFullYear() &&
+            itemDate.getMonth() === now.getMonth() &&
+            itemDate.getDate() === now.getDate()
+          );
+        }
+        case "week": {
+          const start = new Date(now);
+          start.setDate(now.getDate() - 6);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(now);
+          end.setHours(23, 59, 59, 999);
+          return itemDate >= start && itemDate <= end;
+        }
+        case "month": {
+          const start = new Date(now);
+          start.setDate(now.getDate() - 29);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(now);
+          end.setHours(23, 59, 59, 999);
+          return itemDate >= start && itemDate <= end;
+        }
+        case "year": {
+          const start = new Date(now);
+          start.setDate(now.getDate() - 364);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(now);
+          end.setHours(23, 59, 59, 999);
+          return itemDate >= start && itemDate <= end;
+        }
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredWaterUsageData = filterDataByPeriod(waterusage, selectedPeriod);
+  // ถ้าไม่มี dailyStats จริง ให้ส่ง []
+  const filteredDailyStats: any[] = [];
+
+  // สร้าง dailyMeterData จากทุก record ในช่วงเวลาที่เลือก (ไม่กรองตามอาคาร)
+  const dailyMeterData = filteredWaterUsageData.map((item: any) => ({
+    date: item.Date || item.Timestamp || "",
+    usage: item.MeterValue || 0,
+    location:
+      item.CameraDevice?.MeterLocation?.Name || item.MeterLocation?.Name || "",
+    period: item.Time || "",
+    type: item.type || "อื่นๆ",
+    id: item.ID || item.id || Math.random(),
+    MeterLocation:
+      item.MeterLocation || item.CameraDevice?.MeterLocation || null,
+    User: item.User || null,
+  }));
+
+  return (
     <div className="min-h-screen bg-gray-50 overflow-auto">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
@@ -40,10 +151,9 @@ const WaterDashboard = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                
               </div>
               <div className="text-sm text-gray-500">
-                อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')}
+                อัปเดตล่าสุด: {lastFetchTime ? lastFetchTime.toLocaleTimeString("th-TH") : "-"}
               </div>
             </div>
           </div>
@@ -53,7 +163,7 @@ const WaterDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
-        <StatisticsCards 
+        <StatisticsCards
           notificationStats={notificationStats}
           periodComparisons={periodComparisons}
         />
@@ -67,104 +177,15 @@ const WaterDashboard = () => {
         />
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Main Usage Chart */}
-          <div className="lg:col-span-2">
-            <WaterUsageChart 
-              data={waterUsageData}
-              dailyStats={dailyStats}
-              selectedView={selectedView}
-            />
-          </div>
-
-          {/* Period Analysis */}
-          <div className="space-y-6">
-            {/* Daily Peak Hours */}
-            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-orange-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">ช่วงเวลาใช้น้ำสูงสุด</h3>
-              </div>
-              <div className="space-y-3">
-                {['15:00-18:00', '09:00-12:00', '18:00-21:00'].map((period, index) => (
-                  <div key={period} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{period}</span>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-12 h-2 rounded-full ${
-                        index === 0 ? 'bg-red-500' : index === 1 ? 'bg-orange-500' : 'bg-yellow-500'
-                      }`}></div>
-                      <span className="text-sm font-medium text-gray-900">
-                        {index === 0 ? '155 ลิตร' : index === 1 ? '76 ลิตร' : '85 ลิตร'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
-
-            {/* Monthly Comparison */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">แนวโน้มรายเดือน</h3>
-              </div>
-              <div className="space-y-4">
-                {monthlyStats.map((month : any ) => (
-                  <div key={month.month} className="border-l-4 border-blue-500 pl-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-900">
-                        {month.month.split(' ')[0]}
-                      </span>
-                      <span className="text-sm font-bold text-gray-900">
-                        {month.totalUsage.toLocaleString()} ลูกบาศก์เมตร
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      เฉลี่ย: {Math.round(month.avgDaily)} ลูกบาศก์เมตร/วัน
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>สูงสุด: {month.maxDaily} ลิตร</span>
-                      <span>ต่ำสุด: {month.minDaily} ลิตร</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Usage by Type */}
-            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-teal-100 rounded-lg">
-                  <Calendar className="h-5 w-5 text-teal-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">การใช้ตามประเภท</h3>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { type: 'รดน้ำต้นไม้', usage: 466, color: 'bg-orange-500' },
-                  { type: 'ทำความสะอาด', usage: 320, color: 'bg-purple-500' },
-                  { type: 'ทำอาหาร', usage: 138, color: 'bg-green-500' },
-                  { type: 'ดื่ม', usage: 112, color: 'bg-blue-500' }
-                ].map((item) => (
-                  <div key={item.type} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                      <span className="text-sm text-gray-600">{item.type}</span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">{item.usage} ลิตร</span>
-                  </div>
-                ))}
-              </div>
-            </div> */}
-          </div>
+        <div className="w-full mb-8">
+          <WaterUsageChart
+            data={dailyMeterData}
+            dailyStats={filteredDailyStats}
+            selectedView={selectedView}
+            meterLocations={meterLocations}
+            selectedPeriod={selectedPeriod}
+          />
         </div>
-
-        {/* Water Usage Table */}
-        <WaterUsageTable data={waterUsageData} />
       </main>
     </div>
   );

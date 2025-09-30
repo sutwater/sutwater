@@ -151,7 +151,7 @@ func GetWaterMeterValueByCameraDeviceID(c *gin.Context) {
 
 	if len(waterValues) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "Water meter values not found",
+			"error":   "ไม่มีข้อมูลที่รอการอนุมัติสำหรับจุดนี้",
 			"message": fmt.Sprintf("ไม่พบข้อมูลสำหรับ CameraDeviceID = %s หรือ StatusID != 1", cameraID),
 		})
 		return

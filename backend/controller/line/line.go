@@ -206,3 +206,35 @@ func LoginWithLine(c *gin.Context) {
 		"message": "Login successful",
 	})
 }
+
+// SendAlertNotificationToUser ส่งข้อความแจ้งเตือน (Alert) ไปยัง LINE user เมื่อพบข้อผิดพลาดในการใช้งาน
+func SendAlertNotificationToUser(c *gin.Context) {
+	var req struct {
+		LineUserID  string `json:"line_user_id"`
+		ErrorDetail string `json:"error_detail"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil || req.LineUserID == "" || req.ErrorDetail == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or missing required fields"})
+		return
+	}
+
+	bot, err := linebot.New(config.Cfg.LineChannelSecret, config.Cfg.LineChannelAccessToken)
+	if err != nil {
+		log.Println("[line] ❌ Failed to initialize LINE bot:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize LINE bot"})
+		return
+	}
+
+	alertMsg := "แจ้งเตือน: พบข้อผิดพลาดในการใช้งาน\nรายละเอียด: " + req.ErrorDetail
+	msg := linebot.NewTextMessage(alertMsg)
+	_, err = bot.PushMessage(req.LineUserID, msg).Do()
+	if err != nil {
+		log.Println("[line] ❌ Failed to send alert message:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send alert notification"})
+		return
+	}
+
+	log.Printf("[line] ✅ Alert notification sent to lineUserID=%s", req.LineUserID)
+	c.JSON(http.StatusOK, gin.H{"message": "Alert notification sent successfully"})
+}

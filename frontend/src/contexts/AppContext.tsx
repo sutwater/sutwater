@@ -20,6 +20,7 @@ type AppContextType = {
   setUser: (user: UsersInterface | null) => void;
   meters: MeterLocationInterface[];
   getMeters: () => Promise<void>;
+  getNotification: () => Promise<void>;
   loading: boolean;
   setLoading: (loading: boolean) => void;
   waterusage: WaterMeterValueInterface[];
@@ -32,6 +33,7 @@ const AppContext = createContext<AppContextType>({
   setUser: () => {},
   meters: [],
   getMeters: async () => {},
+  getNotification: async () => {},
   loading: true,
   setLoading: () => {},
   waterusage: [],
@@ -51,11 +53,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
   const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
   const [waterDaily, setWaterDaily] = useState<CameraDeviceInterface[]>([]);
-  const [notifications, setNotifications] = useState<NotificationInterface[]>(
-    []
-  );
+  const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
   const [loading, setLoading] = useState(true);
 
+  console.log("notifications from API:", notifications.length, notifications);
   const getUserById = async () => {
     if (!id || !token) return;
     try {
@@ -64,18 +65,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(res.data);
       } else {
         setUser(null);
-        messageApi.open({
-          type: "error",
-          content: res?.data?.error || "ไม่สามารถโหลดข้อมูลผู้ใช้ได้",
-        });
+        setTimeout(() => {
+          messageApi.open({
+            type: "error",
+            content: res?.data?.error || "ไม่สามารถโหลดข้อมูลผู้ใช้ได้",
+          });
+        }, 0);
       }
     } catch (error) {
       console.error("Error fetching user:", error);
       setUser(null);
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์",
-      });
+      setTimeout(() => {
+        messageApi.open({
+          type: "error",
+          content: "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์",
+        });
+      }, 0);
     }
   };
 
@@ -85,21 +90,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await GetMerters();
       if (res && res.status === 200) {
         setMeters(res.data);
-        messageApi.success("ดึงข้อมูลมิเตอร์เรียบร้อย");
+        setTimeout(() => {
+          messageApi.success("ดึงข้อมูลมิเตอร์เรียบร้อย");
+        }, 0);
       } else {
         setMeters([]);
-        messageApi.open({
-          type: "error",
-          content: res?.data?.error || "ไม่สามารถโหลดข้อมูลมิเตอร์ได้",
-        });
+        setTimeout(() => {
+          messageApi.open({
+            type: "error",
+            content: res?.data?.error || "ไม่สามารถโหลดข้อมูลมิเตอร์ได้",
+          });
+        }, 0);
       }
     } catch (error) {
       console.error("Error fetching meters:", error);
       setMeters([]);
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการโหลดมิเตอร์",
-      });
+      setTimeout(() => {
+        messageApi.open({
+          type: "error",
+          content: "เกิดข้อผิดพลาดในการโหลดมิเตอร์",
+        });
+      }, 0);
     }
   };
 
@@ -109,21 +120,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await GetAllNotifications();
       if (res && res.status === 200) {
         setNotifications(res.data);
-        messageApi.success("ดึงข้อมูลการแจ้งเตือนเรียบร้อย");
+        setTimeout(() => {
+          messageApi.success("ดึงข้อมูลการแจ้งเตือนเรียบร้อย");
+        }, 0);
       } else {
         setNotifications([]);
-        messageApi.open({
-          type: "error",
-          content: res?.data?.error || "ไม่สามารถโหลดการแจ้งเตือนได้",
-        });
+        setTimeout(() => {
+          messageApi.open({
+            type: "error",
+            content: res?.data?.error || "ไม่สามารถโหลดการแจ้งเตือนได้",
+          });
+        }, 0);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
       setNotifications([]);
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการโหลดการแจ้งเตือน",
-      });
+      setTimeout(() => {
+        messageApi.open({
+          type: "error",
+          content: "เกิดข้อผิดพลาดในการโหลดการแจ้งเตือน",
+        });
+      }, 0);
     }
   };
 
@@ -133,21 +150,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await GetAllWaterUsageLogs();
       if (res && res.status === 200) {
         setWaterUsage(res.data);
-        messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย");
+        setTimeout(() => {
+          messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย");
+        }, 0);
       } else {
         setWaterUsage([]);
-        messageApi.open({
-          type: "error",
-          content: res?.data?.error || "ไม่สามารถโหลดข้อมูลการใช้น้ำได้",
-        });
+        setTimeout(() => {
+          messageApi.open({
+            type: "error",
+            content: res?.data?.error || "ไม่สามารถโหลดข้อมูลการใช้น้ำได้",
+          });
+        }, 0);
       }
     } catch (error) {
       console.error("Error fetching water usage:", error);
       setWaterUsage([]);
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการโหลดข้อมูลการใช้น้ำ",
-      });
+      setTimeout(() => {
+        messageApi.open({
+          type: "error",
+          content: "เกิดข้อผิดพลาดในการโหลดข้อมูลการใช้น้ำ",
+        });
+      }, 0);
     }
   };
 
@@ -155,13 +178,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     let res = await GetAllWaterDaily();
     if (res.status == 200) {
       setWaterDaily(res.data);
-      messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย");
+      setTimeout(() => {
+        messageApi.success("ดึงข้อมูลการใช้น้ำเรียบร้อย");
+      }, 0);
     } else {
       setWaterDaily([]);
-      messageApi.open({
-        type: "error",
-        content: res.data.error,
-      });
+      setTimeout(() => {
+        messageApi.open({
+          type: "error",
+          content: res.data.error,
+        });
+      }, 0);
     }
   };
 
@@ -178,6 +205,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     getAllWaterDaily();
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      // ถ้ามี error message จากการโหลดข้อมูล ให้แสดงผ่าน messageApi.open ที่นี่
+      // (ถ้าต้องการแสดง message หลัง loading เสร็จ)
+    }
+  }, [loading]);
+
   return (
     <AppContext.Provider
       value={{
@@ -190,6 +224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         waterusage,
         waterDaily,
         notifications,
+        getNotification,
       }}
     >
       {children}

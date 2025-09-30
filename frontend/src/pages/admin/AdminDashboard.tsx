@@ -9,6 +9,7 @@ import {
   Space,
   Select,
 } from "antd";
+import * as XLSX from "xlsx";
 import {
   GetUsers,
   DeleteUsersById,
@@ -256,10 +257,31 @@ const AdminDashboard: React.FC = () => {
     },
   ];
 
+  // ฟังก์ชัน Export ข้อมูลผู้ใช้งานเป็น Excel
+  const handleExportUsers = () => {
+    if (filtered.length === 0) {
+      message.warning("ไม่มีข้อมูลผู้ใช้งานให้ export");
+      return;
+    }
+    // เตรียมข้อมูลสำหรับ export
+    const exportData = filtered.map((u, idx) => ({
+      "ลำดับ": idx + 1,
+      "ชื่อ": u.first_name,
+      "นามสกุล": u.last_name,
+      "Email": u.email,
+      "เพศ": u.gender?.gender || "ไม่ระบุ",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+    XLSX.writeFile(workbook, "users_export.xlsx");
+    message.success("Export ข้อมูลผู้ใช้งานสำเร็จ!");
+  };
+
   return (
     <div className="admin-container">
       <h1 className="admin-title">จัดการสมาชิก</h1>
-      <div className="admin-controls">
+      <div className="admin-controls" style={{ display: "flex", gap: 8 }}>
         <Search
           placeholder="ค้นหาชื่อหรืออีเมล"
           onSearch={onSearch}
@@ -268,9 +290,17 @@ const AdminDashboard: React.FC = () => {
           style={{ width: 240, marginBottom: 16 }}
         />
         <Button
+          onClick={handleExportUsers}
+          type="default"
+          style={{ marginBottom: 16 }}
+        >
+          Export
+        </Button>
+        <Button
           onClick={() => setIsNotificationModalVisible(true)}
           type="primary"
-          disabled={!hasSelectedUsers} // ปิดการใช้งานปุ่มเมื่อไม่มีผู้ใช้งานที่เลือก
+          disabled={!hasSelectedUsers}
+          style={{ marginBottom: 16 }}
         >
           ส่งการแจ้งเตือน
         </Button>

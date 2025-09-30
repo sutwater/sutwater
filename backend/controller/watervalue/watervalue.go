@@ -2,6 +2,7 @@ package watervalue
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"example.com/sa-67-example/config"
 	"example.com/sa-67-example/entity"
+	"example.com/sa-67-example/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -158,51 +160,37 @@ func CreateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	// ✅ DailyWaterUsage
-	if lastValueFound && timestamp.Hour() == 8 && timestamp.Minute() == 0 {
-		yesterdayDate := timestamp.AddDate(0, 0, -1)
-		start := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 0, 0, 0, loc)
-		end := time.Date(yesterdayDate.Year(), yesterdayDate.Month(), yesterdayDate.Day(), 8, 59, 59, 0, loc)
-
-		var yesterdayValue entity.WaterMeterValue
-		if err := db.Where("camera_device_id = ? AND timestamp BETWEEN ? AND ?", req.CameraDeviceID, start, end).First(&yesterdayValue).Error; err == nil {
-			usage := req.MeterValue - yesterdayValue.MeterValue
-			if usage >= 0 {
-				dailyUsage := entity.DailyWaterUsage{
-					Timestamp:      timestamp,
-					Usage:          usage,
-					CameraDeviceID: req.CameraDeviceID,
-				}
-				db.Create(&dailyUsage)
+	// ✅ แจ้งเตือนทุกครั้งที่มีการอินพุตข้อมูลใหม่ หากค่าค่าน้ำต่างจากค่าก่อนหน้ามากกว่า 15 หน่วย
+	if lastValueFound {
+		usageDiff := req.MeterValue - lastValue.MeterValue
+		fmt.Printf("[DEBUG] usageDiff=%.2f\n", float64(usageDiff))
+		if math.Abs(float64(usageDiff)) > 15 {
+			var msg string
+			if usageDiff > 0 {
+				msg = fmt.Sprintf("แจ้งเตือน: ค่าน้ำสูงกว่าปกติ\nUsage: %+d หน่วย", usageDiff)
+			} else {
+				msg = fmt.Sprintf("แจ้งเตือน: ค่าน้ำต่ำกว่าปกติ\nUsage: %+d หน่วย", usageDiff)
 			}
-
-			// หลังจากสร้าง dailyUsage
-			var avgUsage float64
-			db.Model(&entity.DailyWaterUsage{}).
-				Where("camera_device_id = ? AND YEAR(timestamp) = ? AND MONTH(timestamp) = ?",
-					req.CameraDeviceID,
-					timestamp.Year(),
-					int(timestamp.Month()),
-				).
-				Select("AVG(usage)").Scan(&avgUsage)
-
-			// เปรียบเทียบค่า usage กับค่าเฉลี่ย ±50
-			if float64(usage) > avgUsage+50 {
-				notification := entity.Notification{
-					Message:        "ค่าน้ำสูงกว่าปกติ",
-					IsRead:         false,
-					CameraDeviceID: req.CameraDeviceID,
-				}
-				db.Create(&notification)
-			} else if float64(usage) < avgUsage-50 {
-				notification := entity.Notification{
-					Message:        "ค่าน้ำต่ำกว่าปกติ",
-					IsRead:         false,
-					CameraDeviceID: req.CameraDeviceID,
-				}
-				db.Create(&notification)
+			notification := entity.Notification{
+				Message:        msg,
+				IsRead:         false,
+				CameraDeviceID: req.CameraDeviceID,
 			}
+			db.Create(&notification)
 
+			// ส่งแจ้งเตือน LINE
+			var users []entity.Users
+			db.Where("is_selected_for_line = ? AND line_user_id IS NOT NULL", 1).Find(&users)
+			for _, user := range users {
+				lineUserID := *user.LineUserID
+				fmt.Printf("[DEBUG] ส่งแจ้งเตือน LINE: lineUserID=%s msg=%s\n", lineUserID, msg)
+				err := services.SendAlertNotificationToUser(lineUserID, msg)
+				if err != nil {
+					fmt.Printf("[ERROR] LINE notify error: %v\n", err)
+				} else {
+					fmt.Println("[DEBUG] LINE notify success")
+				}
+			}
 		}
 	}
 
@@ -385,14 +373,61 @@ func UpdateWaterMeterStatusByID(c *gin.Context) {
 	}
 
 	// อัปเดต StatusID เป็น 2
+	// ✅ รับค่าจาก body
+	var req struct {
+		MeterValue int `json:"meterValue"` // เปลี่ยน type ตาม entity ของคุณ
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// ✅ อัปเดตทั้ง StatusID และ MeterValue
 	waterValue.StatusID = 2
+	waterValue.MeterValue = req.MeterValue
+
 	if err := db.Save(&waterValue).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update StatusID"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "StatusID updated to 2",
+		"message": "StatusID updated to 2 and meterValue updated",
+		"data":    waterValue,
+	})
+}
+
+func UpdateWaterMeterStatusToReJect(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var waterValue entity.WaterMeterValue
+	if err := db.First(&waterValue, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Water meter value not found"})
+		return
+	}
+
+	// ✅ หากไม่ต้องการรับค่าอะไรเลยจาก client ก็ไม่ต้อง bind JSON
+	// หรือ ถ้ายังอยากรับ MeterValue จาก body ก็ใช้แบบนี้:
+	var req struct {
+		MeterValue *int `json:"meterValue"` // ใช้ pointer เพื่อแยกแยะกรณีไม่ส่งมาเลย
+	}
+	_ = c.ShouldBindJSON(&req) // ไม่ต้องเช็ค error ถ้าไม่บังคับ
+
+	// ✅ อัปเดต StatusID เป็น 3
+	waterValue.StatusID = 3
+
+	// ถ้า client ส่งค่า MeterValue มา ก็อัปเดตด้วย
+	if req.MeterValue != nil {
+		waterValue.MeterValue = *req.MeterValue
+	}
+	if err := db.Save(&waterValue).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update water meter value"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "StatusID updated to 3",
 		"data":    waterValue,
 	})
 }

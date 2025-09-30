@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { API_BASE_URL, CreateWaterMeterValue } from "../services/https";
-import type { WaterValueStatus, WaterMeterValueInterface, WaterMeterValueSaveInterface } from "../interfaces/InterfaceAll";
+import type {  WaterMeterValueInterface, WaterMeterValueSaveInterface } from "../interfaces/InterfaceAll";
 
 import {
   Save,
@@ -20,7 +20,6 @@ import {
 } from "./ConfirmModal";
 
 import {
-  fetchWaterValueStatus,
   fetchWaterValueById,
 } from "../services/https";
 import { useAppContext } from '../contexts/AppContext';
@@ -29,7 +28,7 @@ import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
 const CreateWaterValueContent = () => {
-  const [statusList, setStatusList] = useState<WaterValueStatus[]>([]);
+  //const [statusList, setStatusList] = useState<WaterValueStatus[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
@@ -55,10 +54,7 @@ const CreateWaterValueContent = () => {
   const [statusMessage, setStatusMessage] = useState<string | undefined>(
     undefined
   );
-  const allowedStatusIDs = [1, 2];
-  const filteredStatusList = Array.isArray(statusList)
-    ? statusList.filter((status) => allowedStatusIDs.includes(status.ID))
-    : [];
+  
 console.log("waterValue: ",waterValue)
 
   const getImageUrl = (path: string): string => {
@@ -157,6 +153,12 @@ console.log("waterValue: ",waterValue)
       return;
     }
 
+    setIsLoading(true);
+    setConfirmOpen(false); // ปิด confirm modal
+    setStatusType("loading");
+    setStatusMessage("กำลังสร้างข้อมูลมิเตอร์น้ำ...");
+    setStatusOpen(true);
+
     try {
       const formData = new FormData();
       formData.append("Date", dayjs(waterValue.Date).format("YYYY-MM-DD"));
@@ -176,6 +178,9 @@ console.log("waterValue: ",waterValue)
           content: <span className="text-base font-semibold text-green-600">บันทึกค่ามิเตอร์สำเร็จ!</span>,
         });
 
+        setStatusType("success");
+      setStatusMessage("สร้างกิจกรรมสำเร็จแล้ว!");
+
 
         setUploadedFile(null);
         setWaterValue({
@@ -189,13 +194,18 @@ console.log("waterValue: ",waterValue)
         setErrors({});
         setUploadedFile(null);
         setPreviewImage(null);
+        setStatusOpen(false);
 
         // ✅ ปิด modal
       } else {
+        setStatusType("error");
         message.error("❌ บันทึกค่ามิเตอร์ไม่สำเร็จ");
       }
     } catch (error: any) {
       console.error("❌ บันทึกค่ามิเตอร์ล้มเหลว:", error);
+    } 
+    finally {
+      setIsLoading(false);
     }
   };
 
@@ -212,17 +222,17 @@ console.log("waterValue: ",waterValue)
 
 
   useEffect(() => {
-    const loadStatus = async () => {
-  try {
-    const res = await fetchWaterValueStatus();
-    const statusArray = res.data.status; // ✅ ดึงเฉพาะ array
-    setStatusList(statusArray);
-    console.log("Loaded statusList:", statusArray);
-  } catch (err) {
-    console.error("โหลดสถานะข้อมูลล้มเหลว:", err);
-    message.error("ไม่สามารถโหลดสถานะข้อมูลได้");
-  }
-};
+//     const loadStatus = async () => {
+//   try {
+//     const res = await fetchWaterValueStatus();
+//     const statusArray = res.data.status; // ✅ ดึงเฉพาะ array
+//     setStatusList(statusArray);
+//     console.log("Loaded statusList:", statusArray);
+//   } catch (err) {
+//     console.error("โหลดสถานะข้อมูลล้มเหลว:", err);
+//     message.error("ไม่สามารถโหลดสถานะข้อมูลได้");
+//   }
+// };
 
     const loadWaterValue = async () => {
       if (!id) return;
@@ -238,7 +248,7 @@ console.log("waterValue: ",waterValue)
 
 
     loadWaterValue();
-    loadStatus();
+    //loadStatus();
   }, [id]);
 
 
@@ -260,7 +270,7 @@ console.log("waterValue: ",waterValue)
               <div className="h-6 border-l border-gray-300"></div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  แก้ไขข้อมูลมิเตอร์น้ำ
+                  เพิ่มข้อมูลมิเตอร์น้ำ
                 </h1>
               </div>
             </div>

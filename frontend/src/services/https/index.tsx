@@ -1,6 +1,7 @@
 import { UsersInterface } from "../../interfaces/IUser";
 import { SignInInterface } from "../../interfaces/SignIn";
 import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
+
 import axios from "axios";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -77,9 +78,30 @@ async function GetMerters() {
     .catch((e) => e.response);
 }
 
+export async function fetchMeterLocations () {
+  return await axios
+    .get(`${apiUrl}/meters/manage`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+export async function updateMeterLocation(id: string, data: MeterLocationInterface) {
+  return await axios
+    .put(`${apiUrl}/meters/${id}`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 async function CreateMeter(data: MeterLocationInterface) {
   return await axios
     .post(`${apiUrl}/meters`, data, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+export async function deleteMeterLocation(id: string) {
+  return await axios
+    .delete(`${apiUrl}/meters/${id}`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
@@ -165,13 +187,19 @@ async function fetchAllWaterValueReq() {
     .catch((e) => e.response);
 }
 
-async function updateWaterValueStatusById(id: string) {
+async function updateWaterValueStatusById(id: string, meterValue?: number) {
   return await axios
-    .patch(`${apiUrl}/watervalue/status/${id}`, null, authHeader()) // null สำหรับ body
+    .patch(`${apiUrl}/watervalue/status/${id}`, { meterValue: meterValue }  , authHeader()) // null สำหรับ body
     .then(res => res)
     .catch(e => e.response);
 }
 
+export async function updateWaterValueStatusToReJect(id: string, meterValue?: number) {
+  return await axios
+    .patch(`${apiUrl}/watervalue/status/reject/${id}`, { meterValue: meterValue }  , authHeader()) // null สำหรับ body
+    .then(res => res)
+    .catch(e => e.response);
+}
 
 async function deleteWaterValueById(id: string) {
   return await axios
@@ -194,6 +222,35 @@ async function GetAllNotifications() {
     .then((res) => res)
     .catch((e) => e.response);
 }
+
+export const readAllNotifications = async () => {
+  try {
+    const res = await axios.patch(`${apiUrl}/notifications`, {}, authHeader());
+    return res;
+  } catch (err: any) {
+    return err.response;
+  }
+};
+
+// อ่าน Notification ตาม ID
+export const readNotificationByID = async (id: string) => {
+  try {
+    const res = await axios.patch(`${apiUrl}/notifications/${id}`, {}, authHeader());
+    return res;
+  } catch (err: any) {
+    return err.response;
+  }
+};
+
+// ลบ Notification ตาม ID
+export const deleteNotificationByID = async (id: string) => {
+  try {
+    const res = await axios.delete(`${apiUrl}/notifications/${id}`, authHeader());
+    return res;
+  } catch (err: any) {
+    return err.response;
+  }
+};
 
 //status
 async function fetchWaterValueStatus() {
@@ -252,11 +309,25 @@ async function UpdateCameraDevice(id: string, formData: FormData) {
   }
 }
 
-async function deleteCameraDeviceById(id: string) {
+async function deleteCameraDeviceByMeterLocationId(id: string) {
   return await axios
-    .delete(`${apiUrl}/watervalue/${id}`, authHeader())
+    .delete(`${apiUrl}/cameradevice/${id}`, authHeader())
+    
     .then((res) => res)
     .catch((e) => e.response);
+}
+
+
+async function updateCameraDeviceMacAddress(id: string, macAddress: string) {
+  try {
+    return await axios.put(
+      `${apiUrl}/cameradevice/macaddress/${id}`,
+      { MacAddress: macAddress },
+      authHeader()
+    );
+  } catch (err: any) {
+    throw err.response;
+  }
 }
 
 export {
@@ -282,11 +353,12 @@ export {
   fetchWaterValueStatus,
   CreateCameraDevice,
   UpdateCameraDevice,
-  deleteCameraDeviceById,
+  deleteCameraDeviceByMeterLocationId,
   fetchCameraDevice,
   fetchCameraDeviceWithoutMac,
   fetchCameraDeviceByID,
   fetchWaterValueReqByCameraId,
   fetchAllWaterValueReq,
+  updateCameraDeviceMacAddress,
   
 };
