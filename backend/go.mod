@@ -1,4 +1,4 @@
-module example.com/sa-67-example
+module github.com/watermeter/suth
 
 go 1.24.0
 

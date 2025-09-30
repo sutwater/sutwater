@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"example.com/sa-67-example/services"
+	"github.com/watermeter/suth/services"
 	"github.com/gin-gonic/gin"
 )
 
