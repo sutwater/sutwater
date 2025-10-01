@@ -104,7 +104,7 @@ func UploadMeterImage(c *gin.Context) {
 	timestamp := time.Now()
 	filename := fmt.Sprintf("%s_%s.jpg", macSafe, timestamp.Format("20060102_150405"))
 
-	saveDir := `C:\Users\umdan\Pre-Capstone\backend\python\uploads`
+	saveDir := `./uploads`
 	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to create upload folder: %v", err)})
 		return

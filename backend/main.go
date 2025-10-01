@@ -126,8 +126,8 @@ func main() {
 	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
 	// ✅ Run server
-	//r.Run("0.0.0.0:" + PORT)
-	r.Run("localhost:" + PORT)
+	r.Run("0.0.0.0:" + PORT)
+	//r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

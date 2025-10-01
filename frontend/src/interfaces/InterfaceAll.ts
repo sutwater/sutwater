@@ -38,8 +38,6 @@ export interface MeterLocationInterface {
 export interface CameraDeviceInterface {
   ID?: number;
   MacAddress?: string;
-  Battery?: number;
-  Wifi?: boolean;
   Status?: boolean;
   MeterLocation?: MeterLocationInterface;
   WaterMeterValue?: WaterMeterValueInterface[];
