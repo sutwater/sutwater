@@ -17,9 +17,10 @@ type WaterMeterValue struct {
 	CameraDeviceID uint
 	CameraDevice   *CameraDevice `gorm:"foreignKey:CameraDeviceID"`
 
-	UserID uint
-	User   Users `gorm:"foreignKey:UserID"`
+	UserID *uint
+	User   *Users `gorm:"foreignKey:UserID"`
 
 	StatusID uint
 	Status   StatusWaterValue `gorm:"foreignKey:StatusID"`
 }
+

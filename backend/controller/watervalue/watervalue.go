@@ -61,7 +61,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		MeterValue      int     `json:"MeterValue" form:"MeterValue"`
 		ModelConfidence float64 `json:"ModelConfidence" form:"ModelConfidence"`
 		Note            string  `json:"Note" form:"Note"`
-		UserID          uint    `json:"UserID" form:"UserID"`
+		UserID          *uint    `json:"UserID" form:"UserID"`
 		CameraDeviceID  uint    `json:"CameraDeviceID" form:"CameraDeviceID"`
 	}
 

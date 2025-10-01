@@ -146,11 +146,12 @@ func UploadMeterImage(c *gin.Context) {
 	var camera entity.CameraDevice
 	if err := db.Where("mac_address = ?", mac).First(&camera).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
+			// สร้างใหม่ โดยไม่กำหนด MeterLocationID (เป็น nil)
 			camera = entity.CameraDevice{
-				MacAddress:   mac,
-				Status:       true,
-				Wifi:         "boat",
-				BrokenAmount: 0,
+				MacAddress:     mac,
+				Status:         true,
+				BrokenAmount:   0,
+				MeterLocationID: nil,
 			}
 			if err := db.Create(&camera).Error; err != nil {
 				c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating CameraDevice: %v", err)})
@@ -162,12 +163,11 @@ func UploadMeterImage(c *gin.Context) {
 		}
 	}
 
-	// บันทึก WaterMeterValue พร้อมค่า meter_value และ ModelConfidence
 	waterValue := entity.WaterMeterValue{
 		CameraDeviceID:  camera.ID,
 		Timestamp:       timestamp,
-		ImagePath:       savePath,
-		StatusID:        2,
+		ImagePath:       filename,
+		StatusID:        1,
 		MeterValue:      meterInt,
 		ModelConfidence: pyResult.OverallConfidence.Average,
 	}

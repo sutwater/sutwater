@@ -6,10 +6,9 @@ type CameraDevice struct {
 	gorm.Model
 	MacAddress   string `gorm:"uniqueIndex"`
 	BrokenAmount uint
-	Wifi         string
 	Status       bool
 
-	MeterLocationID uint
+	MeterLocationID *uint
 	MeterLocation   *MeterLocation `gorm:"foreignKey:MeterLocationID"`
 
 	WaterMeterValue []WaterMeterValue `gorm:"foreignKey:CameraDeviceID"`

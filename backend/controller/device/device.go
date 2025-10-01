@@ -111,10 +111,9 @@ func CreateCameraDevice(c *gin.Context) {
 		return
 	}
 
-	// สร้าง Camera Device
 	camera := entity.CameraDevice{
-		MacAddress:      macAddress,
-		MeterLocationID: meterLocationID,
+		MacAddress: macAddress,
+		MeterLocationID: &meterLocationID,
 	}
 
 	if err := db.Create(&camera).Error; err != nil {
