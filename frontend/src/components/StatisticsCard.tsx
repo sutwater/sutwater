@@ -67,7 +67,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">วันนี้</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {periodComparisons[0].currentUsage.toLocaleString()} ลิตร
+                  {periodComparisons[0].currentUsage.toLocaleString()} ลบ.ม.
                 </p>
               </div>
             </div>
@@ -90,7 +90,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
               <span className="text-sm text-gray-500">vs เมื่อวาน</span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
-              เปลี่ยนแปลง {periodComparisons[0].change.toLocaleString()} ลิตร
+              เปลี่ยนแปลง {periodComparisons[0].change.toLocaleString()} ลบ.ม.
             </div>
           </div>
         </div>
@@ -107,7 +107,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">สัปดาห์นี้</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {periodComparisons[1].currentUsage.toLocaleString()} ลิตร
+                  {periodComparisons[1].currentUsage.toLocaleString()} ลบ.ม.
                 </p>
               </div>
             </div>
@@ -130,7 +130,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
               <span className="text-sm text-gray-500">vs สัปดาห์ที่แล้ว</span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
-              เปลี่ยนแปลง {periodComparisons[1].change.toLocaleString()} ลิตร
+              เปลี่ยนแปลง {periodComparisons[1].change.toLocaleString()} ลบ.ม.
             </div>
           </div>
         </div>
