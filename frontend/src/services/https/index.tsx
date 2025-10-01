@@ -252,6 +252,16 @@ export const deleteNotificationByID = async (id: string) => {
   }
 };
 
+// ดึงสถิติการแจ้งเตือน
+export const getNotificationStats = async () => {
+  try {
+    const res = await axios.get(`${apiUrl}/notifications/stats`, authHeader());
+    return res;
+  } catch (err: any) {
+    return err.response;
+  }
+};
+
 //status
 async function fetchWaterValueStatus() {
   return await axios

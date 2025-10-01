@@ -96,6 +96,7 @@ func main() {
 
 		//Notification
 		router.GET("/notifications", notification.GetAllNotifications)
+		router.GET("/notifications/stats", notification.GetNotificationStats)
 		router.PATCH("/notifications", notification.ReadAllNotifications)
 		router.PATCH("/notifications/:id", notification.ReadNotificationByID)
 		router.DELETE("/notifications/:id", notification.DeleteNotificationByID)

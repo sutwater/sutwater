@@ -29,8 +29,7 @@ export interface MonthlyStats {
 export interface NotificationStats {
     totalNotifications: number;
     highUsageAlerts: number;
-    lowPressureAlerts: number;
-    maintenanceAlerts: number;
+    lowUsageAlerts: number;
     lastAlert: string;
 }
 

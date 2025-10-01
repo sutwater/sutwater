@@ -180,7 +180,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 
 			// ส่งแจ้งเตือน LINE
 			var users []entity.Users
-			db.Where("is_selected_for_line = ? AND line_user_id IS NOT NULL", 1).Find(&users)
+			db.Where("is_selected_for_line = ? AND line_user_id IS NOT NULL", true).Find(&users)
 			for _, user := range users {
 				lineUserID := *user.LineUserID
 				fmt.Printf("[DEBUG] ส่งแจ้งเตือน LINE: lineUserID=%s msg=%s\n", lineUserID, msg)

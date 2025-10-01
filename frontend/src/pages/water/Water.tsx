@@ -4,11 +4,11 @@ import { StatisticsCards } from "../../components/StatisticsCard";
 import { TimeFilter } from "../../components/TimeFilter";
 import { WaterUsageChart } from "../../components/WaterUsageChart";
 import {
-  notificationStats,
   periodComparisons,
 } from "../../data/mockData";
 import { useAppContext } from "../../contexts/AppContext";
-import { GetAllWaterDaily } from "../../services/https";
+import { GetAllWaterDaily, getNotificationStats } from "../../services/https";
+import { NotificationStats } from "../../interfaces/types";
 
 import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 
@@ -21,6 +21,15 @@ const WaterDashboard = () => {
   const [meterLocations, setMeterLocations] = useState<
     MeterLocationInterface[]
   >([]);
+  
+  // สร้าง state สำหรับ notification stats
+  const [notificationStats, setNotificationStats] = useState<NotificationStats>({
+    totalNotifications: 0,
+    highUsageAlerts: 0,
+    lowUsageAlerts: 0,
+    lastAlert: '',
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   // ไม่ใช้ currentTime แบบเรียลไทม์อีกต่อไป
 
   // เมื่อ meterLocations เปลี่ยน ให้เลือก ID ที่น้อยที่สุดเสมอ
@@ -36,6 +45,24 @@ const WaterDashboard = () => {
   }, [meterLocations]);
   const [selectedPeriod, setSelectedPeriod] = useState("today");
   const [selectedView, setSelectedView] = useState("daily");
+
+  // ดึงข้อมูล notification stats
+  useEffect(() => {
+    const fetchNotificationStats = async () => {
+      try {
+        setStatsLoading(true);
+        const res = await getNotificationStats();
+        if (res.status === 200) {
+          setNotificationStats(res.data);
+        }
+      } catch (error) {
+        console.error('Error fetching notification stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchNotificationStats();
+  }, []);
 
   // ดึงข้อมูลจาก backend ด้วย useEffect
   useEffect(() => {
@@ -166,6 +193,7 @@ const WaterDashboard = () => {
         <StatisticsCards
           notificationStats={notificationStats}
           periodComparisons={periodComparisons}
+          loading={statsLoading}
         />
 
         {/* Time Filter */}

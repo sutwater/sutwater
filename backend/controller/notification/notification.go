@@ -119,3 +119,39 @@ func DeleteNotificationByID(c *gin.Context) {
 		"message": "Notification deleted successfully",
 	})
 }
+
+// GetNotificationStats - คำนวณสถิติการแจ้งเตือน
+func GetNotificationStats(c *gin.Context) {
+	db := config.DB()
+	if db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
+		return
+	}
+
+	var totalNotifications int64
+	var highUsageAlerts int64
+	var lowUsageAlerts int64
+
+	// นับจำนวนการแจ้งเตือนทั้งหมด
+	db.Model(&entity.Notification{}).Count(&totalNotifications)
+
+	// นับการแจ้งเตือนแต่ละประเภท (ตามข้อความที่ระบบสร้างจริง)
+	db.Model(&entity.Notification{}).Where("message LIKE ?", "%ค่าน้ำสูงกว่าปกติ%").Count(&highUsageAlerts)
+	db.Model(&entity.Notification{}).Where("message LIKE ?", "%ค่าน้ำต่ำกว่าปกติ%").Count(&lowUsageAlerts)
+
+	// หาการแจ้งเตือนล่าสุด
+	var lastNotification entity.Notification
+	var lastAlert string = ""
+	if err := db.Order("created_at DESC").First(&lastNotification).Error; err == nil {
+		lastAlert = lastNotification.CreatedAt.Format("2006-01-02 15:04:05")
+	}
+
+	stats := map[string]interface{}{
+		"totalNotifications": totalNotifications,
+		"highUsageAlerts":    highUsageAlerts,
+		"lowUsageAlerts":     lowUsageAlerts,
+		"lastAlert":          lastAlert,
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
