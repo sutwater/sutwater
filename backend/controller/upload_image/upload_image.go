@@ -13,10 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/controller/notification"
 	"github.com/watermeter/suth/entity"
 	"github.com/watermeter/suth/services"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -125,7 +126,7 @@ func UploadMeterImage(c *gin.Context) {
 
 	// Parse meter_value และ confidence
 	var pyResult struct {
-		MeterValue       string `json:"meter_value"`
+		MeterValue        string `json:"meter_value"`
 		OverallConfidence struct {
 			Average float64 `json:"average"`
 		} `json:"overall_confidence"`
@@ -175,6 +176,9 @@ func UploadMeterImage(c *gin.Context) {
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterValue: %v", err)})
 		return
 	}
+
+	// ตรวจสอบและส่งแจ้งเตือน LINE หากค่าน้ำเปลี่ยนแปลงมากกว่า 15
+	notification.SendLineAlertForWaterUsage(db, camera.ID)
 
 	c.JSON(200, gin.H{
 		"message":    "Image uploaded, predicted & saved",

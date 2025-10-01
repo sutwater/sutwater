@@ -11,7 +11,6 @@ import (
 
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/entity"
-	"github.com/watermeter/suth/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -178,19 +177,6 @@ func CreateWaterMeterValue(c *gin.Context) {
 			}
 			db.Create(&notification)
 
-			// ส่งแจ้งเตือน LINE
-			var users []entity.Users
-			db.Where("is_selected_for_line = ? AND line_user_id IS NOT NULL", true).Find(&users)
-			for _, user := range users {
-				lineUserID := *user.LineUserID
-				fmt.Printf("[DEBUG] ส่งแจ้งเตือน LINE: lineUserID=%s msg=%s\n", lineUserID, msg)
-				err := services.SendAlertNotificationToUser(lineUserID, msg)
-				if err != nil {
-					fmt.Printf("[ERROR] LINE notify error: %v\n", err)
-				} else {
-					fmt.Println("[DEBUG] LINE notify success")
-				}
-			}
 		}
 	}
 
