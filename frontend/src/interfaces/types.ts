@@ -28,8 +28,8 @@ export interface MonthlyStats {
 
 export interface NotificationStats {
     totalNotifications: number;
-    highUsageAlerts: number;
-    lowUsageAlerts: number;
+    readNotifications: number;
+    unreadNotifications: number;
     lastAlert: string;
 }
 

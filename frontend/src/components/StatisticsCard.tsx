@@ -41,15 +41,15 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
         </div>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">ใช้น้ำเกินปกติ</span>
-            <span className="font-medium text-orange-600">
-              {loading ? "..." : notificationStats.highUsageAlerts}
+            <span className="text-gray-500">อ่านแล้ว</span>
+            <span className="font-medium text-green-600">
+              {loading ? "..." : notificationStats.readNotifications}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">ใช้น้ำต่ำกว่าปกติ</span>
-            <span className="font-medium text-blue-600">
-              {loading ? "..." : notificationStats.lowUsageAlerts}
+            <span className="text-gray-500">ยังไม่อ่าน</span>
+            <span className="font-medium text-red-600">
+              {loading ? "..." : notificationStats.unreadNotifications}
             </span>
           </div>
         </div>

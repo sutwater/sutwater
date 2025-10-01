@@ -25,8 +25,8 @@ const WaterDashboard = () => {
   // สร้าง state สำหรับ notification stats
   const [notificationStats, setNotificationStats] = useState<NotificationStats>({
     totalNotifications: 0,
-    highUsageAlerts: 0,
-    lowUsageAlerts: 0,
+    readNotifications: 0,
+    unreadNotifications: 0,
     lastAlert: '',
   });
   const [statsLoading, setStatsLoading] = useState(true);

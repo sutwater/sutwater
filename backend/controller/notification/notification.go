@@ -129,15 +129,15 @@ func GetNotificationStats(c *gin.Context) {
 	}
 
 	var totalNotifications int64
-	var highUsageAlerts int64
-	var lowUsageAlerts int64
+	var readNotifications int64
+	var unreadNotifications int64
 
 	// นับจำนวนการแจ้งเตือนทั้งหมด
 	db.Model(&entity.Notification{}).Count(&totalNotifications)
 
-	// นับการแจ้งเตือนแต่ละประเภท (ตามข้อความที่ระบบสร้างจริง)
-	db.Model(&entity.Notification{}).Where("message LIKE ?", "%ค่าน้ำสูงกว่าปกติ%").Count(&highUsageAlerts)
-	db.Model(&entity.Notification{}).Where("message LIKE ?", "%ค่าน้ำต่ำกว่าปกติ%").Count(&lowUsageAlerts)
+	// นับการแจ้งเตือนตามสถานะการอ่าน
+	db.Model(&entity.Notification{}).Where("is_read = ?", true).Count(&readNotifications)
+	db.Model(&entity.Notification{}).Where("is_read = ?", false).Count(&unreadNotifications)
 
 	// หาการแจ้งเตือนล่าสุด
 	var lastNotification entity.Notification
@@ -147,10 +147,10 @@ func GetNotificationStats(c *gin.Context) {
 	}
 
 	stats := map[string]interface{}{
-		"totalNotifications": totalNotifications,
-		"highUsageAlerts":    highUsageAlerts,
-		"lowUsageAlerts":     lowUsageAlerts,
-		"lastAlert":          lastAlert,
+		"totalNotifications":  totalNotifications,
+		"readNotifications":   readNotifications,
+		"unreadNotifications": unreadNotifications,
+		"lastAlert":           lastAlert,
 	}
 
 	c.JSON(http.StatusOK, stats)

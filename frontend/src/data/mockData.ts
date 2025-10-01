@@ -47,8 +47,8 @@ export const monthlyStats: MonthlyStats[] = [
 
 export const notificationStats: NotificationStats = {
   totalNotifications: 47,
-  highUsageAlerts: 12,
-  lowUsageAlerts: 8,
+  readNotifications: 35,
+  unreadNotifications: 12,
   lastAlert: '2024-01-17 14:30'
 };
 
