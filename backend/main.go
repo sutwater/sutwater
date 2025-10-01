@@ -24,21 +24,16 @@ const PORT = "8000"
 
 func main() {
 	config.Load()
-	// ✅ เชื่อมต่อฐานข้อมูล และ Setup data
 	config.ConnectionDB()
 	config.SetupDatabase()
 
-	// ✅ ดึง db ที่ถูกตั้งค่าแล้ว
 	db := config.DB()
 
-	// ✅ ส่ง db ให้ services ใช้
 	services.SetDatabase(db)
 
-	// ✅ เริ่ม Gin Server
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 
-	// ✅ Public routes
 	r.POST("/signup", users.SignUp)
 	r.POST("/signin", users.SignIn)
 
@@ -70,7 +65,6 @@ func main() {
 	})
 	r.Static("/uploads", "./uploads")
 
-	// ✅ Protected routes
 	router := r.Group("/")
 	{
 		router.Use(middlewares.Authorizes())
@@ -85,7 +79,6 @@ func main() {
 		router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
 		router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
 		router.GET("/watervalue/req/:id", waterlog.GetWaterMeterValueByCameraDeviceID)
-		//router.GET("/watervalue/req", waterlog.GetAllPendingWaterMeterValues)
 		router.GET("/watervalue/:id", watervalue.GetWaterMeterValueByID)
 		router.GET("/watervalue/status", watervalue.GetWaterMeterValueStatus)
 		router.POST("/watervalue", watervalue.CreateWaterMeterValue)
@@ -126,7 +119,6 @@ func main() {
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
 	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
-	// ✅ Run server
 	r.Run("0.0.0.0:" + PORT)
 	//r.Run("localhost:" + PORT)
 }

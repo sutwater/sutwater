@@ -167,7 +167,7 @@ func UploadMeterImage(c *gin.Context) {
 	waterValue := entity.WaterMeterValue{
 		CameraDeviceID:  camera.ID,
 		Timestamp:       timestamp,
-		ImagePath:       filename,
+		ImagePath:       "upload/" + filename,
 		StatusID:        1,
 		MeterValue:      meterInt,
 		ModelConfidence: pyResult.OverallConfidence.Average,
