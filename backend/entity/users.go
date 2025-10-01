@@ -8,6 +8,7 @@ import (
 
 type Users struct {
 	gorm.Model
+	Username	string `json:"username"`
 	FirstName  string    `json:"first_name"`
 	LastName   string    `json:"last_name"`
 	Email      string    `json:"email"`
@@ -19,7 +20,7 @@ type Users struct {
 	GenderID uint     `json:"gender_id"`
 	Gender   *Genders `gorm:"foreignKey: gender_id" json:"gender"`
 
-	RoleID uint  `json:"role_id" gorm:"default:1"`
+	RoleID uint  `json:"role_id"`
 	Role   *Role `gorm:"foreignKey: role_id" json:"role"`
 
 	PositionID uint  `json:"position_id"`

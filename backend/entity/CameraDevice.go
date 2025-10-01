@@ -5,9 +5,8 @@ import "gorm.io/gorm"
 type CameraDevice struct {
 	gorm.Model
 	MacAddress   string `gorm:"uniqueIndex"`
-	Battery      float32
 	BrokenAmount uint
-	Wifi         bool
+	Wifi         string
 	Status       bool
 
 	MeterLocationID uint
@@ -16,4 +15,7 @@ type CameraDevice struct {
 	WaterMeterValue []WaterMeterValue `gorm:"foreignKey:CameraDeviceID"`
 	DailyWaterUsage []DailyWaterUsage `gorm:"foreignKey:CameraDeviceID"`
 	Notification    []Notification    `gorm:"foreignKey:CameraDeviceID"`
+
+	DeviceCredential DeviceCredential `gorm:"foreignKey:CameraDeviceID"`
+
 }

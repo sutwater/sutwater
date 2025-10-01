@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strings" // ✅ เพิ่ม import นี้
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,8 +18,9 @@ import (
 
 type (
 	Authen struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email		string `json:"email"`
+		Username    string `json:"username"`
+		Password 	string `json:"password"`
 	}
 
 	signUp struct {
@@ -41,7 +42,6 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	// ✅ Convert email to lowercase
 	payload.Email = strings.ToLower(payload.Email)
 
 	log.Printf("📦 Payload: %+v\n", payload)
@@ -87,34 +87,60 @@ func SignUp(c *gin.Context) {
 
 func SignIn(c *gin.Context) {
 	var payload Authen
-	var user entity.Users
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// ✅ Convert email to lowercase
-	email := strings.ToLower(payload.Email)
+	var jwtSubject string
+	var tokenID uint
 
-	if err := config.DB().Raw("SELECT * FROM users WHERE email = ?", email).Scan(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if payload.Username != "" {
+		var device entity.DeviceCredential
+		if err := config.DB().Raw("SELECT * FROM device_credentials WHERE username = ?", payload.Username).Scan(&device).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "device not found"})
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(device.Password), []byte(payload.Password)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password incorrect"})
+			return
+		}
+
+		jwtSubject = device.Username
+		tokenID = device.ID
+
+	} else if payload.Email != "" {
+		var user entity.Users
+		email := strings.ToLower(payload.Email)
+
+		if err := config.DB().Raw("SELECT * FROM users WHERE email = ?", email).Scan(&user).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password incorrect"})
+			return
+		}
+
+		jwtSubject = user.Email
+		tokenID = user.ID
+
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email or username required"})
 		return
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password is incorrect"})
-		return
-	}
-
+	// สร้าง JWT token
 	jwtWrapper := services.JwtWrapper{
 		SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
 		Issuer:          "AuthService",
 		ExpirationHours: 24,
 	}
 
-	signedToken, err := jwtWrapper.GenerateToken(user.Email)
+	signedToken, err := jwtWrapper.GenerateToken(jwtSubject)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error signing token"})
 		return
@@ -123,14 +149,6 @@ func SignIn(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token_type": "Bearer",
 		"token":      signedToken,
-		"id":         user.ID,
-		"user": gin.H{
-			"role_id":              user.RoleID,
-			"email":                user.Email,
-			"first_name":           user.FirstName,
-			"last_name":            user.LastName,
-			"line_user_id":         user.LineUserID,
-			"is_selected_for_line": user.IsSelectedForLine,
-		},
+		"id":         tokenID,
 	})
 }

@@ -158,12 +158,12 @@ func seedDeviceCredentials() {
 
 func seedCameraDevices() []entity.CameraDevice {
 	cameraDevices := []entity.CameraDevice{
-		{MacAddress: "11:1B:44:11:3A:B7", Battery: 85, Wifi: true, Status: true, MeterLocationID: 1},
-		{MacAddress: "22:2B:45:12:3A:B9", Battery: 60, Wifi: true, Status: true, MeterLocationID: 2},
-		{MacAddress: "33:3B:46:13:3B:B8", Battery: 30, Wifi: false, Status: false, MeterLocationID: 3},
-		{MacAddress: "44:4B:47:14:4B:B6", Battery: 56, Wifi: true, Status: false, MeterLocationID: 4},
-		{MacAddress: "55:5B:48:15:1B:B5", Battery: 26, Wifi: true, Status: false, MeterLocationID: 5},
-		{MacAddress: "66:6B:49:16:2B:B4", Battery: 11, Wifi: true, Status: false, MeterLocationID: 6},
+		{MacAddress: "11:1B:44:11:3A:B7", Status: true, MeterLocationID: 1},
+		{MacAddress: "22:2B:45:12:3A:B9", Status: true, MeterLocationID: 2},
+		{MacAddress: "33:3B:46:13:3B:B8", Status: false, MeterLocationID: 3},
+		{MacAddress: "44:4B:47:14:4B:B6", Status: false, MeterLocationID: 4},
+		{MacAddress: "55:5B:48:15:1B:B5", Status: false, MeterLocationID: 5},
+		{MacAddress: "66:6B:49:16:2B:B4",  Status: false, MeterLocationID: 6},
 	}
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})

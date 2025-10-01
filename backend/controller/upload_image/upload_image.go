@@ -2,21 +2,25 @@ package upload_image
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/entity"
+	"github.com/watermeter/suth/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
+// sanitizeFilename ป้องกันชื่อไฟล์มีตัวอักษรต้องห้าม
 func sanitizeFilename(name string) string {
 	replacer := strings.NewReplacer(
 		"\\", "_", "/", "_", ":", "_",
@@ -26,7 +30,7 @@ func sanitizeFilename(name string) string {
 	return replacer.Replace(name)
 }
 
-// ส่งไฟล์ไปที่ Python API
+// ส่งไฟล์ไป Python API
 func sendToPythonAPI(filePath string) (string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -47,7 +51,6 @@ func sendToPythonAPI(filePath string) (string, error) {
 	}
 	writer.Close()
 
-	// ส่งไปที่ Python API
 	resp, err := http.Post("http://localhost:5000/process", writer.FormDataContentType(), body)
 	if err != nil {
 		return "", err
@@ -62,10 +65,29 @@ func sendToPythonAPI(filePath string) (string, error) {
 	return string(respBody), nil
 }
 
+// UploadMeterImage สำหรับ ESP32
 func UploadMeterImage(c *gin.Context) {
-
 	db := config.DB()
 
+	// ตรวจ Authorization Header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		c.JSON(401, gin.H{"error": "Missing or invalid Authorization header"})
+		return
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	jwtWrapper := services.JwtWrapper{
+		SecretKey: "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
+		Issuer:    "AuthService",
+	}
+	claims, err := jwtWrapper.ValidateToken(tokenString)
+	if err != nil {
+		c.JSON(401, gin.H{"error": fmt.Sprintf("Invalid token: %v", err)})
+		return
+	}
+
+	// MAC ของอุปกรณ์
 	mac := c.PostForm("mac")
 	if mac == "" {
 		c.JSON(400, gin.H{"error": "Missing MAC address"})
@@ -89,20 +111,45 @@ func UploadMeterImage(c *gin.Context) {
 	}
 	savePath := filepath.Join(saveDir, filename)
 
-	// บันทึกไฟล์ลงโฟลเดอร์
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to save image: %v", err)})
 		return
 	}
 
+	// ส่งไป Python API
+	pythonRespStr, err := sendToPythonAPI(savePath)
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed sending to Python: %v", err)})
+		return
+	}
+
+	// Parse meter_value และ confidence
+	var pyResult struct {
+		MeterValue       string `json:"meter_value"`
+		OverallConfidence struct {
+			Average float64 `json:"average"`
+		} `json:"overall_confidence"`
+	}
+	if err := json.Unmarshal([]byte(pythonRespStr), &pyResult); err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed parsing Python response: %v", err)})
+		return
+	}
+
+	// แปลง meter_value เป็น int
+	meterInt, err := strconv.Atoi(pyResult.MeterValue)
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Invalid meter value from Python: %v", err)})
+		return
+	}
+
+	// หา หรือ สร้าง CameraDevice
 	var camera entity.CameraDevice
 	if err := db.Where("mac_address = ?", mac).First(&camera).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			camera = entity.CameraDevice{
 				MacAddress:   mac,
 				Status:       true,
-				Wifi:         true,
-				Battery:      100,
+				Wifi:         "boat",
 				BrokenAmount: 0,
 			}
 			if err := db.Create(&camera).Error; err != nil {
@@ -115,32 +162,28 @@ func UploadMeterImage(c *gin.Context) {
 		}
 	}
 
-	// บันทึก WaterMeterImage
+	// บันทึก WaterMeterValue พร้อมค่า meter_value และ ModelConfidence
 	waterValue := entity.WaterMeterValue{
-		CameraDeviceID: camera.ID,
-		Timestamp:      timestamp,
-		ImagePath:      savePath,
-		StatusID:       2, // ตัวอย่างสมมติ
+		CameraDeviceID:  camera.ID,
+		Timestamp:       timestamp,
+		ImagePath:       savePath,
+		StatusID:        2,
+		MeterValue:      meterInt,
+		ModelConfidence: pyResult.OverallConfidence.Average,
 	}
-
 	if err := db.Create(&waterValue).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterValue: %v", err)})
-		return
-	}
-
-	// ส่งต่อไฟล์ไป Python API
-	pythonResp, err := sendToPythonAPI(savePath)
-	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed sending to Python: %v", err)})
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating WaterMeterValue: %v", err)})
 		return
 	}
 
 	c.JSON(200, gin.H{
-		"message":    "Image uploaded & saved",
+		"message":    "Image uploaded, predicted & saved",
 		"mac":        mac,
 		"filename":   filename,
 		"path":       savePath,
 		"timestamp":  timestamp,
-		"pythonResp": pythonResp,
+		"jwtSubject": claims.Email,
+		"meterValue": meterInt,
+		"confidence": pyResult.OverallConfidence.Average,
 	})
 }
