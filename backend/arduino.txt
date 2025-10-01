@@ -1,0 +1,482 @@
+#include "esp_camera.h"
+  #include <WiFi.h>
+  #include <HTTPClient.h>
+  #include <WiFiManager.h>
+  #include <ArduinoJson.h>
+
+  #define CAMERA_MODEL_AI_THINKER
+  #define PWDN_GPIO_NUM     32
+  #define RESET_GPIO_NUM    -1
+  #define XCLK_GPIO_NUM      0
+  #define SIOD_GPIO_NUM     26
+  #define SIOC_GPIO_NUM     27
+  #define Y9_GPIO_NUM       35
+  #define Y8_GPIO_NUM       34
+  #define Y7_GPIO_NUM       39
+  #define Y6_GPIO_NUM       36
+  #define Y5_GPIO_NUM       21
+  #define Y4_GPIO_NUM       19
+  #define Y3_GPIO_NUM       18
+  #define Y2_GPIO_NUM        5
+  #define VSYNC_GPIO_NUM    25
+  #define HREF_GPIO_NUM     23
+  #define PCLK_GPIO_NUM     22
+
+  struct DeviceConfig {
+    String devicePassword = "esp32_secret";
+    String serverUrl = "https://cpeoffice.sut.ac.th/water/api"; // production backend
+    int retries = 3;
+    int sleepMinutes = 15;
+  };
+
+  DeviceConfig config;
+  String jwtToken = "";
+
+  // deep sleep helper
+  void goToDeepSleep(int minutes) {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    Serial.println("Entering deep sleep for " + String(minutes) + " mins...");
+    esp_sleep_enable_timer_wakeup(minutes * 60 * 1000000ULL);
+    esp_deep_sleep_start();
+  }
+
+  // login ESP32 device
+  bool loginESP32() {
+    if (WiFi.status() != WL_CONNECTED) return false;
+
+    String deviceMAC = WiFi.macAddress();
+    String url = config.serverUrl + "/signin";
+
+    HTTPClient https;
+    https.begin(url);
+    https.addHeader("Content-Type", "application/json");
+
+    String body = "{\"username\"😕"" + deviceMAC + "\",\"password\"😕"" + config.devicePassword + "\"}";
+    Serial.println("Login body: " + body);
+
+    int httpCode = https.POST(body);
+    Serial.println("HTTP response code: " + String(httpCode));
+
+    if (httpCode == 200) {
+      String payload = https.getString();
+      Serial.println("Signin response: " + payload);
+
+      StaticJsonDocument<512> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (error) {
+        Serial.println("JSON parse failed: " + String(error.c_str()));
+        https.end();
+        return false;
+      }
+
+      jwtToken = doc["token"].as<String>();
+      Serial.println("Got Token: " + jwtToken);
+      https.end();
+      return true;
+    } else {
+      String payload = https.getString();
+      Serial.println("Signin failed, payload: " + payload);
+    }
+
+    https.end();
+    return false;
+  }
+
+  // upload image using HTTPClient + JWT
+  bool uploadImage(camera_fb_t *fb) {
+    if (WiFi.status() != WL_CONNECTED || jwtToken == "") {
+      Serial.println("WiFi not connected or no JWT token");
+      return false;
+    }
+
+    WiFiClient client;
+    String serverHost = "cpeoffice.sut.ac.th"; // server ของคุณ
+    int serverPort = 8002;                     // ใช้ port 8002
+
+    if (!client.connect(serverHost.c_str(), serverPort)) {
+      Serial.println("Connection to server failed");
+      return false;
+    }
+
+    String macAddress = WiFi.macAddress();
+    String boundary = "----WebBoundaryWaterMeter";
+
+    String startRequest =
+        "--" + boundary + "\r\n"
+        "Content-Disposition: form-data; name=\"mac\"\r\n\r\n" +
+        macAddress + "\r\n"
+        "--" + boundary + "\r\n"
+        "Content-Disposition: form-data; name=\"image\"; filename=\"capture.jpg\"\r\n"
+        "Content-Type: image/jpeg\r\n\r\n";
+
+    String endRequest = "\r\n--" + boundary + "--\r\n";
+    int contentLength = startRequest.length() + fb->len + endRequest.length();
+
+    // HTTP Header
+    client.println("POST /upload_image HTTP/1.1");
+    client.println("Host: " + serverHost + ":" + String(serverPort));
+    client.println("Content-Type: multipart/form-data; boundary=" + boundary);
+    client.println("Authorization: Bearer " + jwtToken);
+    client.println("Content-Length: " + String(contentLength));
+    client.println("Connection: close");
+    client.println();
+
+    // Body
+    client.print(startRequest);
+    client.write(fb->buf, fb->len);
+    client.print(endRequest);
+
+    // รอ response
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+      if (millis() - timeout > 20000) { // timeout 20 วินาที
+        Serial.println(">>> Client Timeout !");
+        client.stop();
+        return false;
+      }
+    }
+
+    Serial.println("Upload response:");
+    bool success = false;
+    while (client.available()) {
+      String line = client.readStringUntil('\n');
+      Serial.println(line);
+      if (line.indexOf("200 OK") != -1) success = true;
+    }
+
+    client.stop();
+    return success;
+  }
+
+
+  // capture + upload with retries
+  void captureAndUpload() {
+    int retryCount = 0;
+    while (retryCount < config.retries) {
+      camera_fb_t *fb = esp_camera_fb_get();
+      if (!fb) {
+        Serial.println("Camera capture failed");
+        retryCount++;
+        delay(500);
+        continue;
+      }
+
+      if (uploadImage(fb)) {
+        Serial.println("Upload succeeded");
+        esp_camera_fb_return(fb);
+        break;
+      } else {
+        Serial.println("Upload failed, retrying...");
+        esp_camera_fb_return(fb);
+        retryCount++;
+        delay(500);
+      }
+    }
+
+    if (retryCount == config.retries) {
+      Serial.println("Max retries reached");
+    }
+  }
+
+  void setup() {
+    Serial.begin(115200);
+    delay(1000);
+
+    // camera init
+    camera_config_t camcfg;
+    camcfg.ledc_channel = LEDC_CHANNEL_0;
+    camcfg.ledc_timer = LEDC_TIMER_0;
+    camcfg.pin_d0 = Y2_GPIO_NUM;
+    camcfg.pin_d1 = Y3_GPIO_NUM;
+    camcfg.pin_d2 = Y4_GPIO_NUM;
+    camcfg.pin_d3 = Y5_GPIO_NUM;
+    camcfg.pin_d4 = Y6_GPIO_NUM;
+    camcfg.pin_d5 = Y7_GPIO_NUM;
+    camcfg.pin_d6 = Y8_GPIO_NUM;
+    camcfg.pin_d7 = Y9_GPIO_NUM;
+    camcfg.pin_xclk = XCLK_GPIO_NUM;
+    camcfg.pin_pclk = PCLK_GPIO_NUM;
+    camcfg.pin_vsync = VSYNC_GPIO_NUM;
+    camcfg.pin_href = HREF_GPIO_NUM;
+    camcfg.pin_sccb_sda = SIOD_GPIO_NUM;
+    camcfg.pin_sccb_scl = SIOC_GPIO_NUM;
+    camcfg.pin_pwdn = PWDN_GPIO_NUM;
+    camcfg.pin_reset = RESET_GPIO_NUM;
+    camcfg.xclk_freq_hz = 20000000;
+    camcfg.frame_size = FRAMESIZE_SVGA;
+    camcfg.pixel_format = PIXFORMAT_JPEG;
+    camcfg.grab_mode = CAMERA_GRAB_LATEST;
+    camcfg.fb_location = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+    camcfg.jpeg_quality = 10;
+    camcfg.fb_count = 2;
+
+    if (esp_camera_init(&camcfg) != ESP_OK) {
+      Serial.println("Camera init failed");
+      return;
+    }
+
+    // WiFiManager
+    WiFiManager wm;
+    if (!wm.autoConnect("ESP32_CAM_AP")) {
+      Serial.println("Failed to connect WiFi, restarting...");
+      ESP.restart();
+    }
+    Serial.println("WiFi connected: " + WiFi.SSID());
+
+    // login ESP32
+    if (!loginESP32()) {
+      Serial.println("Failed to login, going to deep sleep...");
+      goToDeepSleep(config.sleepMinutes);
+    }
+
+    // capture and upload
+    captureAndUpload();
+
+    // deep sleep
+    goToDeepSleep(config.sleepMinutes);
+  }
+
+  void loop() {}
+cpeoffice.sut.ac.th
+Non
+Danuporn
+#include "esp_camera.h"
+  #include <WiFi.h>
+  #include <HTTPClient.h>
+  #include <WiFiManager.h>
+  #include <ArduinoJson.h>
+
+  #define CAMERA_MODEL_AI_THINKER
+  #define PWDN_GPIO_NUM     32
+  #define RESET_GPIO_NUM    -1
+  #define XCLK_GPIO_NUM      0
+  #define SIOD_GPIO_NUM     26
+  #define SIOC_GPIO_NUM     27
+  #define Y9_GPIO_NUM       35
+  #define Y8_GPIO_NUM       34
+  #define Y7_GPIO_NUM       39
+  #define Y6_GPIO_NUM       36
+  #define Y5_GPIO_NUM       21
+  #define Y4_GPIO_NUM       19
+  #define Y3_GPIO_NUM       18
+  #define Y2_GPIO_NUM        5
+  #define VSYNC_GPIO_NUM    25
+  #define HREF_GPIO_NUM     23
+  #define PCLK_GPIO_NUM     22
+
+  struct DeviceConfig {
+    String devicePassword = "esp32_secret";
+    String serverUrl = "http:192.168.0.101:8000";
+    int retries = 3;
+    int sleepMinutes = 15;
+  };
+
+  DeviceConfig config;
+  String jwtToken = "";
+
+  // deep sleep helper
+  void goToDeepSleep(int minutes) {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    Serial.println("Entering deep sleep for " + String(minutes) + " mins...");
+    esp_sleep_enable_timer_wakeup(minutes * 60 * 1000000ULL);
+    esp_deep_sleep_start();
+  }
+
+  // login ESP32 device
+  bool loginESP32() {
+    if (WiFi.status() != WL_CONNECTED) return false;
+
+    String deviceMAC = WiFi.macAddress();
+    String url = config.serverUrl + "/signin";
+
+    HTTPClient https;
+    https.begin(url);
+    https.addHeader("Content-Type", "application/json");
+
+    String body = "{\"username\"😕"" + deviceMAC + "\",\"password\"😕"" + config.devicePassword + "\"}";
+    Serial.println("Login body: " + body);
+
+    int httpCode = https.POST(body);
+    Serial.println("HTTP response code: " + String(httpCode));
+
+    if (httpCode == 200) {
+      String payload = https.getString();
+      Serial.println("Signin response: " + payload);
+
+      StaticJsonDocument<512> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (error) {
+        Serial.println("JSON parse failed: " + String(error.c_str()));
+        https.end();
+        return false;
+      }
+
+      jwtToken = doc["token"].as<String>();
+      Serial.println("Got Token: " + jwtToken);
+      https.end();
+      return true;
+    } else {
+      String payload = https.getString();
+      Serial.println("Signin failed, payload: " + payload);
+    }
+
+    https.end();
+    return false;
+  }
+
+  bool uploadImage(camera_fb_t *fb) {
+    if (WiFi.status() != WL_CONNECTED || jwtToken == "") {
+      Serial.println("WiFi not connected or no JWT token");
+      return false;
+    }
+
+    WiFiClient client;
+    String serverHost = "192.168.0.101";
+    int serverPort = 8000;
+
+    if (!client.connect(serverHost.c_str(), serverPort)) {
+      Serial.println("Connection to server failed");
+      return false;
+    }
+
+    String macAddress = WiFi.macAddress();
+    String boundary = "----WebBoundaryWaterMeter";
+
+    String startRequest =
+        "--" + boundary + "\r\n"
+        "Content-Disposition: form-data; name=\"mac\"\r\n\r\n" +
+        macAddress + "\r\n"
+        "--" + boundary + "\r\n"
+        "Content-Disposition: form-data; name=\"image\"; filename=\"capture.jpg\"\r\n"
+        "Content-Type: image/jpeg\r\n\r\n";
+
+    String endRequest = "\r\n--" + boundary + "--\r\n";
+    int contentLength = startRequest.length() + fb->len + endRequest.length();
+
+    // HTTP Header
+    client.println("POST /upload_image HTTP/1.1");
+    client.println("Host: " + serverHost + ":" + String(serverPort));
+    client.println("Content-Type: multipart/form-data; boundary=" + boundary);
+    client.println("Authorization: Bearer " + jwtToken);
+    client.println("Content-Length: " + String(contentLength));
+    client.println("Connection: close");
+    client.println();
+
+    // Body
+    client.print(startRequest);
+    client.write(fb->buf, fb->len);
+    client.print(endRequest);
+
+    // รอ response
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+      if (millis() - timeout > 20000) {
+        Serial.println(">>> Client Timeout !");
+        client.stop();
+        return false;
+      }
+    }
+
+    Serial.println("Upload response:");
+    bool success = false;
+    while (client.available()) {
+      String line = client.readStringUntil('\n');
+      Serial.println(line);
+      if (line.indexOf("200 OK") != -1) success = true;
+    }
+
+    client.stop();
+    return success;
+  }
+
+
+  // capture + upload with retries
+  void captureAndUpload() {
+    int retryCount = 0;
+    while (retryCount < config.retries) {
+      camera_fb_t *fb = esp_camera_fb_get();
+      if (!fb) {
+        Serial.println("Camera capture failed");
+        retryCount++;
+        delay(500);
+        continue;
+      }
+
+      if (uploadImage(fb)) {
+        Serial.println("Upload succeeded");
+        esp_camera_fb_return(fb);
+        break;
+      } else {
+        Serial.println("Upload failed, retrying...");
+        esp_camera_fb_return(fb);
+        retryCount++;
+        delay(500);
+      }
+    }
+
+    if (retryCount == config.retries) {
+      Serial.println("Max retries reached");
+    }
+  }
+
+  void setup() {
+    Serial.begin(115200);
+    delay(1000);
+
+    // camera init
+    camera_config_t camcfg;
+    camcfg.ledc_channel = LEDC_CHANNEL_0;
+    camcfg.ledc_timer = LEDC_TIMER_0;
+    camcfg.pin_d0 = Y2_GPIO_NUM;
+    camcfg.pin_d1 = Y3_GPIO_NUM;
+    camcfg.pin_d2 = Y4_GPIO_NUM;
+    camcfg.pin_d3 = Y5_GPIO_NUM;
+    camcfg.pin_d4 = Y6_GPIO_NUM;
+    camcfg.pin_d5 = Y7_GPIO_NUM;
+    camcfg.pin_d6 = Y8_GPIO_NUM;
+    camcfg.pin_d7 = Y9_GPIO_NUM;
+    camcfg.pin_xclk = XCLK_GPIO_NUM;
+    camcfg.pin_pclk = PCLK_GPIO_NUM;
+    camcfg.pin_vsync = VSYNC_GPIO_NUM;
+    camcfg.pin_href = HREF_GPIO_NUM;
+    camcfg.pin_sccb_sda = SIOD_GPIO_NUM;
+    camcfg.pin_sccb_scl = SIOC_GPIO_NUM;
+    camcfg.pin_pwdn = PWDN_GPIO_NUM;
+    camcfg.pin_reset = RESET_GPIO_NUM;
+    camcfg.xclk_freq_hz = 20000000;
+    camcfg.frame_size = FRAMESIZE_SVGA;
+    camcfg.pixel_format = PIXFORMAT_JPEG;
+    camcfg.grab_mode = CAMERA_GRAB_LATEST;
+    camcfg.fb_location = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+    camcfg.jpeg_quality = 10;
+    camcfg.fb_count = 2;
+
+    if (esp_camera_init(&camcfg) != ESP_OK) {
+      Serial.println("Camera init failed");
+      return;
+    }
+
+    // WiFiManager
+    WiFiManager wm;
+    if (!wm.autoConnect("ESP32_CAM_AP")) {
+      Serial.println("Failed to connect WiFi, restarting...");
+      ESP.restart();
+    }
+    Serial.println("WiFi connected: " + WiFi.SSID());
+
+    // login ESP32
+    if (!loginESP32()) {
+      Serial.println("Failed to login, going to deep sleep...");
+      goToDeepSleep(config.sleepMinutes);
+    }
+
+    // capture and upload
+    captureAndUpload();
+
+    // deep sleep
+    goToDeepSleep(config.sleepMinutes);
+  }
+
+  void loop() {}

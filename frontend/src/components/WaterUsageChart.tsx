@@ -324,7 +324,7 @@ export const WaterUsageChart: React.FC<WaterUsageChartProps> = ({
                     เวลา
                   </th>
                   <th className="px-6 py-4 font-semibold text-gray-700 text-center">
-                    ค่าที่อ่านได้
+                    ปริมาณน้ำที่ใช้ (ลบ.ม.)
                   </th>
                   <th className="px-6 py-4 font-semibold text-gray-700 text-center">
                     หมายเหตุ

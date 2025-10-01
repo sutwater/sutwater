@@ -14,6 +14,7 @@ import (
 	"github.com/watermeter/suth/controller/upload_image"
 	"github.com/watermeter/suth/controller/users"
 	"github.com/watermeter/suth/controller/waterlog"
+	"github.com/watermeter/suth/controller/waterusage"
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
 )
@@ -95,6 +96,7 @@ func main() {
 		router.POST("/meters", meter.CreateMeter)
 		router.PUT("/meters/:id", meter.UpdateMeterLocation)
 		router.DELETE("/meters/:id", meter.DeleteMeterLocation)
+		router.GET("/meter/name/:id", meter.GetMeterLocationByID)
 
 		//CameraDevice
 		router.GET("/cameradevices", device.GetCameraDevices)
@@ -106,6 +108,11 @@ func main() {
 		router.POST("/upload_image", upload_image.UploadMeterImage)
 
 	}
+
+	r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
+	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
+	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
+	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
 	r.Run("0.0.0.0:" + PORT)
 	//r.Run("localhost:" + PORT)
