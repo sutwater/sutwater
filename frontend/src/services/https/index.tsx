@@ -180,6 +180,13 @@ async function fetchWaterValueReqByCameraId(id: string) {
     .catch((e) => e.response);
 }
 
+export async function deleteWaterDataByCameraID(cameraID: string) {
+  return await axios
+    .delete(`${apiUrl}/watervalue/clear/${cameraID}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 async function fetchAllWaterValueReq() {
   return await axios
     .get(`${apiUrl}/watervalue/req`, authHeader())

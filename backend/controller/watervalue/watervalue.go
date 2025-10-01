@@ -60,7 +60,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		MeterValue      int     `json:"MeterValue" form:"MeterValue"`
 		ModelConfidence float64 `json:"ModelConfidence" form:"ModelConfidence"`
 		Note            string  `json:"Note" form:"Note"`
-		UserID          *uint    `json:"UserID" form:"UserID"`
+		UserID          *uint   `json:"UserID" form:"UserID"`
 		CameraDeviceID  uint    `json:"CameraDeviceID" form:"CameraDeviceID"`
 	}
 
@@ -415,5 +415,36 @@ func UpdateWaterMeterStatusToReJect(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "StatusID updated to 3",
 		"data":    waterValue,
+	})
+}
+
+func ClearWaterMeterDataByCameraID(c *gin.Context) {
+	db := config.DB()
+	cameraID := c.Param("camera_id")
+
+	// แปลง cameraID เป็น uint
+	var uintCameraID uint
+	if parsedID, err := strconv.ParseUint(cameraID, 10, 64); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid CameraDeviceID"})
+		return
+	} else {
+		uintCameraID = uint(parsedID)
+	}
+
+	// ลบข้อมูลใน WaterMeterValue ตาม CameraDeviceID
+	if err := db.Where("camera_device_id = ?", uintCameraID).Delete(&entity.WaterMeterValue{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete WaterMeterValue"})
+		return
+	}
+
+	// ลบข้อมูลใน DailyWaterUsage ตาม CameraDeviceID
+	if err := db.Where("camera_device_id = ?", uintCameraID).Delete(&entity.DailyWaterUsage{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete DailyWaterUsage"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "WaterMeterValue and DailyWaterUsage cleared successfully",
+		"CameraDeviceID": uintCameraID,
 	})
 }

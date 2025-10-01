@@ -93,6 +93,7 @@ func main() {
 		router.PATCH("/watervalue/status/:id", watervalue.UpdateWaterMeterStatusByID)
 		router.PATCH("/watervalue/status/reject/:id", watervalue.UpdateWaterMeterStatusToReJect)
 		router.DELETE("/watervalue/:id", watervalue.DeleteCameraDeviceDataByID)
+		router.DELETE("/watervalue/clear/:camera_id", watervalue.ClearWaterMeterDataByCameraID)
 
 		//Notification
 		router.GET("/notifications", notification.GetAllNotifications)

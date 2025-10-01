@@ -7,11 +7,14 @@ import {
   Save,
   ArrowLeft,
   Upload,
-  MapPin,
-  Users,
   FileText,
   Tag,
   Image,
+  Calendar,
+  Clock,
+  Droplets,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 import {
@@ -83,21 +86,22 @@ console.log("waterValue: ",waterValue)
     if (!waterValue) return false;
     const newErrors: { [key: string]: string } = {};
 
-    // ตรวจสอบเวลา
     if (!waterValue.Timestamp?.trim()) {
       newErrors.Time = "กรุณาเลือกเวลาที่บันทึก";
     }
 
-    // ตรวจสอบค่ามิเตอร์
     if (!waterValue.MeterValue || waterValue.MeterValue < 1) {
-      newErrors.MeterValue = "กรุณากรอกค่ามิเตอร์น้ำที่มากกว่า 0 ลบ.ม.";
-    } else if (waterValue.MeterValue > 100000) {
-      newErrors.MeterValue = "ค่ามิเตอร์น้ำต้องไม่เกิน 100,000 ลบ.ม.";
+      newErrors.MeterValue = "กรุณากรอกค่ามิเตอร์น้ำที่มากกว่า 0";
+    } else if (waterValue.MeterValue > 9999999) {
+      newErrors.MeterValue = "ค่ามิเตอร์น้ำต้องไม่เกิน 9,999,999";
     }
 
-    // ตรวจสอบรูปภาพ
     if (!uploadedFile && !waterValue?.ImagePath) {
       newErrors.ImagePath = "กรุณาอัปโหลดรูปภาพมิเตอร์น้ำ";
+    }
+
+    if (uploadedFile && uploadedFile.size > 5 * 1024 * 1024) {
+      newErrors.ImagePath = "ขนาดไฟล์ต้องไม่เกิน 5 MB";
     }
 
     setErrors(newErrors);
@@ -116,14 +120,13 @@ console.log("waterValue: ",waterValue)
   const handleSubmit = async () => {
     if (!validateForm() || !waterValue || !id) return;
 
-    // ตรวจสอบว่า uploadedFile (ถ้ามี) ต้องเป็น File จริง
     if (uploadedFile && !(uploadedFile instanceof File)) {
       message.error("ไฟล์รูปภาพไม่ถูกต้อง");
       return;
     }
 
     setIsLoading(true);
-    setConfirmOpen(false); // ปิด confirm modal
+    setConfirmOpen(false);
     setStatusType("loading");
     setStatusMessage("กำลังบันทึกข้อมูล...");
     setStatusOpen(true);
@@ -180,7 +183,7 @@ console.log("waterValue: ",waterValue)
     const loadStatus = async () => {
   try {
     const res = await fetchWaterValueStatus();
-    const statusArray = res.data.status; // ✅ ดึงเฉพาะ array
+    const statusArray = res.data.status;
     setStatusList(statusArray);
     console.log("Loaded statusList:", statusArray);
   } catch (err) {
@@ -193,7 +196,7 @@ console.log("waterValue: ",waterValue)
       if (!id) return;
       try {
         const res = await fetchWaterValueById(id);
-        const waterData: WaterMeterValueInterface = res.data.data; // ✅ ดึงเฉพาะ data
+        const waterData: WaterMeterValueInterface = res.data.data;
         setWaterValue(waterData);
         console.log("Loaded waterValue:", waterData);
       } catch (err) {
@@ -207,24 +210,30 @@ console.log("waterValue: ",waterValue)
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white/90 backdrop-blur-lg shadow-lg border-b border-blue-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-6">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer"
+                className="group flex items-center gap-3 text-gray-600 hover:text-blue-600 transition-all px-4 py-2.5 rounded-xl hover:bg-blue-50 cursor-pointer"
               >
-                <ArrowLeft size={20} />
-                <span className="font-medium">กลับ</span>
+                <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="font-semibold">กลับ</span>
               </button>
-              <div className="h-6 border-l border-gray-300"></div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  แก้ไขข้อมูลมิเตอร์น้ำ
-                </h1>
+              <div className="h-8 w-px bg-gradient-to-b from-transparent via-blue-300 to-transparent"></div>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Droplets size={24} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-blue-600">
+                    แก้ไขข้อมูลมิเตอร์น้ำ
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-0.5">อัปเดตค่ามิเตอร์และข้อมูลที่เกี่ยวข้อง</p>
+                </div>
               </div>
             </div>
           </div>
@@ -232,79 +241,73 @@ console.log("waterValue: ",waterValue)
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-[#640D5F] to-[#640D5F] text-white">
-                <div className="flex items-center gap-3">
-                  <FileText size={24} />
-                  <h2 className="text-lg font-semibold">ข้อมูลมิเตอร์น้ำ</h2>
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
+              <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-500 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <FileText size={22} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">ข้อมูลการบันทึกค่ามิเตอร์</h2>
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* เวลาวันที่ */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                      <Tag size={16} />
-                      วันที่
+              <div className="p-8 space-y-6">
+                {/* Date & Time */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="group">
+                    <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 mb-3">
+                      <div className="p-1.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                        <Calendar size={16} className="text-blue-600" />
+                      </div>
+                      วันที่บันทึก
                     </label>
-                    <input
-                      type="date"
-                      value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("YYYY-MM-DD") : ""}
-                      readOnly
-                      className="w-full px-4 py-3 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-                      placeholder="กรอกวันที่..."
-                    />
-                    {errors.Date && (
-                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                        <span>⚠️</span> {errors.Date}
-                      </p>
-                    )}
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("YYYY-MM-DD") : ""}
+                        readOnly
+                        className="w-full px-4 py-3.5 pl-12 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed font-medium"
+                      />
+                      <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    </div>
                   </div>
-                    {/* เวลา */}
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                      <Tag size={16} />
-                      เวลา
+
+                  <div className="group">
+                    <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 mb-3">
+                      <div className="p-1.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                        <Clock size={16} className="text-blue-600" />
+                      </div>
+                      เวลาที่บันทึก
                     </label>
-                    <input
-                      type="time"
-                      value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("HH:mm") : ""}
-                      readOnly
-                      className="w-full px-4 py-3 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-                      placeholder="เลือกเวลา..."
-                    />
-                    {errors.Time && (
-                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>{" "}
-                        {errors.Time}
-                      </p>
-                    )}
+                    <div className="relative">
+                      <input
+                        type="time"
+                        value={waterValue?.Timestamp ? dayjs(waterValue.Timestamp).format("HH:mm") : ""}
+                        readOnly
+                        className="w-full px-4 py-3.5 pl-12 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed font-medium"
+                      />
+                      <Clock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    </div>
                   </div>
                 </div>
-                    {/* ค่ามิเตอร์น้ำ */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                    <MapPin size={16} />
-                    ค่ามิเตอร์น้ำ (ลบ.ม.) <span className="text-red-500">*</span>
-                  </label>
 
-                  {/* กล่อง input + หน่วย */}
+                {/* Meter Value */}
+                <div className="group">
+                  <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 mb-3">
+                    <div className="p-1.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <Droplets size={16} className="text-blue-600" />
+                    </div>
+                    ค่ามิเตอร์น้ำ <span className="text-red-500 ml-1">*</span>
+                  </label>
                   <div className="relative">
                     <input
                       type="number"
                       min="1"
-
                       max="100000"
                       value={waterValue?.MeterValue ?? ""}
                       onInput={(e) => {
@@ -313,95 +316,88 @@ console.log("waterValue: ",waterValue)
                         if (value < 1) (e.target as HTMLInputElement).value = "1";
                       }}
                       onChange={(e) => handleInputChange("MeterValue", Number(e.target.value))}
-                      className={`w-full px-4 py-3 pr-16 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.MeterValue
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      placeholder="กรอกค่ามิเตอร์น้ำ..."
+                      className={`w-full px-4 py-3.5 pr-20 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all font-semibold text-lg ${
+                        errors.MeterValue
+                          ? "border-red-300 bg-red-50 focus:ring-red-200 focus:border-red-400"
+                          : "border-blue-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-100"
+                      }`}
+                      placeholder="กรอกค่ามิเตอร์..."
                     />
-
-                    {/* หน่วยอยู่ขวาใน input */}
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg shadow-md">
                       ลบ.ม.
-                    </span>
+                    </div>
                   </div>
-
                   {errors.MeterValue && (
-                    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      {errors.MeterValue}
-                    </p>
+                    <div className="flex items-center gap-2 mt-3 text-red-600 text-sm font-medium bg-red-50 px-4 py-2.5 rounded-lg border border-red-200">
+                      <AlertCircle size={16} />
+                      <span>{errors.MeterValue}</span>
+                    </div>
                   )}
                 </div>
-                  {/* //หมายเหตุ */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                    <FileText size={16} />
-                    หมายเหตุ
+
+                {/* Note */}
+                <div className="group">
+                  <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 mb-3">
+                    <div className="p-1.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <FileText size={16} className="text-blue-600" />
+                    </div>
+                    หมายเหตุเพิ่มเติม
                   </label>
-                  <input
-                    type="text"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-                    value={waterValue?.Note}
-                    placeholder="กรอกหมายเหตุ (ถ้ามี)..."
+                  <textarea
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none resize-none hover:border-gray-300"
+                    value={waterValue?.Note || ""}
+                    placeholder="ระบุหมายเหตุหรือข้อมูลเพิ่มเติม (ถ้ามี)..."
+                    rows={3}
                     onChange={(e) => handleInputChange("Note", e.target.value)}
                   />
-
-                  <div className="flex justify-between items-center mt-2">
-                    {errors.Time && (
-                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                        {errors.Time}
-                      </p>
-                    )}
-                  </div>
                 </div>
-
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-[#640D5F] to-[#640D5F] text-white">
-                <div className="flex items-center gap-3">
-                  <Users size={24} />
-                  <h2 className="text-lg font-semibold">สถานะการอนุมัติข้อมูล</h2>
+
+            {/* Status Section */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
+              <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-500 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <CheckCircle2 size={22} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">สถานะการอนุมัติข้อมูล</h2>
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                <div className="p-0 space-y-0">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                      <Tag size={16} />
-                      สถานะข้อมูลมิเตอร์ *
-                    </label>
-                    <select
-                      value={waterValue?.StatusID}
-                      onChange={(e) =>
-                        handleInputChange("StatusID", parseInt(e.target.value))
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.StatusID
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300 hover:border-gray-400"
-                        }`}
-                    >
-                      <option value="">เลือกสถานะข้อมูลมิเตอร์</option>
-                      {filteredStatusList.map((status) => (
-                        <option key={status.ID} value={status.ID}>
-                          {status.Description}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.StatusID && (
-                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                        <span>⚠️</span> {errors.StatusID}
-                      </p>
-                    )}
-                  </div>
+              <div className="p-8">
+                <div className="group">
+                  <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 mb-3">
+                    <div className="p-1.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                      <Tag size={16} className="text-blue-600" />
+                    </div>
+                    สถานะข้อมูล <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    value={waterValue?.StatusID}
+                    onChange={(e) =>
+                      handleInputChange("StatusID", parseInt(e.target.value))
+                    }
+                    className={`w-full px-4 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all font-medium ${
+                      errors.StatusID
+                        ? "border-red-300 bg-red-50 focus:ring-red-200"
+                        : "border-blue-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-100"
+                    }`}
+                  >
+                    <option value="">เลือกสถานะข้อมูล</option>
+                    {filteredStatusList.map((status) => (
+                      <option key={status.ID} value={status.ID}>
+                        {status.Description}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.StatusID && (
+                    <div className="flex items-center gap-2 mt-3 text-red-600 text-sm font-medium bg-red-50 px-4 py-2.5 rounded-lg border border-red-200">
+                      <AlertCircle size={16} />
+                      <span>{errors.StatusID}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -409,57 +405,55 @@ console.log("waterValue: ",waterValue)
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Poster Image */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-[#640D5F] to-[#640D5F] text-white">
-                <div className="flex items-center gap-3">
-                  <Image size={24} />
-                  <h2 className="text-lg font-semibold">รูปภาพมิเตอร์น้ำ</h2>
+            {/* Image Upload */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
+              <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-500 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Image size={22} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">รูปภาพมิเตอร์น้ำ</h2>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="relative group">
+
+              <div className="p-6 space-y-5">
+                <div className="relative group overflow-hidden rounded-xl">
                   <img
                     src={previewImage ?? (waterValue?.ImagePath ? getImageUrl(waterValue.ImagePath) : undefined)}
-                    alt={"Meter Image"}
-                    title={waterValue?.ImagePath || "Meter Image"}
-                    className="w-full aspect-[3/3.25] object-cover rounded-lg border border-gray-200 group-hover:shadow-lg transition-shadow"
+                    alt="Meter Image"
+                    className="w-full aspect-square object-cover rounded-xl border-2 border-gray-200 group-hover:scale-105 transition-transform duration-500"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                </div>
 
-                  <div className="absolute inset-0  group-hover:bg-opacity-20 rounded-lg transition-all flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <label className="block cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <div className="flex items-center justify-center gap-3 px-5 py-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 cursor-pointer transition-all group shadow-sm hover:shadow-md">
+                    <Upload size={20} className="text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-blue-700 font-semibold">
+                      เปลี่ยนรูปภาพ
+                    </span>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all">
-                      <Upload size={18} className="text-blue-600" />
-                      <span className="text-blue-700 font-medium">
-                        เปลี่ยนรูปภาพมิเตอร์น้ำ
-                      </span>
-                    </div>
-                  </label>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    รองรับไฟล์ JPG, PNG (ขนาดไม่เกิน 5MB)
-                  </p>
-                </div>
+                </label>
+                <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  รองรับไฟล์ JPG, PNG<br />ขนาดไม่เกิน 5MB
+                </p>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 ">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200 p-6">
               <div className="space-y-3">
                 <button
                   onClick={() => setConfirmOpen(true)}
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg hover:shadow-xl cursor-pointer"
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-700 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold shadow-lg hover:shadow-2xl hover:scale-105 cursor-pointer group"
                 >
                   {isLoading ? (
                     <>
@@ -468,7 +462,7 @@ console.log("waterValue: ",waterValue)
                     </>
                   ) : (
                     <>
-                      <Save size={20} />
+                      <Save size={22} className="group-hover:scale-110 transition-transform" />
                       <span>บันทึกการแก้ไข</span>
                     </>
                   )}
@@ -477,7 +471,7 @@ console.log("waterValue: ",waterValue)
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="w-full px-6 py-3 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                  className="w-full px-6 py-4 text-gray-700 bg-gray-100 border-2 border-gray-200 rounded-xl hover:bg-gray-200 hover:border-gray-300 transition-all font-semibold cursor-pointer"
                 >
                   ยกเลิก
                 </button>
@@ -486,6 +480,7 @@ console.log("waterValue: ",waterValue)
           </div>
         </div>
       </div>
+
       <ConfirmModal
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -498,7 +493,6 @@ console.log("waterValue: ",waterValue)
         isLoading={isLoading}
       />
 
-      {/* Status Modal */}
       <StatusModal
         isOpen={statusOpen}
         onClose={() => {
@@ -512,7 +506,6 @@ console.log("waterValue: ",waterValue)
         autoClose={statusType === "success"}
         autoCloseDelay={3000}
       />
-
     </div>
   );
 };

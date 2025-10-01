@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
-import { ArrowLeft, Droplet, Building2, Calendar, Plus, Download, Edit, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Droplet, Building2, Calendar, Plus, Download, Edit, AlertTriangle, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GetMeterLocationDetail, updateWaterValueStatusById, CreateWaterMeterValue, fetchWaterValueReqByCameraId, updateWaterValueStatusToReJect } from "../../services/https"
+import { GetMeterLocationDetail, updateWaterValueStatusById, CreateWaterMeterValue, fetchWaterValueReqByCameraId, updateWaterValueStatusToReJect, deleteWaterDataByCameraID } from "../../services/https"
 import { CameraDeviceInterface, WaterMeterValueSaveInterface, WaterMeterValueInterface } from '../../interfaces/InterfaceAll';
 import { message } from 'antd';
 
@@ -170,6 +170,19 @@ const WaterMonitoringDashboard: React.FC = () => {
   const safeAvg = avgValue ?? 0; // ถ้า null จะใช้ 0 แทน
   const maxValue = (safeAvg + 5).toFixed(2);
   const minValue = Math.max(0, safeAvg - 5);
+
+  const handleClearData = async (cameraDeviceID?: number) => {
+  if (!cameraDeviceID) return;
+  if (!window.confirm("คุณแน่ใจหรือไม่ที่จะลบข้อมูลทั้งหมดของอุปกรณ์นี้?")) return;
+
+  try {
+    await deleteWaterDataByCameraID(cameraDeviceID.toString());
+    alert("ลบข้อมูลสำเร็จ");
+  } catch (err) {
+    console.error(err);
+    alert("ลบข้อมูลไม่สำเร็จ");
+  }
+};
 
   const handleInputChange = (field: keyof WaterMeterValueSaveInterface, value: string | number) => {
     setWaterValue((prev) => ({
@@ -923,30 +936,43 @@ const WaterMonitoringDashboard: React.FC = () => {
         {/* Data Table */}
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 p-6">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-6">
-            <div>
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
-                ประวัติการบันทึกค่ามิเตอร์
-              </h3>
-              <p className="text-gray-600">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
-            </div>
+  <div>
+    <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+      ประวัติการบันทึกค่ามิเตอร์
+    </h3>
+    <p className="text-gray-600">รายละเอียดการบันทึกค่ามิเตอร์น้ำทั้งหมด</p>
+  </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={exportToExcel}
-                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
-              >
-                <Download className="w-5 h-5" />
-                Export Excel
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
-              >
-                <Plus className="w-5 h-5" />
-                เพิ่มข้อมูล
-              </button>
-            </div>
-          </div>
+  <div className="flex gap-3">
+    {/* ปุ่ม Export */}
+    <button
+      onClick={exportToExcel}
+      className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
+    >
+      <Download className="w-5 h-5" />
+      Export Excel
+    </button>
+
+    {/* ปุ่มเพิ่มข้อมูล */}
+    <button
+      onClick={() => setShowAddModal(true)}
+      className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
+    >
+      <Plus className="w-5 h-5" />
+      เพิ่มข้อมูล
+    </button>
+
+    {/* ✅ ปุ่มเคลียร์ข้อมูล */}
+    <button
+      onClick={() => handleClearData(Number(id))}
+      className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer"
+    >
+      <Trash2 className="w-5 h-5" />
+      เคลียร์ข้อมูล
+    </button>
+  </div>
+</div>
+
 
           {/* Mobile Card Layout */}
 

@@ -18,7 +18,7 @@ export const WaterMeterConfirmModal: React.FC<WaterMeterConfirmModalProps> = ({
   data
 }) => {
   const [meterValue, setMeterValue] = useState<number>(0);
-console.log(data)
+
   useEffect(() => {
     if (data) {
       setMeterValue(data.MeterValue || 0);
@@ -58,13 +58,21 @@ console.log(data)
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Background overlay เบลอเต็มจอ */}
+      {/* Background overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-[fadeIn_0.25s_ease-out] z-10">
+      <div
+        className="
+          relative bg-white shadow-2xl w-full flex flex-col z-10
+          animate-[fadeIn_0.25s_ease-out] overflow-hidden
+          
+          md:max-w-lg md:max-h-[90vh] md:rounded-2xl
+          h-full rounded-none
+        "
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-5 relative rounded-t-2xl">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-5 relative flex-shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded-full transition-colors"
@@ -83,7 +91,7 @@ console.log(data)
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Image Preview */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -92,13 +100,12 @@ console.log(data)
             <div className="relative rounded-xl overflow-hidden bg-gray-100 border">
               {data.ImagePath ? (
                 <>
-                <img
-                    key={data.ID} // key เปลี่ยน => React สร้าง <img> ใหม่
-                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://localhost:8000/uploads/${data.ImagePath}`}
+                  <img
+                    key={data.ID}
+                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://localhost:8000/${data.ImagePath}`}
                     alt="Water Meter"
                     className="w-full object-cover"
-                    />
-                  
+                  />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                     <p className="text-white text-xs">
                       ถ่ายเมื่อ: {formatDateTime(data.Timestamp)}
@@ -175,22 +182,22 @@ console.log(data)
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleReject}
-              className="flex-1 px-4 py-3 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition"
-            >
-              ยกเลิก
-            </button>
-            <button
-              onClick={handleConfirm}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-cyan-700 transition shadow-md"
-            >
-              ยืนยัน
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="p-4 flex gap-3 border-t flex-shrink-0 bg-white">
+          <button
+            onClick={handleReject}
+            className="flex-1 px-4 py-3 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-cyan-700 transition shadow-md"
+          >
+            ยืนยัน
+          </button>
         </div>
       </div>
     </div>
