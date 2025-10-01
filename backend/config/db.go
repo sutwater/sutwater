@@ -38,7 +38,6 @@ func SetupDatabase() {
 		&entity.StatusWaterValue{},
 		&entity.WaterMeterValue{},
 		&entity.DailyWaterUsage{},
-		&entity.WaterUsage{},
 		&entity.DeviceCredential{},
 	)
 	seedRoles()

@@ -14,10 +14,8 @@ import (
 	"github.com/watermeter/suth/controller/upload_image"
 	"github.com/watermeter/suth/controller/users"
 	"github.com/watermeter/suth/controller/waterlog"
-	"github.com/watermeter/suth/controller/waterusage"
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
-	"github.com/watermeter/suth/services"
 )
 
 const PORT = "8000"
@@ -26,10 +24,6 @@ func main() {
 	config.Load()
 	config.ConnectionDB()
 	config.SetupDatabase()
-
-	db := config.DB()
-
-	services.SetDatabase(db)
 
 	r := gin.Default()
 	r.Use(CORSMiddleware())
@@ -112,12 +106,6 @@ func main() {
 		router.POST("/upload_image", upload_image.UploadMeterImage)
 
 	}
-
-	r.POST("/api/water-usage", waterusage.PostWaterUsage)
-	r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
-	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
-	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
-	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
 	r.Run("0.0.0.0:" + PORT)
 	//r.Run("localhost:" + PORT)
