@@ -3,12 +3,9 @@ import { Droplets } from "lucide-react";
 import { StatisticsCards } from "../../components/StatisticsCard";
 import { TimeFilter } from "../../components/TimeFilter";
 import { WaterUsageChart } from "../../components/WaterUsageChart";
-import {
-  periodComparisons,
-} from "../../data/mockData";
 import { useAppContext } from "../../contexts/AppContext";
-import { GetAllWaterDaily, getNotificationStats } from "../../services/https";
-import { NotificationStats } from "../../interfaces/types";
+import { GetAllWaterDaily, getNotificationStats, getWaterUsageStats } from "../../services/https";
+import { NotificationStats, PeriodComparison } from "../../interfaces/types";
 
 import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 
@@ -30,6 +27,24 @@ const WaterDashboard = () => {
     lastAlert: '',
   });
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // สร้าง state สำหรับ period comparisons
+  const [periodComparisons, setPeriodComparisons] = useState<PeriodComparison[]>([
+    {
+      period: 'วันนี้',
+      currentUsage: 0,
+      previousUsage: 0,
+      change: 0,
+      changePercent: 0
+    },
+    {
+      period: 'สัปดาห์นี้',
+      currentUsage: 0,
+      previousUsage: 0,
+      change: 0,
+      changePercent: 0
+    }
+  ]);
   // ไม่ใช้ currentTime แบบเรียลไทม์อีกต่อไป
 
   // เมื่อ meterLocations เปลี่ยน ให้เลือก ID ที่น้อยที่สุดเสมอ
@@ -62,6 +77,37 @@ const WaterDashboard = () => {
       }
     };
     fetchNotificationStats();
+  }, []);
+
+  // ดึงข้อมูล water usage stats
+  useEffect(() => {
+    const fetchWaterUsageStats = async () => {
+      try {
+        const res = await getWaterUsageStats();
+        if (res.status === 200) {
+          const { daily, weekly } = res.data;
+          setPeriodComparisons([
+            {
+              period: 'วันนี้',
+              currentUsage: daily.current,
+              previousUsage: daily.previous,
+              change: daily.change,
+              changePercent: parseFloat(daily.changePercent.toFixed(1))
+            },
+            {
+              period: 'สัปดาห์นี้',
+              currentUsage: weekly.current,
+              previousUsage: weekly.previous,
+              change: weekly.change,
+              changePercent: parseFloat(weekly.changePercent.toFixed(1))
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching water usage stats:', error);
+      }
+    };
+    fetchWaterUsageStats();
   }, []);
 
   // ดึงข้อมูลจาก backend ด้วย useEffect

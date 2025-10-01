@@ -262,6 +262,16 @@ export const getNotificationStats = async () => {
   }
 };
 
+// ดึงสถิติการใช้น้ำ
+export const getWaterUsageStats = async () => {
+  try {
+    const res = await axios.get(`${apiUrl}/api/water-usage/stats`, authHeader());
+    return res;
+  } catch (err: any) {
+    return err.response;
+  }
+};
+
 //status
 async function fetchWaterValueStatus() {
   return await axios

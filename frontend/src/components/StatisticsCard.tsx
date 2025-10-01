@@ -87,7 +87,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
                 {periodComparisons[0].changePercent > 0 ? "+" : ""}
                 {periodComparisons[0].changePercent}%
               </span>
-              <span className="text-sm text-gray-500">vs previous</span>
+              <span className="text-sm text-gray-500">vs เมื่อวาน</span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
               เปลี่ยนแปลง {periodComparisons[0].change.toLocaleString()} ลิตร
@@ -127,7 +127,7 @@ export const StatisticsCards: React.FC<StatisticsCardsProps> = ({
                 {periodComparisons[1].changePercent > 0 ? "+" : ""}
                 {periodComparisons[1].changePercent}%
               </span>
-              <span className="text-sm text-gray-500">vs previous</span>
+              <span className="text-sm text-gray-500">vs สัปดาห์ที่แล้ว</span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
               เปลี่ยนแปลง {periodComparisons[1].change.toLocaleString()} ลิตร

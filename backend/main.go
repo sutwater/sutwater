@@ -123,6 +123,7 @@ func main() {
 	r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
 	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
 	r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
+	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
 	// ✅ Run server
 	//r.Run("0.0.0.0:" + PORT)
