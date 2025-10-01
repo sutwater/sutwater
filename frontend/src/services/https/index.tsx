@@ -166,6 +166,13 @@ async function UpdateWaterMeterValue(id: string, formData: FormData) {
   }
 }
 
+export async function fetchMeterLocationById(id: string) {
+  return await axios
+    .get(`${apiUrl}/meter/name/${id}`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
 async function fetchWaterValueById(id: string) {
   return await axios
     .get(`${apiUrl}/watervalue/${id}`, authHeader())

@@ -98,12 +98,12 @@ const WaterMeterMap = () => {
       if (res.status == 200) {
         messageApi.open({
           type: "success",
-          content: "Create ingredient successfully",
+          content: "สร้างข้อมูลมิเตอร์สำเร็จ",
         });
       } else {
         messageApi.open({
           type: "error",
-          content: "Create ingredient Error",
+          content: "สร้างข้อมูลมิเตอร์ล้มเหลว",
         });
       }
 
