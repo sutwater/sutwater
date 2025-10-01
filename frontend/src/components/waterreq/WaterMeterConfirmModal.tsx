@@ -94,7 +94,7 @@ console.log(data)
                 <>
                 <img
                     key={data.ID} // key เปลี่ยน => React สร้าง <img> ใหม่
-                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://localhost:8000/${data.ImagePath}`}
+                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://localhost:8000/uploads/${data.ImagePath}`}
                     alt="Water Meter"
                     className="w-full object-cover"
                     />

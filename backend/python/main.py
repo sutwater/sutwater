@@ -6,8 +6,8 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 import os
 
-UNET_MODEL_PATH = r"C:\Users\umdan\Pre-Capstone\backend\python\model\unet_meter_model_cpu_fast.h5"
-CNN_MODEL_PATH  = r"C:\Users\umdan\Pre-Capstone\backend\python\model\digit_cnn_best copy.h5"
+UNET_MODEL_PATH = r"C:\Users\umdan\Pre-Capstone\backend\python\model\unet_meter.h5"
+CNN_MODEL_PATH  = r"C:\Users\umdan\Pre-Capstone\backend\python\model\cnn_digits.h5"
 
 MASK_THRESHOLD = 0.3
 NUM_DIGITS = 7
@@ -83,7 +83,7 @@ def predict_digits(digits):
 
 app = FastAPI(title="Meter Reader API", version="2.0")
 
-@app.post("/predict")
+@app.post("/process")
 async def predict(file: UploadFile = File(...)):
     try:
         img_bytes = await file.read()

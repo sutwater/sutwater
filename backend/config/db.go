@@ -16,7 +16,7 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-	dsn := "host=localhost user=watermeter password=watermeter dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+	dsn := "host=localhost user=postgres password=danuam123 dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
 
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -47,7 +47,6 @@ func SetupDatabase() {
 	seedStatuses()
 	seedMeterLocations()
 	seedUsers()
-	seedDeviceCredentials()
 	cameraDevices := seedCameraDevices()
 	seedNotifications(cameraDevices)
 	seedWaterMeterValues()
@@ -147,29 +146,26 @@ func seedUsers() {
 	}
 }
 
-func seedDeviceCredentials() {
-	devices := []entity.DeviceCredential{
-		{CameraDeviceID: 1, Username: "esp32_cam_01", Password: hashOrPanic("esp32_secret")},
-	}
-	for _, d := range devices {
-		db.FirstOrCreate(&d, &entity.DeviceCredential{Username: d.Username})
-	}
-}
-
 func seedCameraDevices() []entity.CameraDevice {
 	cameraDevices := []entity.CameraDevice{
-		{MacAddress: "11:1B:44:11:3A:B7", Status: true, MeterLocationID: 1},
-		{MacAddress: "22:2B:45:12:3A:B9", Status: true, MeterLocationID: 2},
-		{MacAddress: "33:3B:46:13:3B:B8", Status: false, MeterLocationID: 3},
-		{MacAddress: "44:4B:47:14:4B:B6", Status: false, MeterLocationID: 4},
-		{MacAddress: "55:5B:48:15:1B:B5", Status: false, MeterLocationID: 5},
-		{MacAddress: "66:6B:49:16:2B:B4",  Status: false, MeterLocationID: 6},
+		{MacAddress: "11:1B:44:11:3A:B7", Status: true, MeterLocationID: uintPtr(1)},
+		{MacAddress: "22:2B:45:12:3A:B9", Status: true, MeterLocationID: uintPtr(2)},
+		{MacAddress: "33:3B:46:13:3B:B8", Status: false, MeterLocationID: uintPtr(3)},
+		{MacAddress: "44:4B:47:14:4B:B6", Status: false, MeterLocationID: uintPtr(4)},
+		{MacAddress: "55:5B:48:15:1B:B5", Status: false, MeterLocationID: uintPtr(5)},
+		{MacAddress: "66:6B:49:16:2B:B4", Status: false, MeterLocationID: uintPtr(6)},
 	}
+
 	for i := range cameraDevices {
 		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
 	}
 	return cameraDevices
 }
+
+func uintPtr(u uint) *uint {
+	return &u
+}
+
 
 func seedNotifications(cameraDevices []entity.CameraDevice) {
 	notifications := []entity.Notification{}
@@ -211,7 +207,7 @@ func seedWaterMeterValues() {
 			CameraDeviceID:  cameraDeviceID,
 			StatusID:        1,
 			ImagePath:       imagePath,
-			UserID:          adminUser.ID, // <-- เพิ่มตรงนี้
+			UserID:          nil,
 		}
 
 		db.Create(&wm)

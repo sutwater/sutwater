@@ -115,10 +115,10 @@ func main() {
 		router.POST("/cameradevice", device.CreateCameraDevice)
 		router.DELETE("/cameradevice/:id", device.DeleteCameraDevicesByMeterLocationID)
 		router.PUT("/cameradevice/macaddress/:id", device.UpdateCameraDeviceMacAddress)
+		router.POST("/upload_image", upload_image.UploadMeterImage)
 
 	}
 
-	r.POST("/upload_image", upload_image.UploadMeterImage)
 	r.POST("/api/water-usage", waterusage.PostWaterUsage)
 	r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
 	r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
@@ -126,8 +126,8 @@ func main() {
 	r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
 
 	// ✅ Run server
-	//r.Run("0.0.0.0:" + PORT)
-	r.Run("localhost:" + PORT)
+	r.Run("0.0.0.0:" + PORT)
+	//r.Run("localhost:" + PORT)
 }
 
 func CORSMiddleware() gin.HandlerFunc {
