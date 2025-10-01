@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
 import { ArrowLeft, Droplet, Building2, Calendar, Plus, Download, Edit, AlertTriangle, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GetMeterLocationDetail, updateWaterValueStatusById, CreateWaterMeterValue, fetchWaterValueReqByCameraId, updateWaterValueStatusToReJect, deleteWaterDataByCameraID } from "../../services/https"
-import { CameraDeviceInterface, WaterMeterValueSaveInterface, WaterMeterValueInterface } from '../../interfaces/InterfaceAll';
+import { GetMeterLocationDetail, updateWaterValueStatusById, CreateWaterMeterValue, fetchWaterValueReqByCameraId, updateWaterValueStatusToReJect, deleteWaterDataByCameraID, fetchMeterLocationById } from "../../services/https"
+import { CameraDeviceInterface, WaterMeterValueSaveInterface, WaterMeterValueInterface, MeterLocationInterface } from '../../interfaces/InterfaceAll';
 import { message } from 'antd';
 
 import * as XLSX from "xlsx";
@@ -17,6 +17,7 @@ import { WaterMeterConfirmModal } from '../../components/waterreq/WaterMeterConf
 const WaterMonitoringDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [waterDetail, setWaterDetail] = useState<CameraDeviceInterface | null>(null);
+  const [meterLocation, setMeterLocation] = useState<MeterLocationInterface | null>(null);
   const [waterReq, setWaterReq] = useState<WaterMeterValueInterface | null>(null);
   //const { data, stats, verifyReading, rejectReading } = useMockData();
   const [selectedData, setSelectedData] = useState<WaterMeterValueInterface | null>(null);
@@ -31,7 +32,7 @@ const WaterMonitoringDashboard: React.FC = () => {
   const [, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
-  console.log(waterDetail)
+  console.log(meterLocation)
   const { loading, setLoading, user } = useAppContext();
   const [waterValue, setWaterValue] = useState<Partial<WaterMeterValueSaveInterface>>({
     Date: "",
@@ -244,6 +245,26 @@ const WaterMonitoringDashboard: React.FC = () => {
   const handleViewModal = (Data: WaterMeterValueInterface) => {
     setSelectedData(Data);
     setIsImageModalOpen(true);
+  };
+
+  const getMeterLocationById = async () => {
+    try {
+      const res = await fetchMeterLocationById(id!);
+      if (res.status === 200) {
+        console.log("res: ",res)
+        setMeterLocation(res.data.data);
+        messageApi.success("โหลดข้อมูลชื่อสำเร็จ");
+      } else if (res.status === 404) {
+        setMeterLocation(null);
+        messageApi.open({ type: "info", content: res.data.error });
+      } else {
+        setMeterLocation(null);
+        messageApi.open({ type: "error", content: res.data.error });
+      }
+    } catch (error) {
+      setMeterLocation(null);
+      messageApi.open({ type: "error", content: "เกิดข้อผิดพลาดในการโหลดข้อมูล" });
+    }
   };
 
   const getMeterLocationDetailById = async (startDate?: string, endDate?: string) => {
@@ -480,7 +501,9 @@ const WaterMonitoringDashboard: React.FC = () => {
 
     Promise.all([
       getMeterLocationDetailById(sevenDaysAgo.format("YYYY-MM-DD"), today.format("YYYY-MM-DD")),
-      loadWaterValueReq()
+      getMeterLocationById(),
+      loadWaterValueReq(),
+      
     ])
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
@@ -771,7 +794,7 @@ const WaterMonitoringDashboard: React.FC = () => {
               </button>
               <div className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-2xl shadow-xl">
                 <Building2 className="w-5 h-5" />
-                <span className="font-bold text-lg">{waterDetail?.MeterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
+                <span className="font-bold text-lg">{meterLocation?.Name ?? "ไม่ทราบชื่ออาคาร"}</span>
               </div>
             </div>
 

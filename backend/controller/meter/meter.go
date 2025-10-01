@@ -169,3 +169,22 @@ func DeleteMeterLocation(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "ลบ MeterLocation และข้อมูลที่เกี่ยวข้องเรียบร้อยแล้ว"})
 }
+
+func GetMeterLocationByID(c *gin.Context) {
+	db := config.DB()
+	id := c.Param("id")
+
+	var meterLocation entity.MeterLocation
+	if err := db.First(&meterLocation, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "ไม่พบข้อมูล MeterLocation",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "MeterLocation retrieved successfully",
+		"data":    meterLocation,
+	})
+}
