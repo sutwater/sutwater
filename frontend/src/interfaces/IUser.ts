@@ -14,6 +14,7 @@ export interface UsersInterface {
   Password?: string;
   LineUserID?: string;
   line_user_id?: string;
+  isAdmin?: boolean;
 
   // เพิ่มเพื่อให้แสดงเพศได้จาก relation ที่ preload จาก backend
   Gender?: GenderInterface;

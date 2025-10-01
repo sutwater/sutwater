@@ -167,14 +167,16 @@ const UserProfileDropdown = ({
               แก้ไขข้อมูลส่วนตัว
             </button>
 
-            <button
-              onClick={handleAdminDashboard}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
-              style={{ cursor: "pointer" }} // เพิ่ม cursor: pointer
-            >
-              <Settings className="w-4 h-4" />
-              Admin Dashboard
-            </button>
+            {user?.isAdmin && (
+              <button
+                onClick={handleAdminDashboard}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 transition-colors duration-150"
+                style={{ cursor: "pointer" }} // เพิ่ม cursor: pointer
+              >
+                <Settings className="w-4 h-4" />
+                Admin Dashboard
+              </button>
+            )}
 
             <div className="border-t border-gray-100 mt-2 pt-2 hidden sm:block">
               <button

@@ -63,7 +63,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const res = await GetUsersById(id);
       if (res && res.status === 200) {
-        setUser(res.data);
+        // เพิ่ม isAdmin จาก localStorage
+        const isAdmin = localStorage.getItem("isAdmin") === "true";
+        setUser({
+          ...res.data,
+          isAdmin: isAdmin
+        });
       } else {
         setUser(null);
         messageApi.open({
