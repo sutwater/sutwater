@@ -4,8 +4,7 @@ import { MeterLocationInterface } from "../../interfaces/InterfaceAll";
 
 import axios from "axios";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const apiUrl = "http://192.168.1.25:8000";
+export const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
 // ✅ ดึง token & type แบบ dynamic
 function authHeader() {
