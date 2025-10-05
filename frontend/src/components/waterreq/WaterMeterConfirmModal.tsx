@@ -102,7 +102,7 @@ export const WaterMeterConfirmModal: React.FC<WaterMeterConfirmModalProps> = ({
                 <>
                   <img
                     key={data.ID}
-                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://localhost:8000/${data.ImagePath}`}
+                    src={data.ImagePath.startsWith("http") ? data.ImagePath : `http://192.168.1.25:8000/${data.ImagePath}`}
                     alt="Water Meter"
                     className="w-full object-cover"
                   />

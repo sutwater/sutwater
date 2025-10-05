@@ -124,6 +124,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		allowedOrigins := map[string]bool{
 			"http://localhost:5173":                    true,
 			"http://127.0.0.1:5173":                    true,
+			"http://192.168.1.25:5173":                 true,
 			"https://hj211v7t-5173.asse.devtunnels.ms": true,
 		}
 

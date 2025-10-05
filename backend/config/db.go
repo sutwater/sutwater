@@ -16,7 +16,7 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-	dsn := "host=localhost user=postgres password=danuam123 dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+	dsn := "host=localhost user=watermeter password=watermeter dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
 
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -231,7 +231,7 @@ func seedWaterMeterValues() {
 		dailyUsage := dailyUsages[day-1]
 		meterValue := int(prevValue) + dailyUsage
 
-		imagePath := fmt.Sprintf("uploads/meter%d.jpg", day)
+		imagePath := fmt.Sprintf("uploads/meter%d.jpg", 1)
 
 		var adminUser entity.Users
 		db.First(&adminUser, "email = ?", "suthadmin@gmail.com") // หรือ user อื่นที่มีอยู่จริง
