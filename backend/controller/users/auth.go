@@ -18,9 +18,9 @@ import (
 
 type (
 	Authen struct {
-		Email		string `json:"email"`
-		Username    string `json:"username"`
-		Password 	string `json:"password"`
+		Email    string `json:"email"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 
 	signUp struct {
@@ -52,7 +52,7 @@ func SignUp(c *gin.Context) {
 	}
 
 	db := config.DB()
-	var userCheck entity.Users
+	var userCheck entity.User
 
 	result := db.Where("email = ?", payload.Email).First(&userCheck)
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -67,7 +67,7 @@ func SignUp(c *gin.Context) {
 
 	hashedPassword, _ := config.HashPassword(payload.Password)
 
-	user := entity.Users{
+	user := entity.User{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
 		Email:     payload.Email,
@@ -95,6 +95,7 @@ func SignIn(c *gin.Context) {
 
 	var jwtSubject string
 	var tokenID uint
+	var RoleID uint
 
 	if payload.Username != "" {
 		var device entity.DeviceCredential
@@ -110,9 +111,10 @@ func SignIn(c *gin.Context) {
 
 		jwtSubject = device.Username
 		tokenID = device.ID
+		RoleID = 0
 
 	} else if payload.Email != "" {
-		var user entity.Users
+		var user entity.User
 		email := strings.ToLower(payload.Email)
 
 		if err := config.DB().Raw("SELECT * FROM users WHERE email = ?", email).Scan(&user).Error; err != nil {
@@ -121,12 +123,13 @@ func SignIn(c *gin.Context) {
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password incorrect"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password incorrect"})
 			return
 		}
 
 		jwtSubject = user.Email
 		tokenID = user.ID
+		RoleID = user.RoleID
 
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email or username required"})
@@ -140,7 +143,7 @@ func SignIn(c *gin.Context) {
 		ExpirationHours: 24,
 	}
 
-	signedToken, err := jwtWrapper.GenerateToken(jwtSubject)
+	signedToken, err := jwtWrapper.GenerateToken(jwtSubject, RoleID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "error signing token"})
 		return
@@ -150,5 +153,6 @@ func SignIn(c *gin.Context) {
 		"token_type": "Bearer",
 		"token":      signedToken,
 		"id":         tokenID,
+		"role_id":    RoleID,
 	})
 }

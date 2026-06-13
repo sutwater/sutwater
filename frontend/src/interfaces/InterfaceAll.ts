@@ -8,8 +8,6 @@ export interface UsersInterface {
   BirthDay?: string;
   GenderID?: number;
   Password?: string;
-
-  // เพิ่มเพื่อให้แสดงเพศได้จาก relation ที่ preload จาก backend
   Gender?: GenderInterface;
 }
 
@@ -63,7 +61,7 @@ export interface WaterLogInterface {
 }
 
 export interface WaterMeterValueInterface {
-  MeterLocation: any;
+  MeterLocation: MeterLocationInterface;
   ID?: number;
   MeterValue?: number;
   StatusID?: number;
@@ -75,7 +73,7 @@ export interface WaterMeterValueInterface {
   ModelConfidence?: number;
   CameraDevice?: CameraDeviceInterface;
   WaterUsageLog?: WaterLogInterface[];
-  User: UsersInterface; // ✅ เพิ่ม relation กับ Users
+  User: UsersInterface; 
 }
 
 export interface WaterMeterValueSaveInterface {
@@ -87,7 +85,7 @@ export interface WaterMeterValueSaveInterface {
   ImagePath?: string;
   ModelConfidence: number;
   CameraDeviceID?: number;
-  UserID: number; // ✅ เพิ่ม relation กับ Users
+  UserID: number; 
 }
 
 export interface WaterDetailInterface {
@@ -99,7 +97,7 @@ export interface WaterDetailInterface {
   Note?: string;
   UpdatedAt?: string;
   DeletedAt?: string | null;
-  MeterLocation?: MeterLocationInterface; // ✅ มี MeterLocation ซ้อนอยู่
+  MeterLocation?: MeterLocationInterface; 
   CameraDevice?: CameraDeviceInterface | null;
   DailyWaterUsage?: DailyWaterUsageInterface[];
 }
@@ -121,7 +119,7 @@ export interface NotificationInterface {
   Message?: string;
   IsRead?: boolean;
   CameraDeviceID?: number;
-  CameraDevice?: CameraDeviceInterface; // relation กับ CameraDevice
+  CameraDevice?: CameraDeviceInterface; 
   CreatedAt?: string;
   UpdatedAt?: string;
 }

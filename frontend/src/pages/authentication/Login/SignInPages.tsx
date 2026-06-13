@@ -1,7 +1,7 @@
 import { Button, Form, Input, message } from "antd";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { SignIn } from "../../../services/https";
+import { SignIn } from "../../../services/https/sign";
 import { SignInInterface } from "../../../interfaces/SignIn";
 import logo from "../../../assets/suth.png";
 
@@ -12,7 +12,7 @@ function SignInPages() {
   const onFinish = async (values: SignInInterface) => {
     const lowerEmail = values.email.toLowerCase();
 
-    let res = await SignIn({
+    const res = await SignIn({
       ...values,
       email: lowerEmail,
     });
@@ -20,18 +20,10 @@ function SignInPages() {
     if (res.status == 200) {
       messageApi.success("Sign-in successful");
 
-      localStorage.setItem("isLogin", "true");
-      localStorage.setItem("page", "dashboard");
       localStorage.setItem("token_type", res.data.token_type);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("id", res.data.id);
       localStorage.setItem("email", lowerEmail);
-
-      if (lowerEmail === "suthadmin@gmail.com") {
-        localStorage.setItem("isAdmin", "true");
-      } else {
-        localStorage.setItem("isAdmin", "false");
-      }
 
       setTimeout(() => {
         location.href = "/";

@@ -15,7 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config"
-	"github.com/watermeter/suth/controller/notification"
+	// "github.com/watermeter/suth/controller/notification"
 	"github.com/watermeter/suth/entity"
 	"github.com/watermeter/suth/services"
 	"gorm.io/gorm"
@@ -29,6 +29,10 @@ func sanitizeFilename(name string) string {
 		"<", "_", ">", "_", "|", "_",
 	)
 	return replacer.Replace(name)
+}
+
+func uintPtr(u uint) *uint {
+	return &u
 }
 
 // ส่งไฟล์ไป Python API
@@ -144,15 +148,13 @@ func UploadMeterImage(c *gin.Context) {
 	}
 
 	// หา หรือ สร้าง CameraDevice
-	var camera entity.CameraDevice
+	var camera entity.Device
 	if err := db.Where("mac_address = ?", mac).First(&camera).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// สร้างใหม่ โดยไม่กำหนด MeterLocationID (เป็น nil)
-			camera = entity.CameraDevice{
-				MacAddress:     mac,
-				Status:         true,
-				BrokenAmount:   0,
-				MeterLocationID: nil,
+			camera = entity.Device{
+				MacAddress:      mac,
+				LocationID: uintPtr(1), // กำหนด LocationID เป็น nil (0) ถ้าไม่มี Location ที่กำหนด
 			}
 			if err := db.Create(&camera).Error; err != nil {
 				c.JSON(500, gin.H{"error": fmt.Sprintf("Failed creating CameraDevice: %v", err)})
@@ -165,7 +167,7 @@ func UploadMeterImage(c *gin.Context) {
 	}
 
 	waterValue := entity.WaterMeterValue{
-		CameraDeviceID:  camera.ID,
+		DeviceID:  		camera.ID,
 		Timestamp:       timestamp,
 		ImagePath:       "uploads/" + filename,
 		StatusID:        1,
@@ -178,7 +180,7 @@ func UploadMeterImage(c *gin.Context) {
 	}
 
 	// ตรวจสอบและส่งแจ้งเตือน LINE หากค่าน้ำเปลี่ยนแปลงมากกว่า 15
-	notification.SendLineAlertForWaterUsage(db, camera.ID)
+	// notification.SendLineAlertForWaterUsage(db, camera.ID)
 
 	c.JSON(200, gin.H{
 		"message":    "Image uploaded, predicted & saved",

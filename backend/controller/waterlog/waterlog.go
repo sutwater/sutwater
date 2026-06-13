@@ -66,9 +66,9 @@ func GetCameraDeviceWithUsage(c *gin.Context) {
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
 
-	var cameraDevice entity.CameraDevice
+	var cameraDevice entity.Device
 
-	query := db.Model(&entity.CameraDevice{}).Preload("MeterLocation")
+	query := db.Model(&entity.Device{}).Preload("MeterLocation")
 
 	if startDate != "" && endDate != "" {
 		query = query.
@@ -111,9 +111,9 @@ func GetAllCameraDevicesWithUsage(c *gin.Context) {
 		return
 	}
 
-	var cameraDevices []entity.CameraDevice
+	var cameraDevices []entity.Device
 
-	err := db.Model(&entity.CameraDevice{}).
+	err := db.Model(&entity.Device{}).
 		Preload("MeterLocation").
 		Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
 			return db.Order("timestamp DESC")

@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/watermeter/suth/entity"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,14 +17,28 @@ func DB() *gorm.DB {
 	return db
 }
 
-func ConnectionDB() {
-	dsn := "host=localhost user=watermeter password=watermeter dbname=waterdb port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+func ConnectDB() {
+
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Cannot load .env file")
+	}
+
+	host := os.Getenv("DB_HOST")
+	user := os.Getenv("DB_USER")
+	pass := os.Getenv("DB_PASSWORD")
+	name := os.Getenv("DB_NAME")
+	port := os.Getenv("DB_PORT")
+	sslmode := os.Getenv("DB_SSLMODE")
+	timezone := os.Getenv("DB_TIMEZONE")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s", host, user, pass, name, port, sslmode, timezone)
 
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
-	fmt.Println("connected database successfully")
+	fmt.Println("CONNECTED TO DATABASE!")
 	db = database
 }
 
@@ -31,31 +47,36 @@ func SetupDatabase() {
 		&entity.Genders{},
 		&entity.Position{},
 		&entity.Role{},
-		&entity.Users{},
-		&entity.MeterLocation{},
-		&entity.CameraDevice{},
-		&entity.Notification{},
+		&entity.User{},
+		&entity.Location{},
+		&entity.Device{},
+		&entity.Message{},
 		&entity.StatusWaterValue{},
+		&entity.StatusLog{},
 		&entity.WaterMeterValue{},
-		&entity.DailyWaterUsage{},
+		&entity.MaintainLog{},
 		&entity.DeviceCredential{},
 	)
-	seedRoles()
-	seedPositions()
 	seedGenders()
-	seedStatuses()
-	seedMeterLocations()
+	seedPositions()
+	seedRoles()
 	seedUsers()
-	cameraDevices := seedCameraDevices()
-	seedNotifications(cameraDevices)
+	seedLocations()
+	seedDevices()
+	seedMessage()
+	seedStatusWaterValue()
+	seedStatusLog()
 	seedWaterMeterValues()
+	seedMaintainLog()
 	seedDeviceCredentials()
+
 }
 
 func seedGenders() {
 	genders := []entity.Genders{
 		{Gender: "Male"},
 		{Gender: "Female"},
+		{Gender: "Other"},
 	}
 	for _, g := range genders {
 		db.FirstOrCreate(&g, entity.Genders{Gender: g.Gender})
@@ -63,7 +84,7 @@ func seedGenders() {
 }
 
 func seedPositions() map[string]entity.Position {
-	positions := []string{"Manager", "Engineer", "Staff", "Technician"}
+	positions := []string{"Manager", "Engineer", "Technician", "Staff"}
 	posMap := make(map[string]entity.Position)
 
 	for _, name := range positions {
@@ -76,38 +97,51 @@ func seedPositions() map[string]entity.Position {
 
 func seedRoles() {
 	roles := []entity.Role{
-		{Role: "User"},  // id = 1
-		{Role: "Admin"}, // id = 2
+		{Role: "Admin"},
+		{Role: "User"},
+		{Role: "Engineer"},
+		{Role: "Technician"},
 	}
 	for _, r := range roles {
 		db.FirstOrCreate(&r, entity.Role{Role: r.Role})
 	}
 }
 
-func seedStatuses() {
+func seedStatusWaterValue() {
 	statuses := []entity.StatusWaterValue{
-		{Name: "pending", Description: "รอการอนุมัติ"},
-		{Name: "approved", Description: "อนุมัติแล้ว"},
-		{Name: "rejected", Description: "ไม่อนุมัติ"},
+		{StatusValue: "pending", Description: "รอการอนุมัติ"},
+		{StatusValue: "approved", Description: "อนุมัติแล้ว"},
+		{StatusValue: "rejected", Description: "ไม่อนุมัติ"},
 	}
 	for _, s := range statuses {
-		db.FirstOrCreate(&s, entity.StatusWaterValue{Name: s.Name})
+		db.FirstOrCreate(&s, entity.StatusWaterValue{StatusValue: s.StatusValue})
 	}
 }
 
-func seedMeterLocations() {
-	meterLocations := []entity.MeterLocation{
-		{Name: "อาคารรัตนเวชพัฒน์", Latitude: 14.86412, Longitude: 102.03557},
-		{Name: "อาคารโรงอาหาร", Latitude: 14.86447, Longitude: 102.03611},
-		{Name: "อาคารศูนย์สุขภาพช่องปาก", Latitude: 14.865616, Longitude: 102.035624},
-		{Name: "อาคารศูนย์ความเป็นเลิศทางการแพทย์", Latitude: 14.867498, Longitude: 102.036364},
-		{Name: "อาคารศูนย์รังสีวินิจฉัย", Latitude: 14.864439, Longitude: 102.034975},
-		{Name: "อาคารวิเคราะห์และบำบัดโรค", Latitude: 14.865564, Longitude: 102.034149},
-		{Name: "อาคารสร้างเสริมสุขภาพ", Latitude: 14.864143, Longitude: 102.034492},
-		{Name: "อาคารพยาธิวิทยาโภชนาการ", Latitude: 14.867472, Longitude: 102.034165},
+func seedStatusLog() {
+	statuses := []entity.StatusLog{
+		{StatusLog: "pending", Description: "รอดำเนินการแก้ไข"},
+		{StatusLog: "solving", Description: "กำลังแก้ไข"},
+		{StatusLog: "solved", Description: "แก้ไขแล้ว"},
+		{StatusLog: "rejected", Description: "ไม่มีการแก้ไข"},
+	}
+	for _, s := range statuses {
+		db.FirstOrCreate(&s, entity.StatusLog{StatusLog: s.StatusLog})
+	}
+}
+func seedLocations() {
+	meterLocations := []entity.Location{
+		{BuildingName: "อาคารรัตนเวชพัฒน์", Latitude: 14.86412, Longitude: 102.03557},
+		{BuildingName: "อาคารโรงอาหาร", Latitude: 14.86447, Longitude: 102.03611},
+		{BuildingName: "อาคารศูนย์สุขภาพช่องปาก", Latitude: 14.865616, Longitude: 102.035624},
+		{BuildingName: "อาคารศูนย์ความเป็นเลิศทางการแพทย์", Latitude: 14.867498, Longitude: 102.036364},
+		{BuildingName: "อาคารศูนย์รังสีวินิจฉัย", Latitude: 14.864439, Longitude: 102.034975},
+		{BuildingName: "อาคารวิเคราะห์และบำบัดโรค", Latitude: 14.865564, Longitude: 102.034149},
+		{BuildingName: "อาคารสร้างเสริมสุขภาพ", Latitude: 14.864143, Longitude: 102.034492},
+		{BuildingName: "อาคารพยาธิวิทยาโภชนาการ", Latitude: 14.867472, Longitude: 102.034165},
 	}
 	for _, ml := range meterLocations {
-		db.FirstOrCreate(&ml, &entity.MeterLocation{Name: ml.Name})
+		db.FirstOrCreate(&ml, &entity.Location{BuildingName: ml.BuildingName})
 	}
 }
 
@@ -115,60 +149,49 @@ func seedUsers() {
 	// Gender & Role
 	maleID := uint(1)
 	femaleID := uint(2)
-	roleUserID := uint(1)
-	roleAdminID := uint(2)
-
+	roleUserID := uint(2)
+	roleAdminID := uint(1)
 	// Positions
 	managerPositionID := uint(1)
 	engineerPositionID := uint(2)
 
-	users := []entity.Users{
+	users := []entity.User{
 		{
-			FirstName: "แอดมิน", LastName: "พี่เจน", Email: "suthadmin@gmail.com", Age: 25,
-			Password: hashOrPanic("123456"), BirthDay: parseDate("1988-11-12"),
+			FirstName: "แอดมิน", LastName: "โรงบาล", Email: "suth@gmail.com", Age: 25,
+			Password: hashOrPanic("123"), BirthDay: parseDate("1998-11-12"),
 			GenderID: femaleID, RoleID: roleAdminID, PositionID: managerPositionID,
 		},
 		{
 			FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22,
-			Password: hashOrPanic("123456"), BirthDay: parseDate("1979-05-20"),
+			Password: hashOrPanic("123"), BirthDay: parseDate("2003-05-20"),
 			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
 		},
 		{
 			FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22,
-			Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"),
-			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
-		},
-		{
-			FirstName: "นนทกานต์", LastName: "ใสโสก", Email: "nontakarn@gmail.com", Age: 22,
-			Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"),
-			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
-		},
-		{
-			FirstName: "ณัฐวุฒิ", LastName: "ถินราช", Email: "nattawut@gmail.com", Age: 22,
-			Password: hashOrPanic("123456"), BirthDay: parseDate("1992-07-15"),
+			Password: hashOrPanic("123"), BirthDay: parseDate("2003-06-08"),
 			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
 		},
 	}
 
 	for _, u := range users {
-		db.FirstOrCreate(&u, entity.Users{Email: u.Email})
+		db.FirstOrCreate(&u, entity.User{Email: u.Email})
 	}
 }
 
-func seedCameraDevices() []entity.CameraDevice {
-	cameraDevices := []entity.CameraDevice{
-		{MacAddress: "11:1B:44:11:3A:B7", Status: true, MeterLocationID: uintPtr(1)},
-		{MacAddress: "22:2B:45:12:3A:B9", Status: true, MeterLocationID: uintPtr(2)},
-		{MacAddress: "33:3B:46:13:3B:B8", Status: false, MeterLocationID: uintPtr(3)},
-		{MacAddress: "44:4B:47:14:4B:B6", Status: false, MeterLocationID: uintPtr(4)},
-		{MacAddress: "55:5B:48:15:1B:B5", Status: false, MeterLocationID: uintPtr(5)},
-		{MacAddress: "66:6B:49:16:2B:B4", Status: false, MeterLocationID: uintPtr(6)},
-		{MacAddress: "77:7B:50:17:3C:B3", Status: true, MeterLocationID: uintPtr(7)},
-		{MacAddress: "88:8B:51:18:4C:B2", Status: true, MeterLocationID: uintPtr(8)},
+func seedDevices() []entity.Device {
+	cameraDevices := []entity.Device{
+		{MacAddress: "11:1B:44:11:3A:B7", LocationID: uintPtr(1)},
+		{MacAddress: "22:2B:45:12:3A:B9", LocationID: uintPtr(2)},
+		{MacAddress: "33:3B:46:13:3B:B8", LocationID: uintPtr(3)},
+		{MacAddress: "44:4B:47:14:4B:B6", LocationID: uintPtr(4)},
+		{MacAddress: "55:5B:48:15:1B:B5", LocationID: uintPtr(5)},
+		{MacAddress: "66:6B:49:16:2B:B4", LocationID: uintPtr(6)},
+		{MacAddress: "77:7B:50:17:3C:B3", LocationID: uintPtr(7)},
+		{MacAddress: "88:8B:51:18:4C:B2", LocationID: uintPtr(8)},
 	}
 
 	for i := range cameraDevices {
-		db.FirstOrCreate(&cameraDevices[i], entity.CameraDevice{MacAddress: cameraDevices[i].MacAddress})
+		db.FirstOrCreate(&cameraDevices[i], entity.Device{MacAddress: cameraDevices[i].MacAddress})
 	}
 	return cameraDevices
 }
@@ -191,9 +214,9 @@ func seedDeviceCredentials() {
 
 	for _, d := range devices {
 		credential := entity.DeviceCredential{
-			CameraDeviceID: d.ID,
-			Username:       d.MacAddress, // ใช้ MacAddress เป็น Username
-			Password:       hashOrPanic("esp32_secret"),
+			DeviceID: d.ID,
+			Username: d.MacAddress, // ใช้ MacAddress เป็น Username
+			Password: hashOrPanic("esp32_secret"),
 		}
 		db.FirstOrCreate(&credential, &entity.DeviceCredential{Username: credential.Username})
 	}
@@ -203,20 +226,30 @@ func uintPtr(u uint) *uint {
 	return &u
 }
 
-func seedNotifications(cameraDevices []entity.CameraDevice) {
-	notifications := []entity.Notification{}
-	messages := []string{"พบน้ำรั่ว", "ท่อแตก", "มิเตอร์ไม่ตอบสนอง", "ต้องตรวจสอบด้วยมือ", "ค่ามิเตอร์น้ำสูงผิดปกติ", "ค่ามิเตอร์น้ำต่ำผิดปกติ"}
+func seedMessage() {
+	var notifications []entity.Message // ใช้ var ในการประกาศ slice ที่ยังไม่มีข้อมูลจะดู Go-idiomatic กว่า
 
-	for _, cam := range cameraDevices {
-		for i, msg := range messages {
-			notifications = append(notifications, entity.Notification{
-				Message:        msg,
-				IsRead:         i%2 == 0,
-				CameraDeviceID: cam.ID,
-			})
-		}
+	messages := []string{
+		"น้ำรั่ว",
+		"ท่อแตก",
+		"มิเตอร์ไม่ทำงาน",
+		"ต้องตรวจสอบด้วยมือ",
+		"ค่ามิเตอร์น้ำสูงผิดปกติ",
+		"ค่ามิเตอร์น้ำต่ำผิดปกติ",
 	}
-	db.Create(&notifications)
+
+	for _, msgText := range messages {
+		newMsg := entity.Message{
+			Message: msgText,
+			IsRead:  false,
+		}
+		notifications = append(notifications, newMsg)
+	}
+
+	if err := db.Create(&notifications).Error; err != nil {
+		return
+	}
+
 }
 
 func seedWaterMeterValues() {
@@ -233,30 +266,59 @@ func seedWaterMeterValues() {
 
 		imagePath := fmt.Sprintf("uploads/meter%d.jpg", 1)
 
-		var adminUser entity.Users
-		db.First(&adminUser, "email = ?", "suthadmin@gmail.com") // หรือ user อื่นที่มีอยู่จริง
+		var adminUser entity.User
+		db.First(&adminUser, "email = ?", "suth@gmail.com") // หรือ user อื่นที่มีอยู่จริง
 
 		wm := entity.WaterMeterValue{
 			MeterValue:      meterValue,
 			Timestamp:       ts,
 			ModelConfidence: 95,
-			CameraDeviceID:  cameraDeviceID,
+			DeviceID:        cameraDeviceID,
 			StatusID:        1,
 			ImagePath:       imagePath,
-			UserID:          nil,
+			UserID:          1,
 		}
 
 		db.Create(&wm)
 
-		du := entity.DailyWaterUsage{
-			Timestamp:      ts,
-			Usage:          dailyUsage,
-			CameraDeviceID: cameraDeviceID,
-		}
-		db.Create(&du)
-
 		prevValue = uint(meterValue)
 	}
+}
+
+func seedMaintainLog() {
+
+	loc1, loc2 := uint(1), uint(2)
+	status1, status2 := uint(1), uint(2)
+
+	now := time.Now()
+
+	logs := []entity.MaintainLog{
+		{
+			Title:        "ซ่อมท่อประปาแตก",
+			LocationText: "ชั้น 1 หน้าอาคาร A",
+			CloseAt:      now.Add(24 * time.Hour),
+			LocationID:   &loc1,
+			StatusID:     &status1,
+		},
+		{
+			Title:        "เปลี่ยนมิเตอร์น้ำใหม่เนื่องจากพัง",
+			LocationText: "ห้อง 205 ตึก B",
+			CloseAt:      now.Add(48 * time.Hour),
+			LocationID:   &loc2,
+			StatusID:     &status2,
+		},
+		{
+			Title:        "ตรวจสอบวาล์วน้ำซึม",
+			LocationText: "ดาดฟ้าตึก C",
+			LocationID:   nil,
+			StatusID:     &status1,
+		},
+	}
+
+	if err := db.Create(&logs).Error; err != nil {
+		return
+	}
+
 }
 
 func hashOrPanic(password string) string {
