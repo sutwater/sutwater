@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/entity"
-	"github.com/gin-gonic/gin"
 )
 
 // GetCameraDevices ดึงข้อมูล CameraDevice ทั้งหมด
@@ -20,7 +20,7 @@ func GetCameraDevices(c *gin.Context) {
 		return
 	}
 
-	var cameras []entity.CameraDevice
+	var cameras []entity.Device
 
 	// preload MeterLocation ให้ดึงข้อมูล location มาด้วย
 	if err := db.Preload("MeterLocation").Find(&cameras).Error; err != nil {
@@ -46,7 +46,7 @@ func GetCameraDeviceByID(c *gin.Context) {
 		return
 	}
 
-	var camera entity.CameraDevice
+	var camera entity.Device
 
 	// preload MeterLocation และ WaterMeterValue ด้วย
 	if err := db.Preload("MeterLocation").
@@ -68,11 +68,11 @@ func GetMeterLocationsWithoutCamera(c *gin.Context) {
 		return
 	}
 
-	var locations []entity.MeterLocation
+	var locations []entity.Location
 
 	// วิธีใช้ LEFT JOIN
 	if err := db.
-		Model(&entity.MeterLocation{}).
+		Model(&entity.Location{}).
 		Joins("LEFT JOIN camera_devices ON camera_devices.meter_location_id = meter_locations.id").
 		Where("camera_devices.id IS NULL").
 		Find(&locations).Error; err != nil {
@@ -105,15 +105,15 @@ func CreateCameraDevice(c *gin.Context) {
 	meterLocationID := uint(meterLocationID64)
 
 	// หา MeterLocation
-	var meterLocation entity.MeterLocation
+	var meterLocation entity.Location
 	if err := db.First(&meterLocation, meterLocationID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบ MeterLocation"})
 		return
 	}
 
-	camera := entity.CameraDevice{
+	camera := entity.Device{
 		MacAddress: macAddress,
-		MeterLocationID: &meterLocationID,
+		LocationID: &meterLocationID,
 	}
 
 	if err := db.Create(&camera).Error; err != nil {
@@ -134,9 +134,9 @@ func CreateCameraDevice(c *gin.Context) {
 
 	// สร้าง DeviceCredential
 	credential := entity.DeviceCredential{
-		CameraDeviceID: camera.ID,
-		Username:       macAddress,
-		Password:       hashedPassword,
+		DeviceID: camera.ID,
+		Username: macAddress,
+		Password: hashedPassword,
 	}
 
 	if err := db.Create(&credential).Error; err != nil {
@@ -149,10 +149,10 @@ func CreateCameraDevice(c *gin.Context) {
 	}
 
 	// สร้าง Notification
-	notification := entity.Notification{
-		Message:        fmt.Sprintf("ลงทะเบียนอุปกรณ์ %s สำเร็จ ที่ %s", macAddress, meterLocation.Name),
-		CameraDeviceID: camera.ID,
-		IsRead:         false,
+	notification := entity.Message{
+		Message:  fmt.Sprintf("ลงทะเบียนอุปกรณ์ %s สำเร็จ ที่ %s", macAddress, meterLocation.BuildingName),
+		DeviceID: &camera.ID,
+		IsRead:   false,
 	}
 
 	if err := db.Create(&notification).Error; err != nil {
@@ -196,7 +196,7 @@ func UpdateCameraDeviceMacAddress(c *gin.Context) {
 	}
 
 	// อัปเดต MAC Address
-	result := db.Model(&entity.CameraDevice{}).
+	result := db.Model(&entity.Device{}).
 		Where("id = ?", id).
 		Update("mac_address", input.MacAddress)
 
@@ -211,21 +211,21 @@ func UpdateCameraDeviceMacAddress(c *gin.Context) {
 	}
 
 	// โหลด CameraDevice พร้อม MeterLocation
-	var camera entity.CameraDevice
+	var camera entity.Device
 	if err := db.Preload("MeterLocation").First(&camera, id).Error; err != nil {
 		log.Println("ไม่สามารถโหลด CameraDevice สำหรับ Notification:", err)
 	}
 
 	locationName := "ไม่ทราบตำแหน่ง"
-	if camera.MeterLocation != nil {
-		locationName = camera.MeterLocation.Name
+	if camera.Location != nil {
+		locationName = camera.Location.BuildingName
 	}
 
 	// สร้าง Notification หลังจากอัปเดตสำเร็จ
-	notif := entity.Notification{
-		Message:        fmt.Sprintf("อุปกรณ์ที่ %s ถูกอัปเดต MAC Address เป็น %s เรียบร้อยแล้ว", locationName, input.MacAddress),
-		CameraDeviceID: uint(id),
-		IsRead:         false,
+	notif := entity.Message{
+		Message:  fmt.Sprintf("อุปกรณ์ที่ %s ถูกอัปเดต MAC Address เป็น %s เรียบร้อยแล้ว", locationName, input.MacAddress),
+		DeviceID: &camera.ID,
+		IsRead:   false,
 	}
 
 	if err := db.Create(&notif).Error; err != nil {
@@ -255,7 +255,7 @@ func DeleteCameraDevicesByMeterLocationID(c *gin.Context) {
 		return
 	}
 
-	result := db.Unscoped().Where("meter_location_id = ?", meterLocationID).Delete(&entity.CameraDevice{})
+	result := db.Unscoped().Where("meter_location_id = ?", meterLocationID).Delete(&entity.Device{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ลบข้อมูลอุปกรณ์ล้มเหลว: " + result.Error.Error()})
 		return

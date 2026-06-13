@@ -33,7 +33,7 @@ func GetWaterMeterValueByID(c *gin.Context) {
 
 	var waterValue entity.WaterMeterValue
 
-	// ✅ ดึงข้อมูลตาม ID พร้อม Preload ความสัมพันธ์
+	// ดึงข้อมูลตาม ID พร้อม Preload ความสัมพันธ์
 	if err := db.Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
 		Preload("User").
@@ -53,7 +53,7 @@ func GetWaterMeterValueByID(c *gin.Context) {
 func CreateWaterMeterValue(c *gin.Context) {
 	db := config.DB()
 
-	// ✅ ตรวจสอบว่าเป็น multipart/form-data หรือ JSON
+	// ตรวจสอบว่าเป็น multipart/form-data หรือ JSON
 	var req struct {
 		Date            string  `json:"Date" form:"Date"`
 		Time            string  `json:"Time" form:"Time"`
@@ -76,7 +76,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		}
 	}
 
-	// ✅ แปลง timestamp + timezone
+	// แปลง timestamp + timezone
 	loc, err := time.LoadLocation("Asia/Bangkok")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot load timezone"})
@@ -92,7 +92,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 
 	timestamp = timestamp.In(loc)
 
-	// ✅ ดึงค่าล่าสุดของ cameraDeviceID
+	// ดึงค่าล่าสุดของ cameraDeviceID
 	var lastValue entity.WaterMeterValue
 	lastValueFound := false
 	err = db.Where("camera_device_id = ? AND timestamp < ?", req.CameraDeviceID, timestamp).
@@ -109,15 +109,15 @@ func CreateWaterMeterValue(c *gin.Context) {
 		}
 	}
 
-	// ✅ ดึง MeterLocation
-	var camera entity.CameraDevice
+	// ดึง MeterLocation
+	var camera entity.Device
 	if err := db.Preload("MeterLocation").First(&camera, req.CameraDeviceID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
 		return
 	}
-	buildingName := camera.MeterLocation.Name
+	buildingName := camera.Location.BuildingName
 
-	// ✅ ตรวจสอบไฟล์รูป
+	// ตรวจสอบไฟล์รูป
 	var imagePath string
 	file, err := c.FormFile("ImagePath")
 	if err == nil {
@@ -142,14 +142,14 @@ func CreateWaterMeterValue(c *gin.Context) {
 		imagePath = uploadPath
 	}
 
-	// ✅ บันทึก WaterMeterValue
+	// บันทึก WaterMeterValue
 	waterValue := entity.WaterMeterValue{
 		Timestamp:       timestamp,
 		MeterValue:      req.MeterValue,
 		ModelConfidence: req.ModelConfidence,
 		Note:            req.Note,
-		CameraDeviceID:  req.CameraDeviceID,
-		UserID:          req.UserID,
+		DeviceID:        req.CameraDeviceID,
+		UserID:          *req.UserID,
 		StatusID:        2,
 		ImagePath:       imagePath,
 	}
@@ -159,7 +159,7 @@ func CreateWaterMeterValue(c *gin.Context) {
 		return
 	}
 
-	// ✅ แจ้งเตือนทุกครั้งที่มีการอินพุตข้อมูลใหม่ หากค่าค่าน้ำต่างจากค่าก่อนหน้ามากกว่า 15 หน่วย
+	// แจ้งเตือนทุกครั้งที่มีการอินพุตข้อมูลใหม่ หากค่าค่าน้ำต่างจากค่าก่อนหน้ามากกว่า 15 หน่วย
 	if lastValueFound {
 		usageDiff := req.MeterValue - lastValue.MeterValue
 		fmt.Printf("[DEBUG] usageDiff=%.2f\n", float64(usageDiff))
@@ -170,10 +170,10 @@ func CreateWaterMeterValue(c *gin.Context) {
 			} else {
 				msg = fmt.Sprintf("แจ้งเตือน: ค่าน้ำต่ำกว่าปกติ\nUsage: %+d หน่วย", usageDiff)
 			}
-			notification := entity.Notification{
-				Message:        msg,
-				IsRead:         false,
-				CameraDeviceID: req.CameraDeviceID,
+			notification := entity.Message{
+				Message:  msg,
+				IsRead:   false,
+				DeviceID: &req.CameraDeviceID,
 			}
 			db.Create(&notification)
 
@@ -231,12 +231,12 @@ func UpdateWaterMeterValue(c *gin.Context) {
 		}
 
 		// ดึงชื่ออาคารจาก CameraDevice
-		var camera entity.CameraDevice
-		if err := db.Preload("MeterLocation").First(&camera, waterValue.CameraDeviceID).Error; err != nil {
+		var camera entity.Device
+		if err := db.Preload("MeterLocation").First(&camera, waterValue.DeviceID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Camera device not found"})
 			return
 		}
-		buildingName := camera.MeterLocation.Name
+		buildingName := camera.Location.BuildingName
 
 		// สร้างโฟลเดอร์
 		folderPath := fmt.Sprintf("uploads/%s", buildingName)
@@ -301,13 +301,13 @@ func DeleteCameraDeviceDataByID(c *gin.Context) {
 	}
 
 	// 2. ลบ DailyWaterUsage
-	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.DailyWaterUsage{}).Error; err != nil {
+	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.WaterMeterValue{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete daily water usage"})
 		return
 	}
 
 	// 3. ลบ Notifications
-	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.Notification{}).Error; err != nil {
+	if err := db.Where("camera_device_id = ?", camID).Delete(&entity.Message{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete notifications"})
 		return
 	}
@@ -358,7 +358,7 @@ func UpdateWaterMeterStatusByID(c *gin.Context) {
 		return
 	}
 
-	// ✅ รับค่าจาก body
+	// รับค่าจาก body
 	var req struct {
 		MeterValue int `json:"meterValue"` // เปลี่ยน type ตาม entity ของคุณ
 	}
@@ -367,7 +367,7 @@ func UpdateWaterMeterStatusByID(c *gin.Context) {
 		return
 	}
 
-	// ✅ อัปเดตทั้ง StatusID และ MeterValue
+	//  อัปเดตทั้ง StatusID และ MeterValue
 	waterValue.StatusID = 2
 	waterValue.MeterValue = req.MeterValue
 
@@ -392,14 +392,14 @@ func UpdateWaterMeterStatusToReJect(c *gin.Context) {
 		return
 	}
 
-	// ✅ หากไม่ต้องการรับค่าอะไรเลยจาก client ก็ไม่ต้อง bind JSON
+	// หากไม่ต้องการรับค่าอะไรเลยจาก client ก็ไม่ต้อง bind JSON
 	// หรือ ถ้ายังอยากรับ MeterValue จาก body ก็ใช้แบบนี้:
 	var req struct {
 		MeterValue *int `json:"meterValue"` // ใช้ pointer เพื่อแยกแยะกรณีไม่ส่งมาเลย
 	}
 	_ = c.ShouldBindJSON(&req) // ไม่ต้องเช็ค error ถ้าไม่บังคับ
 
-	// ✅ อัปเดต StatusID เป็น 3
+	// อัปเดต StatusID เป็น 3
 	waterValue.StatusID = 3
 
 	// ถ้า client ส่งค่า MeterValue มา ก็อัปเดตด้วย
@@ -438,7 +438,7 @@ func ClearWaterMeterDataByCameraID(c *gin.Context) {
 	}
 
 	// ลบข้อมูลใน DailyWaterUsage ตาม CameraDeviceID
-	if err := db.Where("camera_device_id = ?", uintCameraID).Delete(&entity.DailyWaterUsage{}).Error; err != nil {
+	if err := db.Where("camera_device_id = ?", uintCameraID).Delete(&entity.WaterMeterValue{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete DailyWaterUsage"})
 		return
 	}

@@ -1,9 +1,12 @@
 package entity
 
+import "gorm.io/gorm"
+
 type Location struct {
-	ID       string  `json:"id" bson:"_id,omitempty"`
-	Name     string  `json:"name" bson:"name"`
-	XPercent float64 `json:"xPercent" bson:"xPercent"`
-	YPercent float64 `json:"yPercent" bson:"yPercent"`
-	Note     string  `json:"note,omitempty" bson:"note,omitempty"`
+	gorm.Model
+	BuildingName string  `json:"building_name"`
+	Latitude     float64 `json:"latitude"`
+	Longitude    float64 `json:"longitude"`
+
+	Device []Device `gorm:"foreignKey:LocationID" json:"device,omitempty"`
 }

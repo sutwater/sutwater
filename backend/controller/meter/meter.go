@@ -17,7 +17,7 @@ func GetAllMeters(c *gin.Context) {
 		return
 	}
 
-	var meters []entity.MeterLocation
+	var meters []entity.Location
 
 	// join กับ camera_devices โดยเช็ค MeterLocationID
 	if err := db.
@@ -39,14 +39,14 @@ func CreateMeter(c *gin.Context) {
 		return
 	}
 
-	var input entity.MeterLocation
+	var input entity.Location
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	newMeter := entity.MeterLocation{
-		Name:      input.Name,
+	newMeter := entity.Location{
+		BuildingName :      input.BuildingName ,
 		Latitude:  input.Latitude,
 		Longitude: input.Longitude,
 	}
@@ -61,7 +61,7 @@ func CreateMeter(c *gin.Context) {
 
 func GetAllMeterLocations(c *gin.Context) {
 	db := config.DB()
-	var locations []entity.MeterLocation
+	var locations []entity.Location
 	if err := db.Find(&locations).Error; err != nil {
 		c.JSON(500, gin.H{"error": "ไม่สามารถดึงข้อมูลได้"})
 		return
@@ -73,19 +73,19 @@ func UpdateMeterLocation(c *gin.Context) {
 	db := config.DB()
 	id := c.Param("id")
 
-	var input entity.MeterLocation
+	var input entity.Location
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
-	var location entity.MeterLocation
+	var location entity.Location
 	if err := db.First(&location, id).Error; err != nil {
 		c.JSON(404, gin.H{"error": "ไม่พบจุดมิเตอร์"})
 		return
 	}
 
-	location.Name = input.Name
+	location.BuildingName  = input.BuildingName 
 	location.Latitude = input.Latitude
 	location.Longitude = input.Longitude
 
@@ -111,7 +111,7 @@ func DeleteMeterLocation(c *gin.Context) {
 	}()
 
 	// หา CameraDevice ที่เชื่อมกับ MeterLocation
-	var cameraDevices []entity.CameraDevice
+	var cameraDevices []entity.Device
 	if err := tx.Where("MeterLocationID = ?", meterLocationID).Find(&cameraDevices).Error; err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": "ไม่สามารถดึง CameraDevice ได้"})
@@ -133,14 +133,14 @@ func DeleteMeterLocation(c *gin.Context) {
 		}
 
 		// ลบ DailyWaterUsage ที่เกี่ยวข้องกับ CameraDevice
-		if err := tx.Where("CameraDeviceID IN ?", cameraIDs).Delete(&entity.DailyWaterUsage{}).Error; err != nil {
+		if err := tx.Where("CameraDeviceID IN ?", cameraIDs).Delete(&entity.Message{}).Error; err != nil {
 			tx.Rollback()
 			c.JSON(500, gin.H{"error": "ไม่สามารถลบ DailyWaterUsage ได้"})
 			return
 		}
 
 		// ลบ Notification ที่เกี่ยวข้องกับ CameraDevice
-		if err := tx.Where("CameraDeviceID IN ?", cameraIDs).Delete(&entity.Notification{}).Error; err != nil {
+		if err := tx.Where("CameraDeviceID IN ?", cameraIDs).Delete(&entity.Message{}).Error; err != nil {
 			tx.Rollback()
 			c.JSON(500, gin.H{"error": "ไม่สามารถลบ Notification ได้"})
 			return
@@ -148,14 +148,14 @@ func DeleteMeterLocation(c *gin.Context) {
 	}
 
 	// ลบ CameraDevice
-	if err := tx.Where("MeterLocationID = ?", meterLocationID).Delete(&entity.CameraDevice{}).Error; err != nil {
+	if err := tx.Where("MeterLocationID = ?", meterLocationID).Delete(&entity.Device{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": "ไม่สามารถลบ CameraDevice ได้"})
 		return
 	}
 
 	// ลบ MeterLocation
-	if err := tx.Delete(&entity.MeterLocation{}, meterLocationID).Error; err != nil {
+	if err := tx.Delete(&entity.Location{}, meterLocationID).Error; err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": "ไม่สามารถลบ MeterLocation ได้"})
 		return
@@ -174,7 +174,7 @@ func GetMeterLocationByID(c *gin.Context) {
 	db := config.DB()
 	id := c.Param("id")
 
-	var meterLocation entity.MeterLocation
+	var meterLocation entity.Location
 	if err := db.First(&meterLocation, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":   "ไม่พบข้อมูล MeterLocation",

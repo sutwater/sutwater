@@ -6,7 +6,6 @@ import FullLayout from "../layout/FullLayout";
 
 const HomeBanner       = Loadable(lazy(() => import("../pages/home/HomeBanner.tsx")));
 
-// ✅ เพิ่มหน้าใหม่
 const WaterMeterMap = Loadable(
   lazy(() => import("../pages/water/WaterMeterMap"))
 );
@@ -19,12 +18,7 @@ const Water = Loadable(lazy(() => import("../pages/water/Water")));
 const WaterDetailPage = Loadable(
   lazy(() => import("../pages/water/WaterDetail"))
 );
-const SignInPages = Loadable(
-  lazy(() => import("../pages/authentication/Login/SignInPages"))
-);
-const SignUpPages = Loadable(
-  lazy(() => import("../pages/authentication/Register/SignUpPages"))
-);
+const SignInPages = Loadable(lazy(() => import("../pages/authentication/Login/SignInPages")));
 const AdminDashboard = Loadable(
   lazy(() => import("../pages/admin/AdminDashboard"))
 );
@@ -47,7 +41,6 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => ({
   children: [
     // ---------- Public routes ----------
     { path: "login", element: <SignInPages /> },
-    { path: "signup", element: <SignUpPages /> },
     // หน้า LIFF ต้องเป็น public และอยู่ top-level เสมอ
     { path: "liff-link", element: <LiffLink /> },
 

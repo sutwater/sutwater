@@ -19,7 +19,7 @@ func GetNotificationsByMeterLocation(c *gin.Context) {
 	// อ่าน MeterLocationID จาก URL param
 	meterLocationID := c.Param("id")
 
-	var notifications []entity.Notification
+	var notifications []entity.Message
 
 	err := db.
 		Joins("JOIN camera_devices ON camera_devices.id = notifications.camera_device_id").
@@ -36,7 +36,7 @@ func GetNotificationsByMeterLocation(c *gin.Context) {
 }
 
 func GetAllNotifications(c *gin.Context) {
-	var notifications []entity.Notification
+	var notifications []entity.Message
 
 	if err := config.DB().
 		Preload("CameraDevice").
@@ -55,7 +55,7 @@ func ReadNotificationByID(c *gin.Context) {
 	db := config.DB()
 	id := c.Param("id")
 
-	var notif entity.Notification
+	var notif entity.Message
 	if err := db.First(&notif, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
 		return
@@ -80,7 +80,7 @@ func ReadNotificationByID(c *gin.Context) {
 func ReadAllNotifications(c *gin.Context) {
 	db := config.DB()
 
-	var notifications []entity.Notification
+	var notifications []entity.Message
 	if err := db.Find(&notifications).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
 		return
@@ -104,7 +104,7 @@ func DeleteNotificationByID(c *gin.Context) {
 	db := config.DB()
 	id := c.Param("id")
 
-	var notif entity.Notification
+	var notif entity.Message
 	if err := db.First(&notif, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
 		return
@@ -133,14 +133,14 @@ func GetNotificationStats(c *gin.Context) {
 	var unreadNotifications int64
 
 	// นับจำนวนการแจ้งเตือนทั้งหมด
-	db.Model(&entity.Notification{}).Count(&totalNotifications)
+	db.Model(&entity.Message{}).Count(&totalNotifications)
 
 	// นับการแจ้งเตือนตามสถานะการอ่าน
-	db.Model(&entity.Notification{}).Where("is_read = ?", true).Count(&readNotifications)
-	db.Model(&entity.Notification{}).Where("is_read = ?", false).Count(&unreadNotifications)
+	db.Model(&entity.Message{}).Where("is_read = ?", true).Count(&readNotifications)
+	db.Model(&entity.Message{}).Where("is_read = ?", false).Count(&unreadNotifications)
 
 	// หาการแจ้งเตือนล่าสุด
-	var lastNotification entity.Notification
+	var lastNotification entity.Message
 	var lastAlert string = ""
 	if err := db.Order("created_at DESC").First(&lastNotification).Error; err == nil {
 		lastAlert = lastNotification.CreatedAt.Format("2006-01-02 15:04:05")

@@ -5,11 +5,11 @@ import {
   message,
   DatePicker,
   Select,
-  InputNumber,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CreateUser, GetGender } from "../../../services/https";
+import {  GetGender } from "../../../services/https/api";
+import { SignUp } from "../../../services/https/sign";
 import { UsersInterface } from "../../../interfaces/IUser";
 import { GenderInterface } from "../../../interfaces/Gender";
 import logo from "../../../assets/suth.png";
@@ -19,7 +19,7 @@ function SignUpPages() {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [genderList, setGenderList] = useState<GenderInterface[]>([]);
-  const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
+  const [calculatedAge, setCalculatedAge] = useState<number>(0);
 
   const fetchGenders = async () => {
     const res = await GetGender();
@@ -30,26 +30,23 @@ function SignUpPages() {
     }
   };
 
-  const handleBirthDayChange = (date: any) => {
+  const handleBirthDayChange = (date: string) => {
     if (date) {
       const age = dayjs().diff(dayjs(date), "year");
       setCalculatedAge(age);
     } else {
-      setCalculatedAge(null);
+      setCalculatedAge(0);
     }
   };
 
   const onFinish = async (values: UsersInterface) => {
-    const birthDate = dayjs(values.BirthDay);
-    const today = dayjs();
-    const age = today.diff(birthDate, "year");
 
     const payload = {
       ...values,
-      Age: age,
+      Age: calculatedAge,
     };
 
-    let res = await CreateUser(payload);
+    const res = await SignUp(payload);
 
     if (res.status == 201) {
       messageApi.success(res.data.message);
@@ -61,7 +58,7 @@ function SignUpPages() {
 
   useEffect(() => {
     fetchGenders();
-  }, []);
+  });
 
   return (
     <>
