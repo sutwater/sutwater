@@ -1,10 +1,10 @@
 package main
 
 import (
-	"net/http"
-	"os"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/controller/device"
 	"github.com/watermeter/suth/controller/genders"
@@ -15,28 +15,28 @@ import (
 	"github.com/watermeter/suth/controller/waterlog"
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
+	"github.com/watermeter/suth/pkg/postgres"
 )
 
 func main() {
-	config.ConnectDB()
-	config.SetupDatabase()
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Warning: No .env file found, using system environment variables")
+		return
+	}
 
-	PORT := os.Getenv("PORT")
-
-	if PORT == "" {
-		PORT = "8080"
+	db := postgres.Setup()
+	postgresql, err := db.DB()
+	if err == nil {
+		defer postgresql.Close()
 	}
 
 	r := gin.Default()
-	r.Use(CORSMiddleware())
+	r.Use(middlewares.CORSMiddleware())
 
 	r.POST("/signup", users.SignUp)
 	r.POST("/signin", users.SignIn)
 	r.GET("/genders", genders.GetAll)
-
-	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "API RUNNING... PORT: %s", PORT)
-	})
 
 	r.Static("/uploads", "./uploads")
 
@@ -86,36 +86,6 @@ func main() {
 	router.PUT("/cameradevice/macaddress/:id", device.UpdateCameraDeviceMacAddress)
 	router.POST("/upload_image", upload_image.UploadMeterImage)
 
-	// r.GET("/api/water-usage/latest", waterusage.GetLatestUsage)
-	// r.GET("/api/water-usage", waterusage.GetAllWaterUsage)
-	// r.GET("/api/water-usage/daily/:locationId", waterusage.GetDailyUsage)
-	// r.GET("/api/water-usage/stats", waterusage.GetWaterUsageStats)
-
-	//r.Run("0.0.0.0:" + PORT)
-	r.Run("localhost:" + PORT)
-}
-
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-		allowedOrigins := map[string]bool{
-			"http://localhost:5173":                    true,
-			"http://127.0.0.1:5173":                    true,
-			"http://192.168.1.193:5173":                true,
-		}
-
-		if allowedOrigins[origin] {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PATCH, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	}
+	c := config.LoadConfig()
+	r.Run("localhost" + c.APIPort)
 }
