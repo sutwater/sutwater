@@ -6,12 +6,12 @@ import (
 
 // hashPassword เป็น function สำหรับการแปลง password
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(bytes), err
 }
 
 // checkPasswordHash เป็น function สำหรับ check password ที่ hash แล้ว ว่าตรงกันหรือไม่
-func CheckPasswordHash(password, hash []byte) bool {
-	err := bcrypt.CompareHashAndPassword(hash, password)
-	return err == nil
+func CheckPasswordHash(password, hash []byte) error {
+	return bcrypt.CompareHashAndPassword(hash, password)
+
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"github.com/watermeter/suth/config"
@@ -104,7 +103,7 @@ func SignIn(c *gin.Context) {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(device.Password), []byte(payload.Password)); err != nil {
+		if err := config.CheckPasswordHash([]byte(payload.Password), []byte(device.Password)); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "password incorrect"})
 			return
 		}
@@ -122,7 +121,7 @@ func SignIn(c *gin.Context) {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
+		if err := config.CheckPasswordHash([]byte(payload.Password), []byte(user.Password)); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password incorrect"})
 			return
 		}

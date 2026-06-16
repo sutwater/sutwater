@@ -7,7 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/watermeter/suth/entity"
-	"gorm.io/driver/postgres"
+	"github.com/watermeter/suth/pkg/models"
 	"gorm.io/gorm"
 )
 
@@ -17,29 +17,21 @@ func DB() *gorm.DB {
 	return db
 }
 
-func ConnectDB() {
+func LoadConfig() *models.Config {
+	godotenv.Load()
 
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Cannot load .env file")
+	config := models.Config{
+		DBHost:     os.Getenv("POSTGRES_DB_HOST"),
+		DBUser:     os.Getenv("POSTGRES_DB_USER"),
+		DBPassword: os.Getenv("POSTGRES_DB_PASSWORD"),
+		DBName:     os.Getenv("POSTGRES_DB_NAME"),
+		DBPort:     os.Getenv("POSTGRES_DB_PORT"),
+		DBTimezone: os.Getenv("POSTGRES_DB_TIMEZONE"),
+		DBSslmode:  os.Getenv("POSTGRES_DB_SSLMODE"),
+		APIPort:    os.Getenv("API_PORT"),
 	}
 
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
-	port := os.Getenv("DB_PORT")
-	sslmode := os.Getenv("DB_SSLMODE")
-	timezone := os.Getenv("DB_TIMEZONE")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s", host, user, pass, name, port, sslmode, timezone)
-
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-	fmt.Println("CONNECTED TO DATABASE!")
-	db = database
+	return &config
 }
 
 func SetupDatabase() {
