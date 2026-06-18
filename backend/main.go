@@ -15,7 +15,7 @@ import (
 	"github.com/watermeter/suth/controller/waterlog"
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
-	"github.com/watermeter/suth/pkg/postgres"
+	"github.com/watermeter/suth/package/postgres"
 )
 
 func main() {
@@ -36,13 +36,12 @@ func main() {
 
 	r.POST("/signup", users.SignUp)
 	r.POST("/signin", users.SignIn)
-	r.GET("/genders", genders.GetAll)
 
-	r.Static("/uploads", "./uploads")
-
-	router := r.Group("/")
+	router := r.Group("/v1")
+	router.Static("/uploads", "./uploads")
 	router.Use(middlewares.Authorizes())
 	//User
+	router.GET("/genders", genders.GetAll)
 	router.PUT("/user/:id", users.Update)
 	router.GET("/users", users.GetAll)
 	router.GET("/user/:id", users.Get)
