@@ -7,7 +7,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/watermeter/suth/entity"
-	"github.com/watermeter/suth/pkg/models"
+	"github.com/watermeter/suth/package/models"
 	"gorm.io/gorm"
 )
 
