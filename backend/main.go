@@ -21,11 +21,13 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Warning: No .env file found, using system environment variables")
-		return
+		fmt.Println("No .env file found, using system environment variables")
 	}
 
-	db := postgres.Setup()
+	db, err := postgres.Setup()
+	if err != nil {
+		fmt.Println("Failed to connect to database: %v", err)
+	}
 
 	postgresql, err := db.DB()
 	if err == nil {
@@ -38,7 +40,7 @@ func main() {
 	r.POST("/signup", users.SignUp)
 	r.POST("/signin", users.SignIn)
 
-	router := r.Group("api/v1")
+	router := r.Group("/api/v1")
 	router.Static("/uploads", "./uploads")
 	router.Use(middlewares.Authorizes())
 	//User
