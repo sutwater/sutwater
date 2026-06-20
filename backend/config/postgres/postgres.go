@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/config/models"
@@ -10,19 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func Setup() *gorm.DB {
+func Setup() (*gorm.DB, error) {
 	c, err := LoadConfig()
 	if err != nil {
-		log.Fatal("Failed to load configuration: %v", err)
+		return nil, err
 	}
 
 	postgres, err := ConnectDB(c)
 	if err != nil {
-		log.Fatal("Failed to connect to the database: %v", err)
+		return nil, err
 	}
 
 	fmt.Println("Successfully connected to PostgreSQL!")
-	return postgres
+	return postgres, nil
 }
 
 func ConnectDB(c *models.Config) (*gorm.DB, error) {
