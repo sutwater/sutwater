@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/config/postgres"
 	"github.com/watermeter/suth/controller/device"
 	"github.com/watermeter/suth/controller/genders"
 	"github.com/watermeter/suth/controller/meter"
@@ -15,7 +16,6 @@ import (
 	"github.com/watermeter/suth/controller/waterlog"
 	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
-	"github.com/watermeter/suth/package/postgres"
 )
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 	}
 
 	db := postgres.Setup()
+
 	postgresql, err := db.DB()
 	if err == nil {
 		defer postgresql.Close()
@@ -37,7 +38,7 @@ func main() {
 	r.POST("/signup", users.SignUp)
 	r.POST("/signin", users.SignIn)
 
-	router := r.Group("/v1")
+	router := r.Group("api/v1")
 	router.Static("/uploads", "./uploads")
 	router.Use(middlewares.Authorizes())
 	//User
@@ -85,6 +86,10 @@ func main() {
 	router.PUT("/cameradevice/macaddress/:id", device.UpdateCameraDeviceMacAddress)
 	router.POST("/upload_image", upload_image.UploadMeterImage)
 
-	c := config.LoadConfig()
+	c, err := postgres.LoadConfig()
+	if err != nil {
+		log.Fatal("Failed to load configuration: %v", err)
+	}
+
 	r.Run("localhost" + c.APIPort)
 }
