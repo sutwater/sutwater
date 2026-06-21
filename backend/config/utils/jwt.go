@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -67,7 +68,7 @@ func ParseToken(tokenString string) (*JWTClaims, error) {
 
 // GetUserIDFromContext reads the authenticated user ID from Gin context.
 // Accepts the broader `Get(any) (any, bool)` signature used by recent Gin versions.
-func GetUserIDFromContext(c interface{ Get(any) (any, bool) }) (uint, bool) {
+func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	raw, ok := c.Get(ContextUserIDKey)
 	if !ok {
 		return 0, false

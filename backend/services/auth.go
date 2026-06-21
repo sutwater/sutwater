@@ -5,71 +5,98 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/watermeter/suth/config/models"
+	"github.com/watermeter/suth/config/utils"
+	"github.com/watermeter/suth/entity"
+	"github.com/watermeter/suth/repositories"
 )
 
 // JwtWrapper wraps the signing key and the issuer
 
-type JwtWrapper struct {
-	SecretKey       string
-	Issuer          string
-	ExpirationHours int64
+type AuthService interface {
+	Register(input models.RegisterRequest) (*models.AuthResponse, error)
+	Login(input models.LoginRequest) (*models.AuthResponse, error)
 }
 
-// JwtClaim adds email as a claim to the token
-
-type JwtClaim struct {
-	Email string
-	RoleID uint   
-	jwt.StandardClaims
+type authService struct {
+	userRepo    repositories.UserRepository
+	jwtProvider utils.JWTProvider
 }
 
-// Generate Token generates a jwt token
-
-func (j *JwtWrapper) GenerateToken(email string, roleID uint) (signedToken string, err error) {
-	claims := &JwtClaim{
-		Email: email,
-		RoleID: roleID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(j.ExpirationHours)).Unix(),
-			Issuer:    j.Issuer,
-		},
+func NewAuthService(userRepo repositories.UserRepository, jwtProvider utils.JWTProvider) AuthService {
+	return &authService{
+		userRepo:    userRepo,
+		jwtProvider: jwtProvider,
 	}
+}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err = token.SignedString([]byte(j.SecretKey))
-
+func (a *authService) Register(input models.RegisterRequest) (*models.AuthResponse, error) {
+	existing, err := a.userRepo.FindByEmail(input.Email)
 	if err != nil {
-		return
+		return nil, err
 	}
-	return
+	if existing != nil {
+		return nil, errors.New("email already exist")
+	}
 
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &entity.User{
+		Username: input.Name,
+		Email:    input.Email,
+		Password: hashedPassword,
+	}
+
+	if err := a.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+
+	token, err := a.jwtProvider.GenerateToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.AuthResponse{
+		Token: token,
+		User: &models.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
 }
 
-// Validate Token validates the jwt token
-
-func (j *JwtWrapper) ValidateToken(signedToken string) (claims *JwtClaim, err error) {
-	token, err := jwt.ParseWithClaims(
-		signedToken,
-		&JwtClaim{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(j.SecretKey), nil
-		},
-	)
-
+func (a *authService) Login(input models.LoginRequest) (*models.AuthResponse, error) {
+	user, err := a.userRepo.FindByEmail(input.Email)
 	if err != nil {
-		return
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("invalid email or password")
 	}
 
-	claims, ok := token.Claims.(*JwtClaim)
-	if !ok {
-		err = errors.New("Couldn't parse claims")
-		return
+	if err := utils.ComparePassword(user.Password, input.Password); err != nil {
+		return nil, errors.New("invalid email or password")
 	}
 
-	if claims.ExpiresAt < time.Now().Local().Unix() {
-		err = errors.New("JWT is expired")
-		return
+	token, err := a.jwtProvider.GenerateToken(user.ID)
+	if err != nil {
+		return nil, err
 	}
-	return
+
+	return &models.AuthResponse{
+		Token: token,
+		User: &models.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
 }

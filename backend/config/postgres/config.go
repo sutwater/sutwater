@@ -10,7 +10,10 @@ import (
 )
 
 func LoadConfig() (*models.Config, error) {
-	godotenv.Load()
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("No .env file found, using system environment variables")
+	}
 
 	port := os.Getenv("API_PORT")
 	if port == "" {

@@ -1,17 +1,13 @@
 package models
 
-import (
-	"github.com/watermeter/suth/entity"
-)
-
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
 
 type AuthResponse struct {
-	Token string       `json:"token"`
-	User  *entity.User `json:"user"`
+	Token string        `json:"token"`
+	User  *UserResponse `json:"user"`
 }
 
 type RegisterRequest struct {
