@@ -18,11 +18,20 @@ type UserHandler struct {
 }
 
 // NewUserHandler constructs a new UserHandler.
-func NewUserHandler(userService services.UserService) *UserHandler {
-	return &UserHandler{
+func NewUserHandler(router *gin.RouterGroup, userService services.UserService) *UserHandler {
+
+	handler := &UserHandler{
 		userService: userService,
 		validate:    validator.New(),
 	}
+
+	user := router.Group("users")
+	user.GET("", handler.GetAllUsers)
+	user.GET("/:id", handler.GetProfile)
+	user.PUT("/:id", handler.UpdateProfile)
+	user.DELETE("/:id", handler.DeleteUser)
+
+	return handler
 }
 
 // GetProfile returns the current user's profile.
