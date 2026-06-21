@@ -5,24 +5,15 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/watermeter/suth/config/postgres"
-	"github.com/watermeter/suth/controller/device"
-	"github.com/watermeter/suth/controller/genders"
-	"github.com/watermeter/suth/controller/meter"
-	"github.com/watermeter/suth/controller/notification"
-	"github.com/watermeter/suth/controller/upload_image"
+	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/controller/users"
-	"github.com/watermeter/suth/controller/waterlog"
-	"github.com/watermeter/suth/controller/watervalue"
 	"github.com/watermeter/suth/middlewares"
+	"github.com/watermeter/suth/repositories"
+	"github.com/watermeter/suth/services"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("No .env file found, using system environment variables")
-	}
 
 	db, err := postgres.Setup()
 	if err != nil {
@@ -34,64 +25,26 @@ func main() {
 		defer postgresql.Close()
 	}
 
-	r := gin.Default()
-	r.Use(middlewares.CORSMiddleware())
-
-	r.POST("/signup", users.SignUp)
-	r.POST("/signin", users.SignIn)
-
-	router := r.Group("/api/v1")
-	router.Static("/uploads", "./uploads")
-	router.Use(middlewares.Authorizes())
-	//User
-	router.GET("/genders", genders.GetAll)
-	router.PUT("/user/:id", users.Update)
-	router.GET("/users", users.GetAll)
-	router.GET("/user/:id", users.Get)
-	router.DELETE("/user/:id", users.Delete)
-
-	//Waterlog
-	router.GET("/waterusages", waterlog.GetAllWaterUsageValues)
-	router.GET("/waterdetail", waterlog.GetAllCameraDevicesWithUsage)
-	router.GET("/waterdetail/:id", waterlog.GetCameraDeviceWithUsage)
-	router.GET("/watervalue/req/:id", waterlog.GetWaterMeterValueByCameraDeviceID)
-	router.GET("/watervalue/:id", watervalue.GetWaterMeterValueByID)
-	router.GET("/watervalue/status", watervalue.GetWaterMeterValueStatus)
-	router.POST("/watervalue", watervalue.CreateWaterMeterValue)
-	router.PATCH("/watervalue/:id", watervalue.UpdateWaterMeterValue)
-	router.PATCH("/watervalue/status/:id", watervalue.UpdateWaterMeterStatusByID)
-	router.PATCH("/watervalue/status/reject/:id", watervalue.UpdateWaterMeterStatusToReJect)
-	router.DELETE("/watervalue/:id", watervalue.DeleteCameraDeviceDataByID)
-	router.DELETE("/watervalue/clear/:camera_id", watervalue.ClearWaterMeterDataByCameraID)
-
-	//Notification
-	router.GET("/notifications", notification.GetAllNotifications)
-	router.GET("/notifications/stats", notification.GetNotificationStats)
-	router.PATCH("/notifications", notification.ReadAllNotifications)
-	router.PATCH("/notifications/:id", notification.ReadNotificationByID)
-	router.DELETE("/notifications/:id", notification.DeleteNotificationByID)
-
-	//Meter
-	router.GET("/meters", meter.GetAllMeters)
-	router.GET("/meters/manage", meter.GetAllMeterLocations)
-	router.POST("/meters", meter.CreateMeter)
-	router.PUT("/meters/:id", meter.UpdateMeterLocation)
-	router.DELETE("/meters/:id", meter.DeleteMeterLocation)
-	router.GET("/meter/name/:id", meter.GetMeterLocationByID)
-
-	//CameraDevice
-	router.GET("/cameradevices", device.GetCameraDevices)
-	router.GET("/cameradevices/without-mac", device.GetMeterLocationsWithoutCamera)
-	router.GET("/cameradevice/:id", device.GetCameraDeviceByID)
-	router.POST("/cameradevice", device.CreateCameraDevice)
-	router.DELETE("/cameradevice/:id", device.DeleteCameraDevicesByMeterLocationID)
-	router.PUT("/cameradevice/macaddress/:id", device.UpdateCameraDeviceMacAddress)
-	router.POST("/upload_image", upload_image.UploadMeterImage)
-
 	c, err := postgres.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load configuration: %v", err)
 	}
+
+	r := gin.Default()
+	r.Use(middlewares.CORSMiddleware())
+
+	router := r.Group("/api/v1")
+	router.Static("/uploads", "./uploads")
+	jwtProvider := utils.NewJWTProvider(c.JWTSecret, c.JWTExpiresIn)
+	userRepository := repositories.NewUserRepository(db)
+
+	authService := services.NewAuthService(userRepository, jwtProvider)
+	userService := services.NewUserService(userRepository)
+
+	users.NewAuthHandler(authService)
+	users.NewUserHandler(userService)
+
+	router.Use(middlewares.JWTAuthMiddleware())
 
 	r.Run("localhost" + c.APIPort)
 }
