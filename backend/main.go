@@ -51,5 +51,9 @@ func main() {
 	privateRouter.Use(middlewares.JWTAuthMiddleware())
 	users.NewUserHandler(privateRouter, userService)
 
+	// network
+	// r.Run("" + c.APIPort)
+
+	//localhost
 	r.Run("localhost" + c.APIPort)
 }
