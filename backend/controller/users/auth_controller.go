@@ -18,11 +18,17 @@ type AuthHandler struct {
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(authService services.AuthService) *AuthHandler {
-	return &AuthHandler{
+func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService) *AuthHandler {
+	handler := &AuthHandler{
 		authService: authService,
 		validate:    validator.New(),
 	}
+
+	auth := router.Group("auth")
+	auth.POST("/register", handler.Register)
+	auth.POST("/login", handler.Login)
+
+	return handler
 }
 
 // Register creates a new user account.

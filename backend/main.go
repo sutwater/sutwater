@@ -35,16 +35,21 @@ func main() {
 
 	router := r.Group("/api/v1")
 	router.Static("/uploads", "./uploads")
+
 	jwtProvider := utils.NewJWTProvider(c.JWTSecret, c.JWTExpiresIn)
 	userRepository := repositories.NewUserRepository(db)
 
 	authService := services.NewAuthService(userRepository, jwtProvider)
 	userService := services.NewUserService(userRepository)
 
-	users.NewAuthHandler(authService)
-	users.NewUserHandler(userService)
+	//puclice API
+	publicRouter := router.Group("")
+	users.NewAuthHandler(publicRouter, authService)
 
-	router.Use(middlewares.JWTAuthMiddleware())
+	//protect API
+	privateRouter := router.Group("")
+	privateRouter.Use(middlewares.JWTAuthMiddleware())
+	users.NewUserHandler(privateRouter, userService)
 
 	r.Run("localhost" + c.APIPort)
 }

@@ -28,8 +28,8 @@ func SetupDatabase(database *gorm.DB) error {
 		&entity.MaintainLog{},
 		&entity.DeviceCredential{},
 	)
-	// seedGenders()
-	// seedPositions()
+	seedGenders(database)
+	seedPositions(database)
 	// seedRoles()
 	// seedUsers()
 	// seedLocations()
@@ -43,28 +43,28 @@ func SetupDatabase(database *gorm.DB) error {
 	return err
 }
 
-// func seedGenders() {
-// 	genders := []entity.Genders{
-// 		{Gender: "Male"},
-// 		{Gender: "Female"},
-// 		{Gender: "Other"},
-// 	}
-// 	for _, g := range genders {
-// 		db.FirstOrCreate(&g, entity.Genders{Gender: g.Gender})
-// 	}
-// }
+func seedGenders(database *gorm.DB) {
+	genders := []entity.Genders{
+		{Gender: "Male"},
+		{Gender: "Female"},
+		{Gender: "Other"},
+	}
+	for _, g := range genders {
+		database.FirstOrCreate(&g, entity.Genders{Gender: g.Gender})
+	}
+}
 
-// func seedPositions() map[string]entity.Position {
-// 	positions := []string{"Manager", "Engineer", "Technician", "Staff"}
-// 	posMap := make(map[string]entity.Position)
+func seedPositions(database *gorm.DB) map[string]entity.Position {
+	positions := []string{"Manager", "Engineer", "Technician", "Staff"}
+	posMap := make(map[string]entity.Position)
 
-// 	for _, name := range positions {
-// 		var p entity.Position
-// 		db.FirstOrCreate(&p, entity.Position{Position: name})
-// 		posMap[name] = p
-// 	}
-// 	return posMap
-// }
+	for _, name := range positions {
+		var p entity.Position
+		database.FirstOrCreate(&p, entity.Position{Position: name})
+		posMap[name] = p
+	}
+	return posMap
+}
 
 // func seedRoles() {
 // 	roles := []entity.Role{
