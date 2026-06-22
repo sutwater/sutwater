@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/watermeter/suth/config/models"
-	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/entity"
 	"github.com/watermeter/suth/repositories"
 )
@@ -58,17 +57,21 @@ func (s *userService) UpdateProfile(userID uint, input models.UpdateUserRequest)
 		user.Email = input.Email
 	}
 
-	if input.Name != "" {
-		user.Username = input.Name
+	if input.FirstName != "" {
+		user.FirstName = input.FirstName
 	}
 
-	if input.Password != "" {
-		hashedPassword, err := utils.HashPassword(input.Password)
-		if err != nil {
-			return nil, err
-		}
-		user.Password = hashedPassword
+	if input.LastName != "" {
+		user.LastName = input.LastName
 	}
+
+	// if input.Password != "" {
+	// 	hashedPassword, err := utils.HashPassword(input.Password)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	user.Password = hashedPassword
+	// }
 
 	user.UpdatedAt = time.Now().UTC()
 	if err := s.userRepo.Update(user); err != nil {
@@ -105,7 +108,9 @@ func (s *userService) GetAllUsers() ([]models.UserResponse, error) {
 func mapUserToResponse(user *entity.User) *models.UserResponse {
 	return &models.UserResponse{
 		ID:        user.ID,
-		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		BirthDay:  user.BirthDay,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),

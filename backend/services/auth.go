@@ -45,7 +45,6 @@ func (a *authService) Register(input models.RegisterRequest) (*models.AuthRespon
 	}
 
 	user := &entity.User{
-		Username: input.Name,
 		Email:    input.Email,
 		Password: hashedPassword,
 	}
@@ -63,7 +62,6 @@ func (a *authService) Register(input models.RegisterRequest) (*models.AuthRespon
 		Token: token,
 		User: &models.UserResponse{
 			ID:        user.ID,
-			Username:  user.Username,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
@@ -93,7 +91,8 @@ func (a *authService) Login(input models.LoginRequest) (*models.AuthResponse, er
 		Token: token,
 		User: &models.UserResponse{
 			ID:        user.ID,
-			Username:  user.Username,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
