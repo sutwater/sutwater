@@ -129,17 +129,17 @@ func seedUsers(database *gorm.DB) {
 
 	users := []entity.User{
 		{
-			FirstName: "แอดมิน", LastName: "โรงบาล", Email: "suth@gmail.com", Age: 25,
+			FirstName: "แอดมิน", LastName: "โรงบาล", Email: "suth@gmail.com",
 			Password: hashOrPanic("123"), BirthDay: parseDate("1998-11-12"),
 			GenderID: femaleID, RoleID: roleAdminID, PositionID: managerPositionID,
 		},
 		{
-			FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com", Age: 22,
+			FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com",
 			Password: hashOrPanic("123"), BirthDay: parseDate("2003-05-20"),
 			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
 		},
 		{
-			FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com", Age: 22,
+			FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com",
 			Password: hashOrPanic("123"), BirthDay: parseDate("2003-06-08"),
 			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
 		},
