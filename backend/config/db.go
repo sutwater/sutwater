@@ -14,7 +14,17 @@ func DB() *gorm.DB {
 	return db
 }
 
-func SetupDatabase(database *gorm.DB) error {
+func SetupDatabase(database *gorm.DB, resetDB bool) error {
+
+	if resetDB {
+		fmt.Println("Resetting database: Dropping and recreating public schema...")
+		database.Exec("DROP SCHEMA public CASCADE;")
+		database.Exec("CREATE SCHEMA public;")
+		database.Exec("GRANT ALL ON SCHEMA public TO postgres;")
+		database.Exec("GRANT ALL ON SCHEMA public TO public;")
+		fmt.Println("Database reset completed. Starting AutoMigrate...")
+	}
+
 	err := database.AutoMigrate(
 		&entity.Genders{},
 		&entity.Position{},

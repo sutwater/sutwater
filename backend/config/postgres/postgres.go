@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/watermeter/suth/config"
@@ -10,12 +11,16 @@ import (
 )
 
 func Setup() (*gorm.DB, error) {
+	// พิมพ์ -reset เพื่อล้างข้อมูล
+	resetDB := flag.Bool("reset", false, "Reset the database schema before running")
+	flag.Parse()
+
 	c, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	postgres, err := ConnectDB(c)
+	postgres, err := ConnectDB(c, *resetDB)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +29,7 @@ func Setup() (*gorm.DB, error) {
 	return postgres, nil
 }
 
-func ConnectDB(c *models.Config) (*gorm.DB, error) {
+func ConnectDB(c *models.Config, resetDB bool) (*gorm.DB, error) {
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Bangkok",
 		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort)
@@ -34,7 +39,7 @@ func ConnectDB(c *models.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	err = config.SetupDatabase(db)
+	err = config.SetupDatabase(db, resetDB)
 	if err != nil {
 		return nil, err
 	}
