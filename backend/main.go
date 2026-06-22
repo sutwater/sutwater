@@ -31,6 +31,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
 	r.Use(middlewares.CORSMiddleware())
 
 	router := r.Group("/api/v1")

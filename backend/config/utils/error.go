@@ -1,0 +1,51 @@
+package utils
+
+import (
+	"errors"
+	"log"
+
+	"github.com/gin-gonic/gin"
+)
+
+var (
+	ErrNotFound                = errors.New("Item not found")
+	ErrMissingID               = errors.New("User id missing from token")
+	ErrCannotBeDeleted         = errors.New("Cannot be Deleted")
+	ErrConflict                = errors.New("Item already exist")
+	ErrInvalidPath             = errors.New("Invalid path")
+	ErrInvalidFormat           = errors.New("Invalid format")
+	ErrInvalidToken            = errors.New("Invalid token")
+	ErrBadRequest              = errors.New("Bad request")
+	ErrInvalidFlag             = errors.New("Invalid flag")
+	ErrInvalidUserRole         = errors.New("Invalid user role")
+	ErrSaveTranscript          = errors.New("Save transcript failed")
+	ErrNotPDFFile              = errors.New("Not PDF file")
+	ErrNoTranscriptFile        = errors.New("No transcript file.")
+	ErrNoImageProfileFile      = errors.New("No image profile.")
+	ErrNoDegreeCertificateFile = errors.New("No degree certificate file.")
+	ErrNoIDCardFile            = errors.New("No idcard file.")
+	ErrPermissionDenied        = errors.New("Permission denied.")
+	ErrInvalidUserVat          = errors.New("Invalid user vat.")
+	ErrNotImageFile            = errors.New("Not image file")
+	ErrInvalidAmount           = errors.New("Invalid amount.")
+)
+
+func NewError(c *gin.Context, status int, err error) {
+	er := HTTPError{
+		Code:    status,
+		Message: err.Error(),
+	}
+	c.JSON(status, er)
+
+}
+
+type HTTPError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		log.Panicf("%s: %s", msg, err)
+	}
+}
