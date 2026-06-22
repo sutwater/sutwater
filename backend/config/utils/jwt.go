@@ -44,9 +44,9 @@ func (p JWTProvider) GenerateToken(userID uint) (string, error) {
 
 // ParseToken validates a token string and returns its claims.
 func ParseToken(tokenString string) (*JWTClaims, error) {
-	secret := os.Getenv("JWT_SECRET")
+	secret := os.Getenv("JWT_SECRET_KEY")
 	if secret == "" {
-		return nil, errors.New("JWT_SECRET is not set")
+		return nil, errors.New("JWT_SECRET_KEY is not set")
 	}
 
 	claims := &JWTClaims{}

@@ -38,13 +38,13 @@ func NewUserHandler(router *gin.RouterGroup, userService services.UserService) *
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID, exists := utils.GetUserIDFromContext(c)
 	if !exists {
-		utils.JSONError(c, http.StatusUnauthorized, "authorization required", "user id missing from token")
+		utils.NewError(c, http.StatusUnauthorized, utils.ErrMissingID)
 		return
 	}
 
 	user, err := h.userService.GetProfile(userID)
 	if err != nil {
-		utils.JSONError(c, http.StatusNotFound, "profile not found", err.Error())
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
 		return
 	}
 
