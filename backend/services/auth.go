@@ -90,12 +90,17 @@ func (a *authService) Login(input models.LoginRequest) (*models.AuthResponse, er
 	return &models.AuthResponse{
 		Token: token,
 		User: &models.UserResponse{
-			ID:        user.ID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+			ID:           user.ID,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			GenderID:     user.GenderID,
+			RoleID:       user.RoleID,
+			PositionID:   user.PositionID,
+			ProfileImage: user.ProfileImage,
+			BirthDay:     user.BirthDay,
+			Email:        user.Email,
+			CreatedAt:    user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    user.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

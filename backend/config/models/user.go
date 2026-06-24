@@ -3,10 +3,15 @@ package models
 import "time"
 
 type UserResponse struct {
-	ID        uint      `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
+	ID           uint   `json:"id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	Email        string `json:"email"`
+	ProfileImage string `json:"profile_image"`
+	GenderID     uint   `json:"gender_id"`
+	RoleID       uint   `json:"role_id"`
+	PositionID   uint   `json:"position_id"`
+
 	BirthDay  time.Time `json:"birthday"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
