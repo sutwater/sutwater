@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/watermeter/suth/config/models"
+	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/entity"
 	"github.com/watermeter/suth/repositories"
 )
@@ -12,6 +13,7 @@ import (
 type UserService interface {
 	GetProfile(userID uint) (*models.UserResponse, error)
 	UpdateProfile(userID uint, input models.UpdateUserRequest) (*models.UserResponse, error)
+	ChangePassword(userID uint, input models.ChangePasswordRequest) error
 	DeleteUser(userID uint) error
 	GetAllUsers() ([]models.UserResponse, error)
 }
@@ -65,20 +67,35 @@ func (s *userService) UpdateProfile(userID uint, input models.UpdateUserRequest)
 		user.LastName = input.LastName
 	}
 
-	// if input.Password != "" {
-	// 	hashedPassword, err := utils.HashPassword(input.Password)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	user.Password = hashedPassword
-	// }
-
 	user.UpdatedAt = time.Now().UTC()
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, err
 	}
 
 	return mapUserToResponse(user), nil
+}
+
+func (s *userService) ChangePassword(userID uint, input models.ChangePasswordRequest) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	if err := utils.ComparePassword(user.Password, input.OldPassword); err != nil {
+		return errors.New("old password is incorrect")
+	}
+
+	hashed, err := utils.HashPassword(input.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashed
+	user.UpdatedAt = time.Now().UTC()
+	return s.userRepo.Update(user)
 }
 
 func (s *userService) DeleteUser(userID uint) error {

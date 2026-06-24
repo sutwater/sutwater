@@ -29,6 +29,7 @@ func NewUserHandler(router *gin.RouterGroup, userService services.UserService) *
 	user.GET("", handler.GetAllUsers)
 	user.GET("/:id", handler.GetProfile)
 	user.PUT("/:id", handler.UpdateProfile)
+	user.PUT("/:id/change-password", handler.ChangePassword)
 	user.DELETE("/:id", handler.DeleteUser)
 
 	return handler
@@ -77,6 +78,33 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	utils.JSONSuccess(c, http.StatusOK, updatedUser)
+}
+
+// ChangePassword changes the current user's password after verifying the old one.
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userID, exists := utils.GetUserIDFromContext(c)
+	if !exists {
+		utils.JSONError(c, http.StatusUnauthorized, "authorization required", "user id missing from token")
+		return
+	}
+
+	var payload models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, "invalid request payload", err.Error())
+		return
+	}
+
+	if err := h.validate.Struct(payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, "validation error", err.Error())
+		return
+	}
+
+	if err := h.userService.ChangePassword(userID, payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, "change password failed", err.Error())
+		return
+	}
+
+	utils.JSONSuccess(c, http.StatusOK, gin.H{"message": "password changed successfully"})
 }
 
 // DeleteUser deletes the current user account.

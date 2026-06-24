@@ -8,6 +8,7 @@
 *.so
 *.dylib
 *.test
+CLAUDE.md
 
 # Output of go coverage tool
 *.out
