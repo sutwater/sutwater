@@ -10,6 +10,7 @@ import (
 	"github.com/watermeter/suth/controller/device"
 	"github.com/watermeter/suth/controller/maintainlog"
 	"github.com/watermeter/suth/controller/meter"
+	"github.com/watermeter/suth/controller/notification"
 	"github.com/watermeter/suth/controller/users"
 	"github.com/watermeter/suth/controller/waterlog"
 	"github.com/watermeter/suth/middlewares"
@@ -59,6 +60,9 @@ func main() {
 	waterMeterValueRepository := repositories.NewWaterMeterValueRepository(db)
 	waterMeterValueService := services.NewWaterMeterValueService(waterMeterValueRepository)
 
+	notificationRepository := repositories.NewNotificationRepository(db)
+	notificationService := services.NewNotificationService(notificationRepository)
+
 	// public API
 	publicRouter := router.Group("")
 	users.NewAuthHandler(publicRouter, authService)
@@ -71,6 +75,7 @@ func main() {
 	device.NewDeviceHandler(privateRouter, deviceService)
 	maintainlog.NewMaintainLogHandler(privateRouter, maintainLogService)
 	waterlog.NewWaterLogHandler(privateRouter, waterMeterValueService)
+	notification.NewNotificationHandler(privateRouter, notificationService)
 
 	r.Run("localhost" + c.APIPort)
 }

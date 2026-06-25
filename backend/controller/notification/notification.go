@@ -2,142 +2,95 @@ package notification
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/config/utils"
-	"github.com/watermeter/suth/entity"
+	"github.com/watermeter/suth/services"
 )
 
-func GetNotificationsByMeterLocation(c *gin.Context) {
-	db := config.DB()
-	if db == nil {
-		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
-		return
-	}
+type notificationHandler struct {
+	service services.NotificationService
+}
 
-	meterLocationID := c.Param("id")
+func NewNotificationHandler(router *gin.RouterGroup, service services.NotificationService) {
+	h := &notificationHandler{service: service}
 
-	var notifications []entity.Message
+	g := router.Group("/notifications")
+	g.GET("", h.GetAll)
+	g.GET("/stats", h.GetStats)
+	g.PUT("/read-all", h.MarkAllAsRead)
+	g.GET("/:id", h.GetByID)
+	g.PUT("/:id/read", h.MarkAsRead)
+	g.DELETE("/:id", h.Delete)
+}
 
-	err := db.
-		Joins("JOIN camera_devices ON camera_devices.id = notifications.camera_device_id").
-		Where("camera_devices.meter_location_id = ?", meterLocationID).
-		Preload("CameraDevice").
-		Find(&notifications).Error
-
+func (h *notificationHandler) GetAll(c *gin.Context) {
+	data, err := h.service.GetAll()
 	if err != nil {
-		utils.JSONError(c, http.StatusInternalServerError, utils.ErrInternalServer.Error(), err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, notifications)
-}
-
-func GetAllNotifications(c *gin.Context) {
-	var notifications []entity.Message
-
-	if err := config.DB().
-		Preload("CameraDevice").
-		Preload("CameraDevice.MeterLocation").
-		Order("created_at DESC").
-		Find(&notifications).Error; err != nil {
-		utils.JSONError(c, http.StatusInternalServerError, utils.ErrInternalServer.Error(), err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, notifications)
-}
-
-func ReadNotificationByID(c *gin.Context) {
-	db := config.DB()
-	id := c.Param("id")
-
-	var notif entity.Message
-	if err := db.First(&notif, id).Error; err != nil {
-		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
-		return
-	}
-
-	if !notif.IsRead {
-		notif.IsRead = true
-		if err := db.Save(&notif).Error; err != nil {
-			utils.NewError(c, http.StatusInternalServerError, utils.ErrUpdateFailed)
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Notification marked as read",
-		"data":    notif,
-	})
-}
-
-func ReadAllNotifications(c *gin.Context) {
-	db := config.DB()
-
-	var notifications []entity.Message
-	if err := db.Find(&notifications).Error; err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
-
-	for i := range notifications {
-		if !notifications[i].IsRead {
-			notifications[i].IsRead = true
-			db.Save(&notifications[i])
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "All notifications marked as read",
-		"data":    notifications,
-	})
+	utils.JSONSuccess(c, http.StatusOK, data)
 }
 
-func DeleteNotificationByID(c *gin.Context) {
-	db := config.DB()
-	id := c.Param("id")
-
-	var notif entity.Message
-	if err := db.First(&notif, id).Error; err != nil {
-		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
-		return
-	}
-
-	if err := db.Delete(&notif).Error; err != nil {
-		utils.NewError(c, http.StatusInternalServerError, utils.ErrDeleteFailed)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Notification deleted successfully"})
-}
-
-func GetNotificationStats(c *gin.Context) {
-	db := config.DB()
-	if db == nil {
+func (h *notificationHandler) GetStats(c *gin.Context) {
+	stats, err := h.service.GetStats()
+	if err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
+	utils.JSONSuccess(c, http.StatusOK, stats)
+}
 
-	var totalNotifications int64
-	var readNotifications int64
-	var unreadNotifications int64
-
-	db.Model(&entity.Message{}).Count(&totalNotifications)
-	db.Model(&entity.Message{}).Where("is_read = ?", true).Count(&readNotifications)
-	db.Model(&entity.Message{}).Where("is_read = ?", false).Count(&unreadNotifications)
-
-	var lastNotification entity.Message
-	var lastAlert string
-	if err := db.Order("created_at DESC").First(&lastNotification).Error; err == nil {
-		lastAlert = lastNotification.CreatedAt.Format("2006-01-02 15:04:05")
+func (h *notificationHandler) GetByID(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"totalNotifications":  totalNotifications,
-		"readNotifications":   readNotifications,
-		"unreadNotifications": unreadNotifications,
-		"lastAlert":           lastAlert,
-	})
+	data, err := h.service.GetByID(uint(id))
+	if err != nil {
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, data)
+}
+
+func (h *notificationHandler) MarkAsRead(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	data, err := h.service.MarkAsRead(uint(id))
+	if err != nil {
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, data)
+}
+
+func (h *notificationHandler) MarkAllAsRead(c *gin.Context) {
+	if err := h.service.MarkAllAsRead(); err != nil {
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, gin.H{"message": "all notifications marked as read"})
+}
+
+func (h *notificationHandler) Delete(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	if err := h.service.Delete(uint(id)); err != nil {
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, gin.H{"message": "notification deleted"})
 }
