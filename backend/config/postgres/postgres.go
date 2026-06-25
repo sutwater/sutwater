@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/watermeter/suth/config"
 	"github.com/watermeter/suth/config/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,13 +19,13 @@ func Setup() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	postgres, err := ConnectDB(c, *resetDB)
+	db, err := ConnectDB(c, *resetDB)
 	if err != nil {
 		return nil, err
 	}
 
 	fmt.Println("Successfully connected to PostgreSQL!")
-	return postgres, nil
+	return db, nil
 }
 
 func ConnectDB(c *models.Config, resetDB bool) (*gorm.DB, error) {
@@ -39,7 +38,7 @@ func ConnectDB(c *models.Config, resetDB bool) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	err = config.SetupDatabase(db, resetDB)
+	err = SetupDatabase(db, resetDB)
 	if err != nil {
 		return nil, err
 	}

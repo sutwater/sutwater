@@ -1,190 +1,171 @@
 package waterlog
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/watermeter/suth/config"
-	"github.com/watermeter/suth/entity"
-	"gorm.io/gorm"
-
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/watermeter/suth/config/models"
+	"github.com/watermeter/suth/config/utils"
+	"github.com/watermeter/suth/services"
 )
 
-func GetAllWaterUsageValues(c *gin.Context) {
-	db := config.DB()
-	if db == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
-		return
-	}
-
-	// Subquery ดึงค่า timestamp ล่าสุดของแต่ละ MacAddress
-	// Subquery ดึงค่า timestamp ล่าสุดของแต่ละ CameraDeviceID
-	subQuery := db.
-		Table("water_meter_values").
-		Select("camera_device_id, MAX(timestamp) AS max_timestamp").
-		Group("camera_device_id")
-
-	var latestValues []entity.WaterMeterValue
-
-	// Join กับ subQuery เพื่อดึงข้อมูลแถวล่าสุดของแต่ละกล้อง
-	err := db.
-		Table("water_meter_values AS wm").
-		Joins(`
-        JOIN (?) AS wm2 
-        ON wm.camera_device_id = wm2.camera_device_id 
-        AND wm.timestamp = wm2.max_timestamp
-    `, subQuery).
-		Preload("CameraDevice").
-		Preload("CameraDevice.MeterLocation").
-		Find(&latestValues).Error
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, latestValues)
+type WaterLogHandler struct {
+	waterService services.WaterMeterValueService
+	validate     *validator.Validate
 }
 
-// GET /api/meterlocation/:id/detail
-func GetCameraDeviceWithUsage(c *gin.Context) {
-	db := config.DB()
-	if db == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
-		return
+func NewWaterLogHandler(router *gin.RouterGroup, waterService services.WaterMeterValueService) *WaterLogHandler {
+	handler := &WaterLogHandler{
+		waterService: waterService,
+		validate:     validator.New(),
 	}
 
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-		return
-	}
+	g := router.Group("water-values")
+	g.GET("", handler.GetAll)
+	g.GET("/latest", handler.GetLatest)
+	g.GET("/pending", handler.GetPending)
+	g.GET("/statuses", handler.GetStatuses)
+	g.GET("/:id", handler.GetByID)
+	g.POST("", handler.Create)
+	g.PUT("/:id", handler.Update)
+	g.DELETE("/:id", handler.Delete)
 
-	startDate := c.Query("startDate")
-	endDate := c.Query("endDate")
-
-	var cameraDevice entity.Device
-
-	query := db.Model(&entity.Device{}).Preload("MeterLocation")
-
-	if startDate != "" && endDate != "" {
-		query = query.
-			Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
-				return db.Where("timestamp BETWEEN ? AND ?", startDate, endDate).Order("timestamp DESC")
-			}).
-			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-				return db.
-					Where("status_id = ?", 2).
-					Where("timestamp BETWEEN ? AND ?", startDate, endDate).
-					Order("timestamp DESC").
-					Preload("User")
-			})
-	} else {
-		query = query.
-			Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
-				return db.Order("timestamp DESC")
-			}).
-			Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-				return db.
-					Where("status_id = ?", 2).
-					Order("timestamp DESC").
-					Preload("User")
-			})
-	}
-
-	err = query.First(&cameraDevice, id).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "CameraDevice not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, cameraDevice)
+	return handler
 }
 
-func GetAllCameraDevicesWithUsage(c *gin.Context) {
-	db := config.DB()
-	if db == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
-		return
+// GetAll รองรับ query params: ?device_id=X&status_id=Y
+func (h *WaterLogHandler) GetAll(c *gin.Context) {
+	var deviceID *uint
+	var statusID *uint
+
+	if raw := c.Query("device_id"); raw != "" {
+		if v, err := strconv.ParseUint(raw, 10, 64); err == nil {
+			u := uint(v)
+			deviceID = &u
+		}
+	}
+	if raw := c.Query("status_id"); raw != "" {
+		if v, err := strconv.ParseUint(raw, 10, 64); err == nil {
+			u := uint(v)
+			statusID = &u
+		}
 	}
 
-	var cameraDevices []entity.Device
-
-	err := db.Model(&entity.Device{}).
-		Preload("MeterLocation").
-		Preload("DailyWaterUsage", func(db *gorm.DB) *gorm.DB {
-			return db.Order("timestamp DESC")
-		}).
-		Preload("WaterMeterValue", func(db *gorm.DB) *gorm.DB {
-			return db.Order("timestamp DESC").Preload("User")
-		}).
-		Find(&cameraDevices).Error
-
+	values, err := h.waterService.GetAll(deviceID, statusID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
-
-	c.JSON(http.StatusOK, cameraDevices)
+	utils.JSONSuccess(c, http.StatusOK, values)
 }
 
-func GetWaterMeterValueByCameraDeviceID(c *gin.Context) {
-	db := config.DB()
-	cameraID := c.Param("id")
-
-	var waterValues []entity.WaterMeterValue
-	if err := db.Preload("CameraDevice.MeterLocation").
-		Preload("User").
-		Where("camera_device_id = ? AND status_id = ?", cameraID, 1).
-		Order("timestamp DESC"). // ✅ เรียงตาม timestamp ใหม่สุดก่อน
-		Find(&waterValues).Error; err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to retrieve water meter values",
-			"message": err.Error(),
-		})
+// GetLatest คืนค่ามิเตอร์ล่าสุดของแต่ละอุปกรณ์ (สำหรับ dashboard)
+func (h *WaterLogHandler) GetLatest(c *gin.Context) {
+	values, err := h.waterService.GetLatestPerDevice()
+	if err != nil {
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
-
-	if len(waterValues) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "ไม่มีข้อมูลที่รอการอนุมัติสำหรับจุดนี้",
-			"message": fmt.Sprintf("ไม่พบข้อมูลสำหรับ CameraDeviceID = %s หรือ StatusID != 1", cameraID),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Water meter values retrieved successfully",
-		"data":    waterValues,
-	})
+	utils.JSONSuccess(c, http.StatusOK, values)
 }
 
-func GetAllPendingWaterMeterValues(c *gin.Context) {
-	db := config.DB()
+// GetPending คืนค่าที่รอการอนุมัติ (status=1)
+func (h *WaterLogHandler) GetPending(c *gin.Context) {
+	values, err := h.waterService.GetPending()
+	if err != nil {
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, values)
+}
 
-	var waterValues []entity.WaterMeterValue
-	if err := db.Where("status_id = ?", 1).Find(&waterValues).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to fetch water meter values",
-			"message": err.Error(),
-		})
+func (h *WaterLogHandler) GetStatuses(c *gin.Context) {
+	statuses, err := h.waterService.GetStatuses()
+	if err != nil {
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, statuses)
+}
+
+func (h *WaterLogHandler) GetByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
 		return
 	}
 
-	if len(waterValues) == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "No pending water meter values found",
-			"data":    []entity.WaterMeterValue{},
-		})
+	value, err := h.waterService.GetByID(uint(id))
+	if err != nil {
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, value)
+}
+
+func (h *WaterLogHandler) Create(c *gin.Context) {
+	userID, exists := utils.GetUserIDFromContext(c)
+	if !exists {
+		utils.NewError(c, http.StatusUnauthorized, utils.ErrMissingID)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Pending water meter values retrieved successfully",
-		"data":    waterValues,
-	})
+	var payload models.WaterMeterValueRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
+		return
+	}
+	if err := h.validate.Struct(payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
+		return
+	}
+
+	value, err := h.waterService.Create(payload, userID)
+	if err != nil {
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrCreateFailed)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusCreated, value)
+}
+
+// Update เปลี่ยน status (อนุมัติ/ปฏิเสธ) หรือเพิ่ม note
+func (h *WaterLogHandler) Update(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	var payload models.UpdateWaterMeterValueRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
+		return
+	}
+	if err := h.validate.Struct(payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
+		return
+	}
+
+	value, err := h.waterService.Update(uint(id), payload)
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrUpdateFailed)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusOK, value)
+}
+
+func (h *WaterLogHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	if err := h.waterService.Delete(uint(id)); err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrDeleteFailed)
+		return
+	}
+	utils.JSONSuccess(c, http.StatusNoContent, nil)
 }

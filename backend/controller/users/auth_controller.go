@@ -11,13 +11,11 @@ import (
 	"github.com/watermeter/suth/services"
 )
 
-// AuthHandler handles authentication routes.
 type AuthHandler struct {
 	authService services.AuthService
 	validate    *validator.Validate
 }
 
-// NewAuthHandler creates a new AuthHandler.
 func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService) *AuthHandler {
 	handler := &AuthHandler{
 		authService: authService,
@@ -31,44 +29,42 @@ func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService) *
 	return handler
 }
 
-// Register creates a new user account.
 func (h *AuthHandler) Register(c *gin.Context) {
 	var payload models.RegisterRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		utils.JSONError(c, http.StatusBadRequest, "invalid request payload", err.Error())
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
 		return
 	}
 
 	if err := h.validate.Struct(payload); err != nil {
-		utils.JSONError(c, http.StatusBadRequest, "validation error", err.Error())
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
 		return
 	}
 
 	authResponse, err := h.authService.Register(payload)
 	if err != nil {
-		utils.JSONError(c, http.StatusBadRequest, "registration failed", err.Error())
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrCreateFailed.Error(), err.Error())
 		return
 	}
 
 	utils.JSONSuccess(c, http.StatusCreated, authResponse)
 }
 
-// Login authenticates a user and returns a JWT token.
 func (h *AuthHandler) Login(c *gin.Context) {
 	var payload models.LoginRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		utils.JSONError(c, http.StatusBadRequest, "invalid request payload", err.Error())
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
 		return
 	}
 
 	if err := h.validate.Struct(payload); err != nil {
-		utils.JSONError(c, http.StatusBadRequest, "validation error", err.Error())
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
 		return
 	}
 
 	authResponse, err := h.authService.Login(payload)
 	if err != nil {
-		utils.JSONError(c, http.StatusUnauthorized, "login failed", err.Error())
+		utils.NewError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
 		return
 	}
 

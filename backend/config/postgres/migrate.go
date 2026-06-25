@@ -1,18 +1,13 @@
-package config
+package postgres
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/entity"
 	"gorm.io/gorm"
 )
-
-var db *gorm.DB
-
-func DB() *gorm.DB {
-	return db
-}
 
 func SetupDatabase(database *gorm.DB, resetDB bool) error {
 
@@ -304,7 +299,7 @@ func seedMaintainLog(database *gorm.DB) {
 }
 
 func hashOrPanic(password string) string {
-	hashed, err := HashPassword(password)
+	hashed, err := utils.HashPassword(password)
 	if err != nil {
 		panic(err)
 	}

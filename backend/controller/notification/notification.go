@@ -3,20 +3,19 @@ package notification
 import (
 	"net/http"
 
-	"github.com/watermeter/suth/config"
-	"github.com/watermeter/suth/entity"
-
 	"github.com/gin-gonic/gin"
+	"github.com/watermeter/suth/config"
+	"github.com/watermeter/suth/config/utils"
+	"github.com/watermeter/suth/entity"
 )
 
 func GetNotificationsByMeterLocation(c *gin.Context) {
 	db := config.DB()
 	if db == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
-	// อ่าน MeterLocationID จาก URL param
 	meterLocationID := c.Param("id")
 
 	var notifications []entity.Message
@@ -28,7 +27,7 @@ func GetNotificationsByMeterLocation(c *gin.Context) {
 		Find(&notifications).Error
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.JSONError(c, http.StatusInternalServerError, utils.ErrInternalServer.Error(), err.Error())
 		return
 	}
 
@@ -41,10 +40,9 @@ func GetAllNotifications(c *gin.Context) {
 	if err := config.DB().
 		Preload("CameraDevice").
 		Preload("CameraDevice.MeterLocation").
-		Order("created_at DESC"). // เรียงจากล่าสุด
+		Order("created_at DESC").
 		Find(&notifications).Error; err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.JSONError(c, http.StatusInternalServerError, utils.ErrInternalServer.Error(), err.Error())
 		return
 	}
 
@@ -57,15 +55,14 @@ func ReadNotificationByID(c *gin.Context) {
 
 	var notif entity.Message
 	if err := db.First(&notif, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
 		return
 	}
 
-	// ✅ mark as read
 	if !notif.IsRead {
 		notif.IsRead = true
 		if err := db.Save(&notif).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark notification as read"})
+			utils.NewError(c, http.StatusInternalServerError, utils.ErrUpdateFailed)
 			return
 		}
 	}
@@ -76,17 +73,15 @@ func ReadNotificationByID(c *gin.Context) {
 	})
 }
 
-// อ่านแจ้งเตือนทั้งหมดและ mark as read
 func ReadAllNotifications(c *gin.Context) {
 	db := config.DB()
 
 	var notifications []entity.Message
 	if err := db.Find(&notifications).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch notifications"})
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
-	// ✅ mark all as read
 	for i := range notifications {
 		if !notifications[i].IsRead {
 			notifications[i].IsRead = true
@@ -106,25 +101,22 @@ func DeleteNotificationByID(c *gin.Context) {
 
 	var notif entity.Message
 	if err := db.First(&notif, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})
+		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
 		return
 	}
 
 	if err := db.Delete(&notif).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete notification"})
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrDeleteFailed)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Notification deleted successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Notification deleted successfully"})
 }
 
-// GetNotificationStats - คำนวณสถิติการแจ้งเตือน
 func GetNotificationStats(c *gin.Context) {
 	db := config.DB()
 	if db == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not initialized"})
+		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
 
@@ -132,26 +124,20 @@ func GetNotificationStats(c *gin.Context) {
 	var readNotifications int64
 	var unreadNotifications int64
 
-	// นับจำนวนการแจ้งเตือนทั้งหมด
 	db.Model(&entity.Message{}).Count(&totalNotifications)
-
-	// นับการแจ้งเตือนตามสถานะการอ่าน
 	db.Model(&entity.Message{}).Where("is_read = ?", true).Count(&readNotifications)
 	db.Model(&entity.Message{}).Where("is_read = ?", false).Count(&unreadNotifications)
 
-	// หาการแจ้งเตือนล่าสุด
 	var lastNotification entity.Message
-	var lastAlert string = ""
+	var lastAlert string
 	if err := db.Order("created_at DESC").First(&lastNotification).Error; err == nil {
 		lastAlert = lastNotification.CreatedAt.Format("2006-01-02 15:04:05")
 	}
 
-	stats := map[string]interface{}{
+	c.JSON(http.StatusOK, gin.H{
 		"totalNotifications":  totalNotifications,
 		"readNotifications":   readNotifications,
 		"unreadNotifications": unreadNotifications,
 		"lastAlert":           lastAlert,
-	}
-
-	c.JSON(http.StatusOK, stats)
+	})
 }

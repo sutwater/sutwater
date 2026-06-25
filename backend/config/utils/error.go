@@ -8,26 +8,32 @@ import (
 )
 
 var (
-	ErrNotFound                = errors.New("Item not found")
-	ErrMissingID               = errors.New("User id missing from token")
-	ErrCannotBeDeleted         = errors.New("Cannot be Deleted")
-	ErrConflict                = errors.New("Item already exist")
-	ErrInvalidPath             = errors.New("Invalid path")
-	ErrInvalidFormat           = errors.New("Invalid format")
-	ErrInvalidToken            = errors.New("Invalid token")
-	ErrBadRequest              = errors.New("Bad request")
-	ErrInvalidFlag             = errors.New("Invalid flag")
-	ErrInvalidUserRole         = errors.New("Invalid user role")
-	ErrSaveTranscript          = errors.New("Save transcript failed")
-	ErrNotPDFFile              = errors.New("Not PDF file")
-	ErrNoTranscriptFile        = errors.New("No transcript file.")
-	ErrNoImageProfileFile      = errors.New("No image profile.")
-	ErrNoDegreeCertificateFile = errors.New("No degree certificate file.")
-	ErrNoIDCardFile            = errors.New("No idcard file.")
-	ErrPermissionDenied        = errors.New("Permission denied.")
-	ErrInvalidUserVat          = errors.New("Invalid user vat.")
-	ErrNotImageFile            = errors.New("Not image file")
-	ErrInvalidAmount           = errors.New("Invalid amount.")
+	// auth
+	ErrMissingID        = errors.New("user id missing from token")
+	ErrInvalidToken     = errors.New("invalid token")
+	ErrUnauthorized     = errors.New("unauthorized")
+	ErrPermissionDenied = errors.New("permission denied")
+	ErrWrongPassword    = errors.New("incorrect password")
+
+	// request
+	ErrInvalidID      = errors.New("invalid id parameter")
+	ErrInvalidPayload = errors.New("invalid request payload")
+	ErrValidation     = errors.New("validation failed")
+	ErrBadRequest     = errors.New("bad request")
+
+	// resource
+	ErrNotFound       = errors.New("item not found")
+	ErrConflict       = errors.New("item already exists")
+	ErrCannotBeDeleted = errors.New("item cannot be deleted")
+
+	// operations
+	ErrCreateFailed = errors.New("create failed")
+	ErrUpdateFailed = errors.New("update failed")
+	ErrDeleteFailed = errors.New("delete failed")
+	ErrInternalServer = errors.New("internal server error")
+
+	// file
+	ErrNotImageFile = errors.New("file is not an image")
 )
 
 func NewError(c *gin.Context, status int, err error) {
