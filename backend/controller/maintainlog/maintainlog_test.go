@@ -40,10 +40,34 @@ func (m *mockMaintainLogService) GetStatuses() ([]models.StatusLogResponse, erro
 	return m.getStatusesFn()
 }
 
+// noopNotifService satisfies services.NotificationService for maintainlog tests
+type noopNotifService struct{}
+
+func (n *noopNotifService) GetAll(roleID, userID uint) ([]models.NotificationResponse, error) {
+	return nil, nil
+}
+func (n *noopNotifService) GetByID(id uint) (*models.NotificationResponse, error) { return nil, nil }
+func (n *noopNotifService) MarkAsRead(id uint) (*models.NotificationResponse, error) {
+	return nil, nil
+}
+func (n *noopNotifService) MarkAllAsRead(roleID, userID uint) error { return nil }
+func (n *noopNotifService) Delete(id uint) error                    { return nil }
+func (n *noopNotifService) GetStats() (*models.NotificationStatsResponse, error) {
+	return nil, nil
+}
+func (n *noopNotifService) CreateSystemNotification(message string, targetUserID uint) error {
+	return nil
+}
+
 func setupRouter(svc *mockMaintainLogService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	NewMaintainLogHandler(r.Group("/api/v1"), svc)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", uint(1))
+		c.Set("role_id", uint(1))
+		c.Next()
+	})
+	NewMaintainLogHandler(r.Group("/api/v1"), svc, &noopNotifService{})
 	return r
 }
 

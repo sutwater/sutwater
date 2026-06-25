@@ -53,7 +53,7 @@ func (a *authService) Register(input models.RegisterRequest) (*models.AuthRespon
 		return nil, err
 	}
 
-	token, err := a.jwtProvider.GenerateToken(user.ID)
+	token, err := a.jwtProvider.GenerateToken(user.ID, user.RoleID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (a *authService) Login(input models.LoginRequest) (*models.AuthResponse, er
 		return nil, errors.New("invalid email or password")
 	}
 
-	token, err := a.jwtProvider.GenerateToken(user.ID)
+	token, err := a.jwtProvider.GenerateToken(user.ID, user.RoleID)
 	if err != nil {
 		return nil, err
 	}

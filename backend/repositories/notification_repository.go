@@ -3,6 +3,7 @@ package repositories
 import (
 	"errors"
 
+	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/entity"
 	"gorm.io/gorm"
 )
@@ -15,11 +16,12 @@ type NotificationStats struct {
 }
 
 type NotificationRepository interface {
-	FetchAll() ([]entity.Message, error)
+	Create(msg *entity.Message) error
+	FetchAll(roleID, userID uint) ([]entity.Message, error)
 	FindByID(id uint) (*entity.Message, error)
 	Update(msg *entity.Message) error
 	Delete(msg *entity.Message) error
-	MarkAllAsRead() error
+	MarkAllAsRead(roleID, userID uint) error
 	GetStats() (NotificationStats, error)
 }
 
@@ -31,11 +33,29 @@ func NewNotificationRepository(db *gorm.DB) NotificationRepository {
 	return &notificationRepository{db: db}
 }
 
-func (r *notificationRepository) FetchAll() ([]entity.Message, error) {
+func (r *notificationRepository) Create(msg *entity.Message) error {
+	return r.db.Create(msg).Error
+}
+
+func (r *notificationRepository) FetchAll(roleID, userID uint) ([]entity.Message, error) {
 	var msgs []entity.Message
-	if err := r.db.Preload("Device").Preload("Device.Location").
-		Order("created_at DESC").
-		Find(&msgs).Error; err != nil {
+	q := r.db.Preload("Device").Preload("Device.Location").Order("created_at DESC")
+
+	switch roleID {
+	case utils.RoleUser:
+		// User เห็นเฉพาะ system notification ที่ส่งหาตัวเอง
+		q = q.Where("device_id IS NULL AND target_user_id = ?", userID)
+	case utils.RoleAdmin:
+		// Admin เห็นทุกอย่าง
+	default:
+		// Engineer, Technician — เห็น meter alerts + system ที่ไม่ระบุเป้าหมาย + ของตัวเอง
+		q = q.Where(
+			"device_id IS NOT NULL OR (device_id IS NULL AND (target_user_id IS NULL OR target_user_id = ?))",
+			userID,
+		)
+	}
+
+	if err := q.Find(&msgs).Error; err != nil {
 		return nil, err
 	}
 	return msgs, nil
@@ -61,10 +81,22 @@ func (r *notificationRepository) Delete(msg *entity.Message) error {
 	return r.db.Delete(msg).Error
 }
 
-func (r *notificationRepository) MarkAllAsRead() error {
-	return r.db.Model(&entity.Message{}).
-		Where("is_read = ?", false).
-		Update("is_read", true).Error
+func (r *notificationRepository) MarkAllAsRead(roleID, userID uint) error {
+	q := r.db.Model(&entity.Message{}).Where("is_read = ?", false)
+
+	switch roleID {
+	case utils.RoleUser:
+		q = q.Where("device_id IS NULL AND target_user_id = ?", userID)
+	case utils.RoleAdmin:
+		// mark all
+	default:
+		q = q.Where(
+			"device_id IS NOT NULL OR (device_id IS NULL AND (target_user_id IS NULL OR target_user_id = ?))",
+			userID,
+		)
+	}
+
+	return q.Update("is_read", true).Error
 }
 
 func (r *notificationRepository) GetStats() (NotificationStats, error) {

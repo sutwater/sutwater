@@ -49,17 +49,16 @@ func (m *mockWaterService) Delete(id uint) error {
 	return m.deleteFn(id)
 }
 
-// withUser injects a user ID into every request (simulates JWT middleware)
 func setupRouter(svc *mockWaterService, userID *uint) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if userID != nil {
-		uid := *userID
-		r.Use(func(c *gin.Context) {
-			c.Set(utils.ContextUserIDKey, uid)
-			c.Next()
-		})
-	}
+	r.Use(func(c *gin.Context) {
+		if userID != nil {
+			c.Set(utils.ContextUserIDKey, *userID)
+		}
+		c.Set(utils.ContextRoleIDKey, uint(1)) // Admin bypasses all role guards
+		c.Next()
+	})
 	NewWaterLogHandler(r.Group("/api/v1"), svc)
 	return r
 }

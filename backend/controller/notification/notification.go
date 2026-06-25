@@ -18,15 +18,18 @@ func NewNotificationHandler(router *gin.RouterGroup, service services.Notificati
 
 	g := router.Group("/notifications")
 	g.GET("", h.GetAll)
-	g.GET("/stats", h.GetStats)
+	g.GET("/stats", utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer, utils.RoleTechnician), h.GetStats)
 	g.PUT("/read-all", h.MarkAllAsRead)
 	g.GET("/:id", h.GetByID)
 	g.PUT("/:id/read", h.MarkAsRead)
-	g.DELETE("/:id", h.Delete)
+	g.DELETE("/:id", utils.RequireRole(utils.RoleAdmin), h.Delete)
 }
 
 func (h *notificationHandler) GetAll(c *gin.Context) {
-	data, err := h.service.GetAll()
+	userID, _ := utils.GetUserIDFromContext(c)
+	roleID, _ := utils.GetRoleIDFromContext(c)
+
+	data, err := h.service.GetAll(roleID, userID)
 	if err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
@@ -74,7 +77,10 @@ func (h *notificationHandler) MarkAsRead(c *gin.Context) {
 }
 
 func (h *notificationHandler) MarkAllAsRead(c *gin.Context) {
-	if err := h.service.MarkAllAsRead(); err != nil {
+	userID, _ := utils.GetUserIDFromContext(c)
+	roleID, _ := utils.GetRoleIDFromContext(c)
+
+	if err := h.service.MarkAllAsRead(roleID, userID); err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}

@@ -37,17 +37,13 @@ var (
 )
 
 func NewError(c *gin.Context, status int, err error) {
-	er := HTTPError{
-		Code:    status,
-		Message: err.Error(),
-	}
-	c.JSON(status, er)
-
-}
-
-type HTTPError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	c.JSON(status, gin.H{
+		"success": false,
+		"error": gin.H{
+			"message": err.Error(),
+			"detail":  "",
+		},
+	})
 }
 
 func FailOnError(err error, msg string) {

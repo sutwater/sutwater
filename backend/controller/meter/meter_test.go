@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config/models"
+	"github.com/watermeter/suth/config/utils"
 )
 
 // mockLocationService implements services.LocationService via structural typing
@@ -40,6 +41,11 @@ func (m *mockLocationService) Delete(id uint) error {
 func setupRouter(svc *mockLocationService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set(utils.ContextUserIDKey, uint(1))
+		c.Set(utils.ContextRoleIDKey, uint(1)) // Admin
+		c.Next()
+	})
 	NewMeterHandler(r.Group("/api/v1"), svc)
 	return r
 }

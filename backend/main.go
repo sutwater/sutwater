@@ -65,7 +65,7 @@ func main() {
 
 	// public API
 	publicRouter := router.Group("")
-	users.NewAuthHandler(publicRouter, authService)
+	users.NewAuthHandler(publicRouter, authService, notificationService)
 
 	// protected API
 	privateRouter := router.Group("")
@@ -73,7 +73,7 @@ func main() {
 	users.NewUserHandler(privateRouter, userService)
 	meter.NewMeterHandler(privateRouter, locationService)
 	device.NewDeviceHandler(privateRouter, deviceService)
-	maintainlog.NewMaintainLogHandler(privateRouter, maintainLogService)
+	maintainlog.NewMaintainLogHandler(privateRouter, maintainLogService, notificationService)
 	waterlog.NewWaterLogHandler(privateRouter, waterMeterValueService)
 	notification.NewNotificationHandler(privateRouter, notificationService)
 

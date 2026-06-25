@@ -12,14 +12,16 @@ import (
 )
 
 type AuthHandler struct {
-	authService services.AuthService
-	validate    *validator.Validate
+	authService         services.AuthService
+	notificationService services.NotificationService
+	validate            *validator.Validate
 }
 
-func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService) *AuthHandler {
+func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService, notificationService services.NotificationService) *AuthHandler {
 	handler := &AuthHandler{
-		authService: authService,
-		validate:    validator.New(),
+		authService:         authService,
+		notificationService: notificationService,
+		validate:            validator.New(),
 	}
 
 	auth := router.Group("auth")
@@ -64,8 +66,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	authResponse, err := h.authService.Login(payload)
 	if err != nil {
-		utils.NewError(c, http.StatusUnauthorized, utils.ErrUnauthorized)
+		utils.JSONError(c, http.StatusUnauthorized, utils.ErrWrongPassword.Error(), err.Error())
 		return
+	}
+
+	// ส่ง system notification ให้ผู้ใช้ที่เพิ่ง login
+	if authResponse.User != nil {
+		_ = h.notificationService.CreateSystemNotification(
+			"เข้าสู่ระบบสำเร็จ ยินดีต้อนรับ "+authResponse.User.FirstName,
+			authResponse.User.ID,
+		)
 	}
 
 	utils.JSONSuccess(c, http.StatusOK, authResponse)
