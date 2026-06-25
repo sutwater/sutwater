@@ -12,23 +12,28 @@ import (
 )
 
 type MaintainLogHandler struct {
-	maintainLogService services.MaintainLogService
-	validate           *validator.Validate
+	maintainLogService  services.MaintainLogService
+	notificationService services.NotificationService
+	validate            *validator.Validate
 }
 
-func NewMaintainLogHandler(router *gin.RouterGroup, maintainLogService services.MaintainLogService) *MaintainLogHandler {
+func NewMaintainLogHandler(router *gin.RouterGroup, maintainLogService services.MaintainLogService, notificationService services.NotificationService) *MaintainLogHandler {
 	handler := &MaintainLogHandler{
-		maintainLogService: maintainLogService,
-		validate:           validator.New(),
+		maintainLogService:  maintainLogService,
+		notificationService: notificationService,
+		validate:            validator.New(),
 	}
 
+	staffNoUser := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer, utils.RoleTechnician)
+	adminOrEngineer := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer)
+
 	g := router.Group("maintain-logs")
-	g.GET("", handler.GetAll)
-	g.GET("/statuses", handler.GetStatuses)
-	g.GET("/:id", handler.GetByID)
-	g.POST("", handler.Create)
-	g.PUT("/:id", handler.Update)
-	g.DELETE("/:id", handler.Delete)
+	g.GET("", staffNoUser, handler.GetAll)
+	g.GET("/statuses", staffNoUser, handler.GetStatuses)
+	g.GET("/:id", staffNoUser, handler.GetByID)
+	g.POST("", handler.Create) // ทุก role ส่งปัญหาได้
+	g.PUT("/:id", staffNoUser, handler.Update)
+	g.DELETE("/:id", adminOrEngineer, handler.Delete)
 
 	return handler
 }
@@ -73,6 +78,14 @@ func (h *MaintainLogHandler) Create(c *gin.Context) {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrCreateFailed)
 		return
 	}
+
+	// ส่ง system notification ให้ผู้รายงาน (ถ้ามี userID ใน context)
+	if userID, ok := utils.GetUserIDFromContext(c); ok {
+		_ = h.notificationService.CreateSystemNotification(
+			"รายงานปัญหาของคุณถูกบันทึกแล้ว: "+log.Title, userID,
+		)
+	}
+
 	utils.JSONSuccess(c, http.StatusCreated, log)
 }
 

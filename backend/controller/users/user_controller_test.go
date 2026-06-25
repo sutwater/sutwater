@@ -40,13 +40,13 @@ func (m *mockUserService) GetAllUsers() ([]models.UserResponse, error) {
 func setupUserRouter(svc *mockUserService, userID *uint) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	if userID != nil {
-		uid := *userID
-		r.Use(func(c *gin.Context) {
-			c.Set(utils.ContextUserIDKey, uid)
-			c.Next()
-		})
-	}
+	r.Use(func(c *gin.Context) {
+		if userID != nil {
+			c.Set(utils.ContextUserIDKey, *userID)
+		}
+		c.Set(utils.ContextRoleIDKey, uint(1)) // Admin bypasses all role guards
+		c.Next()
+	})
 	NewUserHandler(r.Group("/api/v1"), svc)
 	return r
 }

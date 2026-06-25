@@ -33,6 +33,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		c.Set(utils.ContextUserIDKey, claims.UserID)
+		c.Set(utils.ContextRoleIDKey, claims.RoleID)
 		c.Next()
 	}
 }

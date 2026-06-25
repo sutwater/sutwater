@@ -10,12 +10,13 @@ import (
 )
 
 type NotificationService interface {
-	GetAll() ([]models.NotificationResponse, error)
+	GetAll(roleID, userID uint) ([]models.NotificationResponse, error)
 	GetByID(id uint) (*models.NotificationResponse, error)
 	MarkAsRead(id uint) (*models.NotificationResponse, error)
-	MarkAllAsRead() error
+	MarkAllAsRead(roleID, userID uint) error
 	Delete(id uint) error
 	GetStats() (*models.NotificationStatsResponse, error)
+	CreateSystemNotification(message string, targetUserID uint) error
 }
 
 type notificationService struct {
@@ -26,8 +27,8 @@ func NewNotificationService(repo repositories.NotificationRepository) Notificati
 	return &notificationService{repo: repo}
 }
 
-func (s *notificationService) GetAll() ([]models.NotificationResponse, error) {
-	msgs, err := s.repo.FetchAll()
+func (s *notificationService) GetAll(roleID, userID uint) ([]models.NotificationResponse, error) {
+	msgs, err := s.repo.FetchAll(roleID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +72,8 @@ func (s *notificationService) MarkAsRead(id uint) (*models.NotificationResponse,
 	return &resp, nil
 }
 
-func (s *notificationService) MarkAllAsRead() error {
-	return s.repo.MarkAllAsRead()
+func (s *notificationService) MarkAllAsRead(roleID, userID uint) error {
+	return s.repo.MarkAllAsRead(roleID, userID)
 }
 
 func (s *notificationService) Delete(id uint) error {
@@ -99,14 +100,24 @@ func (s *notificationService) GetStats() (*models.NotificationStatsResponse, err
 	}, nil
 }
 
+func (s *notificationService) CreateSystemNotification(message string, targetUserID uint) error {
+	msg := &entity.Message{
+		Message:      message,
+		IsRead:       false,
+		TargetUserID: &targetUserID,
+	}
+	return s.repo.Create(msg)
+}
+
 func mapNotificationToResponse(msg *entity.Message) models.NotificationResponse {
 	resp := models.NotificationResponse{
-		ID:        msg.ID,
-		Message:   msg.Message,
-		IsRead:    msg.IsRead,
-		DeviceID:  msg.DeviceID,
-		CreatedAt: msg.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: msg.UpdatedAt.Format(time.RFC3339),
+		ID:           msg.ID,
+		Message:      msg.Message,
+		IsRead:       msg.IsRead,
+		DeviceID:     msg.DeviceID,
+		TargetUserID: msg.TargetUserID,
+		CreatedAt:    msg.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    msg.UpdatedAt.Format(time.RFC3339),
 	}
 	if msg.Device != nil {
 		d := mapDeviceToResponse(msg.Device)

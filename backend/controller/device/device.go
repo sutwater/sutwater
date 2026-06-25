@@ -22,13 +22,15 @@ func NewDeviceHandler(router *gin.RouterGroup, deviceService services.DeviceServ
 		validate:      validator.New(),
 	}
 
+	adminOrEngineer := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer)
+
 	g := router.Group("devices")
-	g.GET("", handler.GetAll)
-	g.GET("/available-locations", handler.GetAvailableLocations)
-	g.GET("/:id", handler.GetByID)
-	g.POST("", handler.Create)
-	g.PUT("/:id", handler.Update)
-	g.DELETE("/:id", handler.Delete)
+	g.GET("", adminOrEngineer, handler.GetAll)
+	g.GET("/available-locations", adminOrEngineer, handler.GetAvailableLocations)
+	g.GET("/:id", adminOrEngineer, handler.GetByID)
+	g.POST("", adminOrEngineer, handler.Create)
+	g.PUT("/:id", adminOrEngineer, handler.Update)
+	g.DELETE("/:id", adminOrEngineer, handler.Delete)
 
 	return handler
 }

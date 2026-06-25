@@ -9,7 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const ContextUserIDKey = "user_id"
+const (
+	ContextUserIDKey  = "user_id"
+	ContextRoleIDKey  = "role_id"
+)
 
 // JWTProvider signs and validates JWT tokens.
 type JWTProvider struct {
@@ -20,6 +23,7 @@ type JWTProvider struct {
 // JWTClaims stores token claims for authenticated users.
 type JWTClaims struct {
 	UserID uint `json:"user_id"`
+	RoleID uint `json:"role_id"`
 	jwt.RegisteredClaims
 }
 
@@ -29,9 +33,10 @@ func NewJWTProvider(secret string, expiresIn time.Duration) JWTProvider {
 }
 
 // GenerateToken creates a signed JWT token for a user.
-func (p JWTProvider) GenerateToken(userID uint) (string, error) {
+func (p JWTProvider) GenerateToken(userID, roleID uint) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,
+		RoleID: roleID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(p.expiresIn)),
@@ -67,13 +72,21 @@ func ParseToken(tokenString string) (*JWTClaims, error) {
 }
 
 // GetUserIDFromContext reads the authenticated user ID from Gin context.
-// Accepts the broader `Get(any) (any, bool)` signature used by recent Gin versions.
 func GetUserIDFromContext(c *gin.Context) (uint, bool) {
 	raw, ok := c.Get(ContextUserIDKey)
 	if !ok {
 		return 0, false
 	}
-
 	userID, ok := raw.(uint)
 	return userID, ok
+}
+
+// GetRoleIDFromContext reads the authenticated user's role ID from Gin context.
+func GetRoleIDFromContext(c *gin.Context) (uint, bool) {
+	raw, ok := c.Get(ContextRoleIDKey)
+	if !ok {
+		return 0, false
+	}
+	roleID, ok := raw.(uint)
+	return roleID, ok
 }

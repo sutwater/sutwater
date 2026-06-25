@@ -51,9 +51,9 @@ func SetupDatabase(database *gorm.DB, resetDB bool) error {
 
 func seedGenders(database *gorm.DB) {
 	genders := []entity.Genders{
-		{Gender: "Male"},
-		{Gender: "Female"},
-		{Gender: "Other"},
+		{Gender: "ผู้ชาย"},
+		{Gender: "ผู้หญิง"},
+		{Gender: "อื่น ๆ"},
 	}
 	for _, g := range genders {
 		database.FirstOrCreate(&g, entity.Genders{Gender: g.Gender})
@@ -61,7 +61,7 @@ func seedGenders(database *gorm.DB) {
 }
 
 func seedPositions(database *gorm.DB) map[string]entity.Position {
-	positions := []string{"Manager", "Engineer", "Technician", "Staff"}
+	positions := []string{"ผู้จัดการ", "วิศวกร", "ช่างเทคนิค", "สตาฟ"}
 	posMap := make(map[string]entity.Position)
 
 	for _, name := range positions {
@@ -74,10 +74,10 @@ func seedPositions(database *gorm.DB) map[string]entity.Position {
 
 func seedRoles(database *gorm.DB) {
 	roles := []entity.Role{
-		{Role: "Admin"},
-		{Role: "User"},
-		{Role: "Engineer"},
-		{Role: "Technician"},
+		{Role: "ผู้ดูแล"},
+		{Role: "วิศวกร"},
+		{Role: "ช่างเทคนิค"},
+		{Role: "ผู้ใช้"},
 	}
 	for _, r := range roles {
 		database.FirstOrCreate(&r, entity.Role{Role: r.Role})
@@ -126,11 +126,16 @@ func seedUsers(database *gorm.DB) {
 	// Gender & Role
 	maleID := uint(1)
 	femaleID := uint(2)
-	roleUserID := uint(2)
+
 	roleAdminID := uint(1)
+	roleEngineerID := uint(2)
+	roleTechnicalID := uint(3)
+	roleUserID := uint(4)
 	// Positions
 	managerPositionID := uint(1)
 	engineerPositionID := uint(2)
+	Technical := uint(3)
+	User := uint(4)
 
 	users := []entity.User{
 		{
@@ -141,12 +146,17 @@ func seedUsers(database *gorm.DB) {
 		{
 			FirstName: "ดนุพร", LastName: "สีสินธุ์", Email: "danuporn@gmail.com",
 			Password: hashOrPanic("123"), BirthDay: parseDate("2003-05-20"),
-			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
+			GenderID: maleID, RoleID: roleEngineerID, PositionID: engineerPositionID,
 		},
 		{
 			FirstName: "อภิรัตน์", LastName: "แสงอรุณ", Email: "apirat@gmail.com",
 			Password: hashOrPanic("123"), BirthDay: parseDate("2003-06-08"),
-			GenderID: maleID, RoleID: roleUserID, PositionID: engineerPositionID,
+			GenderID: maleID, RoleID: roleTechnicalID, PositionID: Technical,
+		},
+		{
+			FirstName: "บัก", LastName: "บุ๊ค", Email: "thanawat@gmail.com",
+			Password: hashOrPanic("123"), BirthDay: parseDate("2002-12-15"),
+			GenderID: maleID, RoleID: roleUserID, PositionID: User,
 		},
 	}
 

@@ -12,7 +12,7 @@ const testSecret = "test-jwt-secret"
 
 func TestGenerateToken_ReturnsToken(t *testing.T) {
 	p := NewJWTProvider(testSecret, time.Hour)
-	tok, err := p.GenerateToken(42)
+	tok, err := p.GenerateToken(42, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -26,7 +26,7 @@ func TestParseToken_ValidToken(t *testing.T) {
 	defer os.Unsetenv("JWT_SECRET_KEY")
 
 	p := NewJWTProvider(testSecret, time.Hour)
-	tok, _ := p.GenerateToken(7)
+	tok, _ := p.GenerateToken(7, 2)
 
 	claims, err := ParseToken(tok)
 	if err != nil {
@@ -34,6 +34,9 @@ func TestParseToken_ValidToken(t *testing.T) {
 	}
 	if claims.UserID != 7 {
 		t.Errorf("expected UserID 7, got %d", claims.UserID)
+	}
+	if claims.RoleID != 2 {
+		t.Errorf("expected RoleID 2, got %d", claims.RoleID)
 	}
 }
 
@@ -61,7 +64,7 @@ func TestParseToken_ExpiredToken(t *testing.T) {
 
 	// สร้าง token ที่หมดอายุทันที
 	p := NewJWTProvider(testSecret, -time.Second)
-	tok, _ := p.GenerateToken(1)
+	tok, _ := p.GenerateToken(1, 1)
 
 	_, err := ParseToken(tok)
 	if err == nil {

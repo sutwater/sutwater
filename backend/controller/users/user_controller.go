@@ -23,12 +23,15 @@ func NewUserHandler(router *gin.RouterGroup, userService services.UserService) *
 		validate:    validator.New(),
 	}
 
+	adminOnly := utils.RequireRole(utils.RoleAdmin)
+	adminOrEngineer := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer)
+
 	user := router.Group("users")
-	user.GET("", handler.GetAllUsers)
+	user.GET("", adminOrEngineer, handler.GetAllUsers)
 	user.GET("/:id", handler.GetProfile)
 	user.PUT("/:id", handler.UpdateProfile)
 	user.PUT("/:id/change-password", handler.ChangePassword)
-	user.DELETE("/:id", handler.DeleteUser)
+	user.DELETE("/:id", adminOnly, handler.DeleteUser)
 
 	return handler
 }

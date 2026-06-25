@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config/models"
+	"github.com/watermeter/suth/config/utils"
 )
 
 type mockDeviceService struct {
@@ -43,6 +44,11 @@ func (m *mockDeviceService) GetAvailableLocations() ([]models.LocationResponse, 
 func setupRouter(svc *mockDeviceService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set(utils.ContextUserIDKey, uint(1))
+		c.Set(utils.ContextRoleIDKey, uint(1)) // Admin
+		c.Next()
+	})
 	NewDeviceHandler(r.Group("/api/v1"), svc)
 	return r
 }

@@ -22,15 +22,18 @@ func NewWaterLogHandler(router *gin.RouterGroup, waterService services.WaterMete
 		validate:     validator.New(),
 	}
 
+	staffOnly := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer, utils.RoleTechnician)
+	adminOrEngineer := utils.RequireRole(utils.RoleAdmin, utils.RoleEngineer)
+
 	g := router.Group("water-values")
-	g.GET("", handler.GetAll)
-	g.GET("/latest", handler.GetLatest)
-	g.GET("/pending", handler.GetPending)
-	g.GET("/statuses", handler.GetStatuses)
-	g.GET("/:id", handler.GetByID)
-	g.POST("", handler.Create)
-	g.PUT("/:id", handler.Update)
-	g.DELETE("/:id", handler.Delete)
+	g.GET("", staffOnly, handler.GetAll)
+	g.GET("/latest", staffOnly, handler.GetLatest)
+	g.GET("/pending", staffOnly, handler.GetPending)
+	g.GET("/statuses", staffOnly, handler.GetStatuses)
+	g.GET("/:id", staffOnly, handler.GetByID)
+	g.POST("", adminOrEngineer, handler.Create)
+	g.PUT("/:id", adminOrEngineer, handler.Update)
+	g.DELETE("/:id", adminOrEngineer, handler.Delete)
 
 	return handler
 }

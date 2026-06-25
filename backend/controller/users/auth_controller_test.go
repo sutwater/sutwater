@@ -27,8 +27,29 @@ func (m *mockAuthService) Login(input models.LoginRequest) (*models.AuthResponse
 func setupAuthRouter(svc *mockAuthService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	NewAuthHandler(r.Group("/api/v1"), svc)
+	NewAuthHandler(r.Group("/api/v1"), svc, &mockNotifServiceFull{})
 	return r
+}
+
+// mockNotifServiceFull satisfies services.NotificationService for auth tests
+type mockNotifServiceFull struct{}
+
+func (m *mockNotifServiceFull) GetAll(roleID, userID uint) ([]models.NotificationResponse, error) {
+	return nil, nil
+}
+func (m *mockNotifServiceFull) GetByID(id uint) (*models.NotificationResponse, error) {
+	return nil, nil
+}
+func (m *mockNotifServiceFull) MarkAsRead(id uint) (*models.NotificationResponse, error) {
+	return nil, nil
+}
+func (m *mockNotifServiceFull) MarkAllAsRead(roleID, userID uint) error { return nil }
+func (m *mockNotifServiceFull) Delete(id uint) error                    { return nil }
+func (m *mockNotifServiceFull) GetStats() (*models.NotificationStatsResponse, error) {
+	return nil, nil
+}
+func (m *mockNotifServiceFull) CreateSystemNotification(message string, targetUserID uint) error {
+	return nil
 }
 
 func assertStatusAuth(t *testing.T, want, got int) {

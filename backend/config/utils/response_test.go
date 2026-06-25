@@ -85,12 +85,13 @@ func TestNewError_Structure(t *testing.T) {
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status: want 404, got %d", w.Code)
 	}
-	var resp HTTPError
+	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp.Code != http.StatusNotFound {
-		t.Errorf("code: want 404, got %d", resp.Code)
+	if resp["success"] != false {
+		t.Error("expected success=false")
 	}
-	if resp.Message != ErrNotFound.Error() {
-		t.Errorf("message: want %q, got %q", ErrNotFound.Error(), resp.Message)
+	errObj, _ := resp["error"].(map[string]interface{})
+	if errObj["message"] != ErrNotFound.Error() {
+		t.Errorf("message: want %q, got %v", ErrNotFound.Error(), errObj["message"])
 	}
 }
