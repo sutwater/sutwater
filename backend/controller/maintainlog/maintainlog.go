@@ -1,4 +1,4 @@
-package device
+package maintainlog
 
 import (
 	"net/http"
@@ -11,20 +11,20 @@ import (
 	"github.com/watermeter/suth/services"
 )
 
-type DeviceHandler struct {
-	deviceService services.DeviceService
-	validate      *validator.Validate
+type MaintainLogHandler struct {
+	maintainLogService services.MaintainLogService
+	validate           *validator.Validate
 }
 
-func NewDeviceHandler(router *gin.RouterGroup, deviceService services.DeviceService) *DeviceHandler {
-	handler := &DeviceHandler{
-		deviceService: deviceService,
-		validate:      validator.New(),
+func NewMaintainLogHandler(router *gin.RouterGroup, maintainLogService services.MaintainLogService) *MaintainLogHandler {
+	handler := &MaintainLogHandler{
+		maintainLogService: maintainLogService,
+		validate:           validator.New(),
 	}
 
-	g := router.Group("devices")
+	g := router.Group("maintain-logs")
 	g.GET("", handler.GetAll)
-	g.GET("/available-locations", handler.GetAvailableLocations)
+	g.GET("/statuses", handler.GetStatuses)
 	g.GET("/:id", handler.GetByID)
 	g.POST("", handler.Create)
 	g.PUT("/:id", handler.Update)
@@ -33,32 +33,32 @@ func NewDeviceHandler(router *gin.RouterGroup, deviceService services.DeviceServ
 	return handler
 }
 
-func (h *DeviceHandler) GetAll(c *gin.Context) {
-	devices, err := h.deviceService.GetAll()
+func (h *MaintainLogHandler) GetAll(c *gin.Context) {
+	logs, err := h.maintainLogService.GetAll()
 	if err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
-	utils.JSONSuccess(c, http.StatusOK, devices)
+	utils.JSONSuccess(c, http.StatusOK, logs)
 }
 
-func (h *DeviceHandler) GetByID(c *gin.Context) {
+func (h *MaintainLogHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
 		return
 	}
 
-	device, err := h.deviceService.GetByID(uint(id))
+	log, err := h.maintainLogService.GetByID(uint(id))
 	if err != nil {
 		utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
 		return
 	}
-	utils.JSONSuccess(c, http.StatusOK, device)
+	utils.JSONSuccess(c, http.StatusOK, log)
 }
 
-func (h *DeviceHandler) Create(c *gin.Context) {
-	var payload models.DeviceRequest
+func (h *MaintainLogHandler) Create(c *gin.Context) {
+	var payload models.MaintainLogRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
 		return
@@ -68,30 +68,22 @@ func (h *DeviceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	device, err := h.deviceService.Create(payload)
+	log, err := h.maintainLogService.Create(payload)
 	if err != nil {
-		if err.Error() == "mac address already exists" {
-			utils.NewError(c, http.StatusConflict, utils.ErrConflict)
-			return
-		}
-		if err.Error() == "location not found" {
-			utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
-			return
-		}
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrCreateFailed)
 		return
 	}
-	utils.JSONSuccess(c, http.StatusCreated, device)
+	utils.JSONSuccess(c, http.StatusCreated, log)
 }
 
-func (h *DeviceHandler) Update(c *gin.Context) {
+func (h *MaintainLogHandler) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
 		return
 	}
 
-	var payload models.UpdateDeviceRequest
+	var payload models.UpdateMaintainLogRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
 		return
@@ -101,41 +93,33 @@ func (h *DeviceHandler) Update(c *gin.Context) {
 		return
 	}
 
-	device, err := h.deviceService.Update(uint(id), payload)
+	log, err := h.maintainLogService.Update(uint(id), payload)
 	if err != nil {
-		if err.Error() == "mac address already exists" {
-			utils.NewError(c, http.StatusConflict, utils.ErrConflict)
-			return
-		}
-		if err.Error() == "location not found" {
-			utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
-			return
-		}
 		utils.NewError(c, http.StatusBadRequest, utils.ErrUpdateFailed)
 		return
 	}
-	utils.JSONSuccess(c, http.StatusOK, device)
+	utils.JSONSuccess(c, http.StatusOK, log)
 }
 
-func (h *DeviceHandler) Delete(c *gin.Context) {
+func (h *MaintainLogHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
 		return
 	}
 
-	if err := h.deviceService.Delete(uint(id)); err != nil {
+	if err := h.maintainLogService.Delete(uint(id)); err != nil {
 		utils.NewError(c, http.StatusBadRequest, utils.ErrDeleteFailed)
 		return
 	}
 	utils.JSONSuccess(c, http.StatusNoContent, nil)
 }
 
-func (h *DeviceHandler) GetAvailableLocations(c *gin.Context) {
-	locations, err := h.deviceService.GetAvailableLocations()
+func (h *MaintainLogHandler) GetStatuses(c *gin.Context) {
+	statuses, err := h.maintainLogService.GetStatuses()
 	if err != nil {
 		utils.NewError(c, http.StatusInternalServerError, utils.ErrInternalServer)
 		return
 	}
-	utils.JSONSuccess(c, http.StatusOK, locations)
+	utils.JSONSuccess(c, http.StatusOK, statuses)
 }
