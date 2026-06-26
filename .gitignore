@@ -9,6 +9,8 @@
 *.dylib
 *.test
 CLAUDE.md
+.claude
+.agents
 
 # Output of go coverage tool
 *.out
