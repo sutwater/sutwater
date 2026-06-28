@@ -8,6 +8,7 @@ import (
 	"github.com/watermeter/suth/config/postgres"
 	"github.com/watermeter/suth/config/utils"
 	"github.com/watermeter/suth/controller/device"
+	"github.com/watermeter/suth/controller/genders"
 	"github.com/watermeter/suth/controller/maintainlog"
 	"github.com/watermeter/suth/controller/meter"
 	"github.com/watermeter/suth/controller/notification"
@@ -71,6 +72,9 @@ func main() {
 	privateRouter := router.Group("")
 	privateRouter.Use(middlewares.JWTAuthMiddleware())
 	users.NewUserHandler(privateRouter, userService)
+
+	genderRepository := repositories.NewGenderRepository(db)
+	genders.NewGenderHandler(privateRouter, genderRepository)
 	meter.NewMeterHandler(privateRouter, locationService)
 	device.NewDeviceHandler(privateRouter, deviceService)
 	maintainlog.NewMaintainLogHandler(privateRouter, maintainLogService, notificationService)

@@ -18,10 +18,12 @@ type UserResponse struct {
 }
 
 type UpdateUserRequest struct {
-	FirstName string    `json:"first_name" validate:"omitempty,min=3,max=100"`
-	LastName  string    `json:"last_name" validate:"omitempty,min=3,max=100"`
-	BirthDay  time.Time `json:"birthday" validate:"omitempty,datetime=2006-01-02"` // บังคับ format YYYY-MM-DD
-	Email     string    `json:"email" validate:"omitempty,email"`
+	FirstName    string    `json:"first_name"    validate:"omitempty,min=1,max=100"`
+	LastName     string    `json:"last_name"     validate:"omitempty,min=1,max=100"`
+	Email        string    `json:"email"         validate:"omitempty,email"`
+	BirthDay     time.Time `json:"birthday"      validate:"omitempty"`
+	GenderID     *uint     `json:"gender_id"`
+	ProfileImage string    `json:"profile_image"`
 }
 
 type ChangePasswordRequest struct {

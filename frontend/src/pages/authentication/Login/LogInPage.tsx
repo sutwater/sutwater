@@ -52,13 +52,14 @@ function LogInPages() {
       localStorage.setItem("id", String(user.id));
       localStorage.setItem("email", lowerEmail);
       localStorage.setItem("role_id", String(user.role_id ?? 4));
+      localStorage.setItem("first_name", String(user.first_name ?? "no"));
+      localStorage.setItem("last_name", String(user.last_name ?? "name"));
       localStorage.setItem("isLogin", "true");
       messageApi.success("เข้าสู่ระบบสำเร็จ");
       setTimeout(() => { window.location.href = "/"; }, 1000);
     } else {
       setLoading(false);
-      const errMsg = (res as AxiosResponse<{ error?: { message?: string } }> | undefined)?.data?.error?.message;
-      messageApi.error(errMsg ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      messageApi.error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
   };
 
