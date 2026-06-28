@@ -2,27 +2,31 @@ import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
 
 import WaterMeterMap from "../pages/water/MeterMap";
-import DevicePage from "../pages/device/device";
+import DevicePage from "../pages/device/DevicePage";
 import MeterPage from "../pages/water/Meter";
 import EditWaterValuePage from "../pages/water/EditWaterValue";
-import Water from "../pages/water/Water";
+import WaterPage from "../pages/water/Water";
 import WaterDetailPage from "../pages/water/WaterDetail";
-import Profile from "../pages/profile/Profile";
-import NotFound from "../pages/404/404";
+import MaintainLogPage from "../pages/maintain/MaintainLogPage";
+import UserPage from "../pages/user/UserPage";
+import ProfilePage from "../pages/profile/ProfilePage";
+import NotFoundPage from "../pages/404/404Page";
 
 const AdminRoutes = (): RouteObject => {
   return {
     path: "/",
     element: <SidebarLayout />,
     children: [
-      { path: "/", element: <Water /> },
+      { path: "/", element: <WaterPage /> },
       { path: "/water-map", element: <WaterMeterMap /> },
       { path: "/device", element: <DevicePage /> },
       { path: "/meter", element: <MeterPage /> },
-      { path: "/profile", element: <Profile /> },
+      { path: "/profile", element: <ProfilePage /> },
       { path: "/meter-edit", element: <EditWaterValuePage /> },
       { path: "/water-detail", element: <WaterDetailPage /> },
-      { path: "*", element: <NotFound/> },
+      { path: "/maintain-log", element: <MaintainLogPage /> },
+      { path: "/user", element: <UserPage /> },
+      { path: "*", element: <NotFoundPage/> },
     ],
   };
 };

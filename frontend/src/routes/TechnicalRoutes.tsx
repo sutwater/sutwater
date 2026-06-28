@@ -2,10 +2,11 @@ import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
 
 import Water from "../pages/water/Water";
-import NotFound from "../pages/404/404";
-
-import MaintainLog from "../pages/maintain/MaintainLog";
-import Profile from "../pages/profile/Profile";
+import NotFound from "../pages/404/404Page";
+import WaterMeterMap from "../pages/water/MeterMap";
+import MeterPage from "../pages/water/Meter";
+import MaintainLog from "../pages/maintain/MaintainLogPage";
+import Profile from "../pages/profile/ProfilePage";
 
 const TechnicalRoutes = (): RouteObject => {
     return {
@@ -14,6 +15,8 @@ const TechnicalRoutes = (): RouteObject => {
         children: [
             { path: "/", element: <Water /> },
             { path: "/maintain-log", element: <MaintainLog   /> },
+            { path: "/meter", element: <MeterPage /> },
+            { path: "/water-map", element: <WaterMeterMap /> },
             { path: "/profile", element: <Profile /> },
             { path: "*", element: <NotFound /> },
         ],
