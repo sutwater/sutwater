@@ -1,15 +1,10 @@
-import Content from '../../components/waterreq/CreateCameraDeviceContent';
 
-interface CreateCameraDevicePageProps {
-  setShowAddModal: (value: boolean) => void;
-}
-
-const CreateCameraDevicePage: React.FC<CreateCameraDevicePageProps> = ({ setShowAddModal }) => {
+const CreateCameraDevicePage: React.FC = () => {
 
   return (
-    <>
-    <Content setShowAddModal={setShowAddModal}/>
-    </>
+    <div>
+      Hello Create Device
+    </div>
   );
 };
 

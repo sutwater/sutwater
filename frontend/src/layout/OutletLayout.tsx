@@ -1,9 +1,9 @@
 import { Outlet } from "react-router-dom";
 
-const MinimalLayout: React.FC = () => (
+const OutletLayout: React.FC = () => (
   <>
     <Outlet />
   </>
 );
 
-export default MinimalLayout;
+export default OutletLayout;

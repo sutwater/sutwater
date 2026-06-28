@@ -1,12 +1,10 @@
-import Content from '../../components/EditWaterValueContent';
-
 
 const EditWaterValuePage: React.FC = () => {
 
   return (
-    <>
-    <Content />
-    </>
+    <div>
+      Hello Edit page
+    </div>
   );
 };
 
