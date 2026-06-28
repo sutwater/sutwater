@@ -6,21 +6,21 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
 export async function GetUsers() {
     return await axios
-        .get(`${apiUrl}/user`, authHeader())
+        .get(`${apiUrl}/users`, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
 }
 
 export async function GetUsersById(id: string) {
     return await axios
-        .get(`${apiUrl}/user/${id}`, authHeader())
+        .get(`${apiUrl}/users/${id}`, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
 }
 
 export async function UpdateUsersById(id: string, data: UsersInterface) {
     return await axios
-        .put(`${apiUrl}/user/${id}`, data, authHeader())
+        .put(`${apiUrl}/users/${id}`, data, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
 }

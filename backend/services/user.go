@@ -62,9 +62,17 @@ func (s *userService) UpdateProfile(userID uint, input models.UpdateUserRequest)
 	if input.FirstName != "" {
 		user.FirstName = input.FirstName
 	}
-
 	if input.LastName != "" {
 		user.LastName = input.LastName
+	}
+	if !input.BirthDay.IsZero() {
+		user.BirthDay = input.BirthDay
+	}
+	if input.GenderID != nil {
+		user.GenderID = input.GenderID
+	}
+	if input.ProfileImage != "" {
+		user.ProfileImage = input.ProfileImage
 	}
 
 	user.UpdatedAt = time.Now().UTC()
@@ -124,15 +132,16 @@ func (s *userService) GetAllUsers() ([]models.UserResponse, error) {
 
 func mapUserToResponse(user *entity.User) *models.UserResponse {
 	return &models.UserResponse{
-		ID:         user.ID,
-		FirstName:  user.FirstName,
-		LastName:   user.LastName,
-		GenderID:   user.GenderID,
-		RoleID:     user.RoleID,
-		PositionID: user.PositionID,
-		BirthDay:   user.BirthDay,
-		Email:      user.Email,
-		CreatedAt:  user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:  user.UpdatedAt.Format(time.RFC3339),
+		ID:           user.ID,
+		FirstName:    user.FirstName,
+		LastName:     user.LastName,
+		GenderID:     user.GenderID,
+		RoleID:       user.RoleID,
+		PositionID:   user.PositionID,
+		BirthDay:     user.BirthDay,
+		Email:        user.Email,
+		ProfileImage: user.ProfileImage,
+		CreatedAt:    user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    user.UpdatedAt.Format(time.RFC3339),
 	}
 }

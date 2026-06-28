@@ -1,5 +1,5 @@
 import { RouteObject } from "react-router-dom";
-import OutletLayout from "@/layout/OutletLayout";
+import SidebarLayout from "@/layout/SidebarLayout";
 
 import Water from "../pages/water/Water";
 import Profile from "../pages/profile/Profile";
@@ -9,7 +9,7 @@ import NotFound from "../pages/404/404";
 const UserRoutes = (): RouteObject => {
     return {
         path: "/",
-        element: <OutletLayout />,
+        element: <SidebarLayout />,
         children: [
             { path: "/", element: <Water /> },
             { path: "/profile", element: <Profile /> },
