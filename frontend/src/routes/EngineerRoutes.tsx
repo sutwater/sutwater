@@ -13,6 +13,7 @@ const EngineerRoutes = (): RouteObject => {
         path: "/",
         element: <OutletLayout />,
         children: [
+            { path: "/", element: <Water /> },
             { path: "/water", element: <Water /> },
             { path: "/water-map", element: <WaterMap /> },
             { path: "/maintain-log", element: <Maintain /> },

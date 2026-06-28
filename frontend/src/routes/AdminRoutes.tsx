@@ -14,13 +14,12 @@ const AdminRoutes = (): RouteObject => {
     path: "/",
     element: <OutletLayout />,
     children: [
-      { path: "/dashboard", element: <Water /> },
+      { path: "/", element: <Water /> },
       { path: "/water-map", element: <WaterMeterMap /> },
       { path: "/device", element: <DevicePage /> },
-      { path: "/meter-page", element: <MeterPage /> },
+      { path: "/meter", element: <MeterPage /> },
       { path: "/meter-edit", element: <EditWaterValuePage /> },
       { path: "/water-detail", element: <WaterDetailPage /> },
-
       { path: "*", element: <NotFound/> },
     ],
   };

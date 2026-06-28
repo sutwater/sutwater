@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { message } from "antd";
 import { UsersInterface } from "../interfaces/IUser";
 import { GetUsersById } from "../services/https/user";
@@ -11,40 +11,7 @@ import {
   NotificationInterface,
   CameraDeviceInterface,
 } from "../interfaces/InterfaceAll";
-
-type AppContextType = {
-  user: UsersInterface | null;
-  setUser: (user: UsersInterface | null) => void;
-  meters: MeterLocationInterface[];
-  getMeters: () => Promise<void>;
-  getNotification: () => Promise<void>;
-  loading: boolean;
-  setLoading: (loading: boolean) => void;
-  waterusage: WaterMeterValueInterface[];
-  waterDaily: CameraDeviceInterface[];
-  notifications: NotificationInterface[];
-};
-
-const AppContext = createContext<AppContextType>({
-  user: null,
-  setUser: () => {},
-  meters: [],
-  getMeters: async () => {},
-  getNotification: async () => {},
-  loading: true,
-  setLoading: () => {},
-  waterusage: [],
-  waterDaily: [],
-  notifications: [],
-});
-
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("useAppContext must be used within an AppProvider");
-  }
-  return context;
-};
+import { AppContext } from "./AppContextDef";
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
