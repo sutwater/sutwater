@@ -84,7 +84,7 @@ const Landing: React.FC = () => {
             <div className="flex items-center gap-3 justify-center md:justify-start mb-6">
               <img src={logo} alt="logo" className="w-14 h-14 object-contain bg-white rounded-full p-1" />
               <span className="text-sm font-medium tracking-widest uppercase opacity-80">
-                โรงพยาบาลสุทธาทิพย์
+                โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
@@ -234,12 +234,12 @@ const Landing: React.FC = () => {
           <div className="flex items-center gap-3">
             <img src={logo} alt="logo" className="w-8 h-8 object-contain bg-white rounded-full p-0.5" />
             <div>
-              <p className="text-white text-sm font-medium">โรงพยาบาลสุทธาทิพย์</p>
+              <p className="text-white text-sm font-medium">โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี</p>
               <p className="text-xs">ระบบตรวจสอบการใช้น้ำ</p>
             </div>
           </div>
           <p className="text-xs text-center">
-            © 2025 โรงพยาบาลสุทธาทิพย์ · Water Monitoring System · All rights reserved
+            © 2025 โรงพยาบาลมหาวิทยาลัยเทคโนโลยีสุรนารี · Water Monitoring System · All rights reserved
           </p>
         </div>
       </footer>

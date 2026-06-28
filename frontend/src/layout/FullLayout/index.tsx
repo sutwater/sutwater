@@ -4,11 +4,12 @@ import Navbar from "../../components/Navbar";
 import "./index.css";
 
 const FullLayout: React.FC = () => {
+  const isLoggedIn = localStorage.getItem("isLogin") === "true";
+
   return (
     <div className="full-layout">
-      <Navbar />
+      {isLoggedIn && <Navbar />}
       <div className="main-scroll-area">
-        {/* ทุกหน้าลูกของ path "/" จะถูกเรนเดอร์ตรงนี้ */}
         <Outlet />
       </div>
     </div>

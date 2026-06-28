@@ -4,48 +4,85 @@ import Loadable from "../components/third-party/Loadable";
 
 import FullLayout from "../layout/FullLayout";
 
-const HomeBanner       = Loadable(lazy(() => import("../pages/home/HomeBanner.tsx")));
-
-const WaterMeterMap = Loadable(
-  lazy(() => import("../pages/water/WaterMeterMap"))
-);
+const Landing          = Loadable(lazy(() => import("../pages/home/Landing")));
+const WaterMeterMap    = Loadable(lazy(() => import("../pages/water/WaterMeterMap")));
 const NotificationPage = Loadable(lazy(() => import("../pages/notification")));
-const DevicePage = Loadable(lazy(() => import("../pages/device/device")));
-const MeterPage = Loadable(lazy(() => import("../pages/water/Meter")));
+const DevicePage       = Loadable(lazy(() => import("../pages/device/device")));
+const MeterPage        = Loadable(lazy(() => import("../pages/water/Meter")));
 const EditWaterValuePage = Loadable(lazy(() => import("../pages/water/EditWaterValue")));
-const ContactPage = Loadable(lazy(() => import("../pages/contact")));
-const Water = Loadable(lazy(() => import("../pages/water/Water")));
-const WaterDetailPage = Loadable(
-  lazy(() => import("../pages/water/WaterDetail"))
-);
-const SignInPages = Loadable(lazy(() => import("../pages/authentication/Login/SignInPages")));
-const AdminDashboard = Loadable(
-  lazy(() => import("../pages/admin/AdminDashboard"))
-);
-const ProfilePage = Loadable(
-  lazy(() => import("../pages/profile/ProfilePage"))
-);
-const LiffLink = Loadable(lazy(() => import("../pages/line/LiffLink")));
+const ContactPage      = Loadable(lazy(() => import("../pages/contact")));
+const Water            = Loadable(lazy(() => import("../pages/water/Water")));
+const WaterDetailPage  = Loadable(lazy(() => import("../pages/water/WaterDetail")));
+const SignInPages      = Loadable(lazy(() => import("../pages/authentication/Login/LogInPage")));
+const AdminDashboard   = Loadable(lazy(() => import("../pages/admin/AdminDashboard")));
+const ProfilePage         = Loadable(lazy(() => import("../pages/profile/ProfilePage")));
+const ForgotPasswordPage  = Loadable(lazy(() => import("../pages/authentication/ForgotPassword/ForgotPasswordPage")));
+
+const AdminPage      = Loadable(lazy(() => import("../pages/role/AdminPage")));
+const EngineerPage   = Loadable(lazy(() => import("../pages/role/EngineerPage")));
+const TechnicianPage = Loadable(lazy(() => import("../pages/role/TechnicianPage")));
+const UserPage       = Loadable(lazy(() => import("../pages/role/UserPage")));
 
 const RequireAuth = ({
   isLoggedIn,
+  allowedRoles,
   children,
 }: {
   isLoggedIn: boolean;
+  allowedRoles?: number[];
   children: JSX.Element;
-}) => (isLoggedIn ? children : <Navigate to="/login" replace />);
+}) => {
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (allowedRoles) {
+    const userRole = Number(localStorage.getItem("role_id") ?? "0");
+    if (!allowedRoles.includes(userRole)) return <Navigate to="/" replace />;
+  }
+  return children;
+};
 
 const AdminRoutes = (isLoggedIn: boolean): RouteObject => ({
   path: "/",
-  element: <FullLayout />, // ต้องมี <Outlet/> ภายใน
+  element: <FullLayout />,
   children: [
     // ---------- Public routes ----------
     { path: "login", element: <SignInPages /> },
-    // หน้า LIFF ต้องเป็น public และอยู่ top-level เสมอ
-    { path: "liff-link", element: <LiffLink /> },
 
     // ---------- Index (หน้าแรก) ----------
-    { index: true, element: <HomeBanner /> },
+    { index: true, element: <Landing /> },
+
+    // ---------- Role home pages ----------
+    {
+      path: "role/admin",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn} allowedRoles={[1]}>
+          <AdminPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "role/engineer",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn} allowedRoles={[2]}>
+          <EngineerPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "role/technician",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn} allowedRoles={[3]}>
+          <TechnicianPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "role/user",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn} allowedRoles={[4]}>
+          <UserPage />
+        </RequireAuth>
+      ),
+    },
 
     // ---------- Protected routes ----------
     {
@@ -115,7 +152,7 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => ({
     {
       path: "admin",
       element: (
-        <RequireAuth isLoggedIn={localStorage.getItem("isAdmin") === "true"}>
+        <RequireAuth isLoggedIn={isLoggedIn} allowedRoles={[1]}>
           <AdminDashboard />
         </RequireAuth>
       ),
@@ -125,6 +162,14 @@ const AdminRoutes = (isLoggedIn: boolean): RouteObject => ({
       element: (
         <RequireAuth isLoggedIn={isLoggedIn}>
           <ProfilePage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "change-password",
+      element: (
+        <RequireAuth isLoggedIn={isLoggedIn}>
+          <ForgotPasswordPage />
         </RequireAuth>
       ),
     },

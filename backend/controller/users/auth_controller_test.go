@@ -13,8 +13,9 @@ import (
 )
 
 type mockAuthService struct {
-	registerFn func(input models.RegisterRequest) (*models.AuthResponse, error)
-	loginFn    func(input models.LoginRequest) (*models.AuthResponse, error)
+	registerFn        func(input models.RegisterRequest) (*models.AuthResponse, error)
+	loginFn           func(input models.LoginRequest) (*models.AuthResponse, error)
+	forgotPasswordFn  func(input models.ForgotPasswordRequest) error
 }
 
 func (m *mockAuthService) Register(input models.RegisterRequest) (*models.AuthResponse, error) {
@@ -22,6 +23,12 @@ func (m *mockAuthService) Register(input models.RegisterRequest) (*models.AuthRe
 }
 func (m *mockAuthService) Login(input models.LoginRequest) (*models.AuthResponse, error) {
 	return m.loginFn(input)
+}
+func (m *mockAuthService) ForgotPassword(input models.ForgotPasswordRequest) error {
+	if m.forgotPasswordFn != nil {
+		return m.forgotPasswordFn(input)
+	}
+	return nil
 }
 
 func setupAuthRouter(svc *mockAuthService) *gin.Engine {
@@ -83,9 +90,10 @@ func TestRegister_Success(t *testing.T) {
 		},
 	})
 	body := jsonBodyAuth(t, models.RegisterRequest{
-		Name:     "สมชาย ใจดี",
-		Email:    "test@example.com",
-		Password: "password123",
+		FirstName: "สมชาย",
+		LastName:  "ใจดี",
+		Email:     "test@example.com",
+		Password:  "password123",
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, jsonReqAuth(t, http.MethodPost, "/api/v1/auth/register", body))
@@ -101,11 +109,11 @@ func TestRegister_InvalidJSON(t *testing.T) {
 
 func TestRegister_ValidationError(t *testing.T) {
 	r := setupAuthRouter(&mockAuthService{})
-	// password น้อยกว่า 8 ตัวอักษร
 	body := jsonBodyAuth(t, map[string]any{
-		"name":     "สมชาย",
-		"email":    "bad-email",
-		"password": "123",
+		"first_name": "ส",
+		"last_name":  "ใจดี",
+		"email":      "bad-email",
+		"password":   "123",
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, jsonReqAuth(t, http.MethodPost, "/api/v1/auth/register", body))
@@ -119,9 +127,10 @@ func TestRegister_ServiceError(t *testing.T) {
 		},
 	})
 	body := jsonBodyAuth(t, models.RegisterRequest{
-		Name:     "สมชาย ใจดี",
-		Email:    "existing@example.com",
-		Password: "password123",
+		FirstName: "สมชาย",
+		LastName:  "ใจดี",
+		Email:     "existing@example.com",
+		Password:  "password123",
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, jsonReqAuth(t, http.MethodPost, "/api/v1/auth/register", body))
