@@ -30,15 +30,20 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   "2": [
     { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
     { label: "แผนที่มิเตอร์", icon: <Map size={18} />, path: "/water-map" },
+    { label: "อุปกรณ์", icon: <Cpu size={18} />, path: "/device" },
+    { label: "มิเตอร์", icon: <Gauge size={18} />, path: "/meter" },
     { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />, path: "/maintain-log" },
-    { label: "ผู้ใช้", icon: <Wrench size={18} />, path: "/user" },
+    { label: "ผู้ใช้", icon: <User size={18} />, path: "/user" },
   ],
   "3": [
     { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "แผนที่มิเตอร์", icon: <Map size={18} />, path: "/water-map" },
     { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />, path: "/maintain-log" },
   ],
   "4": [
     { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "แผนที่มิเตอร์", icon: <Map size={18} />, path: "/water-map" },
+    { label: "แจ้งปัญหา", icon: <Wrench size={18} />, path: "/maintain-noti" },
   ],
 };
 

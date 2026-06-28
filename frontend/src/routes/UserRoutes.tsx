@@ -4,7 +4,6 @@ import SidebarLayout from "@/layout/SidebarLayout";
 import Water from "../pages/water/Water";
 import Profile from "../pages/profile/ProfilePage";
 import NotFound from "../pages/404/404Page";
-import MeterPage from "../pages/water/Meter";
 import WaterMeterMap from "../pages/water/MeterMap";
 import NotiMaintainLog from "../pages/maintain/NotiMaintainPage";
 
@@ -15,7 +14,6 @@ const UserRoutes = (): RouteObject => {
         element: <SidebarLayout />,
         children: [
             { path: "/", element: <Water /> },
-            { path: "/meter", element: <MeterPage /> },
             { path: "/maintain-noti", element: <NotiMaintainLog /> },
             { path: "/water-map", element: <WaterMeterMap /> },
             { path: "/profile", element: <Profile /> },
