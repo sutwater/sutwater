@@ -111,7 +111,9 @@ function RegisterPages() {
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-8">
           {/* Heading */}
           <div className="text-center mb-6">
-            <img src={logo} alt="logo" className="w-20 h-20 object-contain mx-auto" />
+            <button onClick={() => navigate("/")} className="border-0 bg-transparent cursor-pointer p-0 mx-auto block">
+              <img src={logo} alt="logo" className="w-20 h-20 object-contain hover:opacity-80 transition-opacity" />
+            </button>
             <h1 className="text-xl font-bold text-gray-900">สร้างบัญชีของคุณ</h1>
             <p className="text-sm text-gray-400 mt-1">กรอกอีเมลของคุณด้านล่างเพื่อสร้างบัญชี</p>
           </div>

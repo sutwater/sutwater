@@ -79,7 +79,9 @@ function LogInPages() {
 
           {/* Heading */}
           <div className="text-center mb-6">
-            <img src={logo} alt="logo" className="w-20 h-20 object-contain mx-auto" />
+            <button onClick={() => navigate("/")} className="border-0 bg-transparent cursor-pointer p-0 mx-auto block">
+              <img src={logo} alt="logo" className="w-20 h-20 object-contain hover:opacity-80 transition-opacity" />
+            </button>
             <h1 className="text-xl font-bold text-gray-900">ยินดีต้อนรับ</h1>
             <p className="text-sm text-gray-400 mt-1">เข้าสู่ระบบด้วยบัญชี Google หรืออีเมล</p>
           </div>

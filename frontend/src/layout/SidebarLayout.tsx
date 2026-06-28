@@ -12,6 +12,7 @@ const PATH_LABELS: Record<string, string> = {
   "/maintain-log": "บันทึกบำรุงรักษา",
   "/user":         "ผู้ใช้",
   "/profile":      "โปรไฟล์",
+  "/maintain-noti":      "แจ้งปัญหา",
 };
 import Sidebar from "./Sidebar";
 import { useTheme } from "../contexts/useTheme";
