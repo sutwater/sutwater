@@ -8,9 +8,9 @@ type UserResponse struct {
 	LastName     string `json:"last_name"`
 	Email        string `json:"email"`
 	ProfileImage string `json:"profile_image"`
-	GenderID     uint   `json:"gender_id"`
+	GenderID     *uint  `json:"gender_id"`
 	RoleID       uint   `json:"role_id"`
-	PositionID   uint   `json:"position_id"`
+	PositionID   *uint  `json:"position_id"`
 
 	BirthDay  time.Time `json:"birthday"`
 	CreatedAt string    `json:"created_at"`

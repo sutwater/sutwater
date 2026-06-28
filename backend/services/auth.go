@@ -16,6 +16,7 @@ import (
 type AuthService interface {
 	Register(input models.RegisterRequest) (*models.AuthResponse, error)
 	Login(input models.LoginRequest) (*models.AuthResponse, error)
+	ForgotPassword(input models.ForgotPasswordRequest) error
 }
 
 type authService struct {
@@ -44,9 +45,13 @@ func (a *authService) Register(input models.RegisterRequest) (*models.AuthRespon
 		return nil, err
 	}
 
+	defaultRole := uint(4)
 	user := &entity.User{
-		Email:    input.Email,
-		Password: hashedPassword,
+		FirstName: input.FirstName,
+		LastName:  input.LastName,
+		Email:     input.Email,
+		Password:  hashedPassword,
+		RoleID:    defaultRole,
 	}
 
 	if err := a.userRepo.Create(user); err != nil {
@@ -62,11 +67,35 @@ func (a *authService) Register(input models.RegisterRequest) (*models.AuthRespon
 		Token: token,
 		User: &models.UserResponse{
 			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
+}
+
+func (a *authService) ForgotPassword(input models.ForgotPasswordRequest) error {
+	user, err := a.userRepo.FindByEmail(input.Email)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("email not found")
+	}
+
+	if err := utils.ComparePassword(user.Password, input.OldPassword); err != nil {
+		return errors.New("old password is incorrect")
+	}
+
+	hashed, err := utils.HashPassword(input.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashed
+	return a.userRepo.Update(user)
 }
 
 func (a *authService) Login(input models.LoginRequest) (*models.AuthResponse, error) {

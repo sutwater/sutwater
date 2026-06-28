@@ -64,8 +64,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const res = await GetUsersById(id);
       if (res && res.status === 200) {
-        const isAdmin = localStorage.getItem("isAdmin") === "true";
-        setUser({ ...res.data, isAdmin: isAdmin });
+        setUser({ ...res.data });
       } else {
         setUser(null);
         messageApi.error(res?.data?.error || "ไม่สามารถโหลดข้อมูลผู้ใช้ได้");

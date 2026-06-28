@@ -27,6 +27,7 @@ func NewAuthHandler(router *gin.RouterGroup, authService services.AuthService, n
 	auth := router.Group("auth")
 	auth.POST("/register", handler.Register)
 	auth.POST("/login", handler.Login)
+	auth.POST("/forgot-password", handler.ForgotPassword)
 
 	return handler
 }
@@ -50,6 +51,30 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	utils.JSONSuccess(c, http.StatusCreated, authResponse)
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var payload models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
+		return
+	}
+
+	if err := h.validate.Struct(payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
+		return
+	}
+
+	if err := h.authService.ForgotPassword(payload); err != nil {
+		if err.Error() == "old password is incorrect" {
+			utils.NewError(c, http.StatusBadRequest, utils.ErrWrongPassword)
+			return
+		}
+		utils.NewError(c, http.StatusBadRequest, utils.ErrUpdateFailed)
+		return
+	}
+
+	utils.JSONSuccess(c, http.StatusOK, gin.H{"message": "password changed successfully"})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {

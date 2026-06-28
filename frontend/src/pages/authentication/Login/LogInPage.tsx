@@ -1,9 +1,11 @@
-import { Button, Form, Input, message } from "antd";
+import { message } from "antd";
 import { useEffect, useState } from "react";
-import { SignIn, AuthLoginResponse } from "../../../services/https/sign";
-import { SignInInterface } from "../../../interfaces/SignIn";
+import { useNavigate } from "react-router-dom";
+import type { AuthLoginResponse } from "../../../interfaces/IAuth"
+import { LogIn } from "../../../services/https/sign";
 import logo from "../../../assets/suth-noname.png";
 import type { AxiosResponse } from "axios";
+import { Eye, EyeOff } from "lucide-react";
 
 const ROLE_ROUTES: Record<number, string> = {
   1: "/role/admin",
@@ -21,14 +23,33 @@ const GoogleIcon = () => (
   </svg>
 );
 
-function SignInPages() {
+const INPUT_CLASS =
+  "w-full h-10 px-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20";
+
+function LogInPages() {
+  const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const onFinish = async (values: SignInInterface) => {
+  const validate = () => {
+    const next: { email?: string; password?: string } = {};
+    if (!email) next.email = "กรุณากรอกอีเมล";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "รูปแบบอีเมลไม่ถูกต้อง";
+    if (!password) next.password = "กรุณากรอกรหัสผ่าน";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
-    const lowerEmail = values.email.toLowerCase();
-    const res = await SignIn({ ...values, email: lowerEmail }) as AxiosResponse<AuthLoginResponse>;
+    const lowerEmail = email.toLowerCase();
+    const res = await LogIn({ email: lowerEmail, password }) as AxiosResponse<AuthLoginResponse>;
 
     if (res && res.status === 200) {
       const { token, user } = res.data.data;
@@ -59,11 +80,9 @@ function SignInPages() {
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
         style={{ backgroundColor: "#f4f4f5" }}>
 
-        {/* Logo + hospital name */}
-
         {/* Card */}
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-8">
-          
+
           {/* Heading */}
           <div className="text-center mb-6">
             <img src={logo} alt="logo" className="w-20 h-20 object-contain mx-auto" />
@@ -89,59 +108,67 @@ function SignInPages() {
           </div>
 
           {/* Form */}
-          <Form name="signin" onFinish={onFinish} layout="vertical" requiredMark={false}>
-            <Form.Item
-              name="email"
-              label={<span className="text-sm font-medium text-gray-700">อีเมล</span>}
-              className="mb-4"
-              rules={[
-                { required: true, message: "กรุณากรอกอีเมล" },
-                { type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" },
-              ]}
-            >
-              <Input
+          <form onSubmit={onSubmit} noValidate>
+            {/* Email */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">อีเมล</label>
+              <input
+                type="email"
                 placeholder="m@example.com"
-                size="large"
-                className="!rounded-lg !text-sm"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+                className={INPUT_CLASS}
               />
-            </Form.Item>
-
-            <div className="relative">
-              <button
-                type="button"
-                className="absolute top-0 right-0 text-sm text-gray-500 hover:text-gray-700 underline-offset-2 hover:underline bg-transparent border-0 cursor-pointer p-0"
-                onClick={() => messageApi.info("ฟีเจอร์นี้ยังไม่เปิดใช้งาน")}
-              >
-                ลืมรหัสผ่าน?
-              </button>
-              <Form.Item
-                name="password"
-                className="mb-5"
-                label={<span className="text-sm font-medium text-gray-700">รหัสผ่าน</span>}
-                rules={[{ required: true, message: "กรุณากรอกรหัสผ่าน" }]}
-              >
-                <Input.Password placeholder="********" size="large" className="!rounded-lg !text-sm" />
-              </Form.Item>
+              {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
             </div>
 
-            <Form.Item className="mb-4">
-              <Button
-                type="primary"
-                htmlType="submit"
-                size="large"
-                loading={loading}
-                className="w-full !rounded-lg !h-10 !text-sm font-semibold !bg-gray-900 hover:!bg-gray-700 !border-0"
-              >
-                เข้าสู่ระบบ
-              </Button>
-            </Form.Item>
-          </Form>
+            {/* Password */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                <button
+                  type="button"
+                  className="text-sm text-gray-500 hover:text-gray-700 underline-offset-2 hover:underline bg-transparent border-0 cursor-pointer p-0"
+                  onClick={() => navigate("/forgot-password")}
+                >
+                  ลืมรหัสผ่าน?
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="********"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                  className={`${INPUT_CLASS} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer p-0"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-10 rounded-lg text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer mb-4"
+            >
+              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
 
           <p className="text-center text-sm text-gray-500">
             ยังไม่มีบัญชี?{" "}
             <button
               type="button"
-              onClick={() => messageApi.info("ติดต่อผู้ดูแลระบบเพื่อสมัครสมาชิก")}
+              onClick={() => navigate("/register")}
               className="text-gray-900 font-medium underline underline-offset-2 hover:text-gray-600 bg-transparent border-0 cursor-pointer p-0"
             >
               สมัครสมาชิก
@@ -152,9 +179,9 @@ function SignInPages() {
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-gray-400 max-w-xs leading-relaxed">
           การเข้าสู่ระบบถือว่าคุณยอมรับ{" "}
-          <span className="underline underline-offset-2 cursor-pointer">เงื่อนไขการใช้งาน</span>
+          <button type="button" onClick={() => navigate("/terms")} className="underline underline-offset-2 cursor-pointer bg-transparent border-0 text-gray-400 text-xs p-0 hover:text-gray-600">เงื่อนไขการใช้งาน</button>
           {" "}และ{" "}
-          <span className="underline underline-offset-2 cursor-pointer">นโยบายความเป็นส่วนตัว</span>
+          <button type="button" onClick={() => navigate("/privacy")} className="underline underline-offset-2 cursor-pointer bg-transparent border-0 text-gray-400 text-xs p-0 hover:text-gray-600">นโยบายความเป็นส่วนตัว</button>
         </p>
 
       </div>
@@ -162,4 +189,4 @@ function SignInPages() {
   );
 }
 
-export default SignInPages;
+export default LogInPages;
