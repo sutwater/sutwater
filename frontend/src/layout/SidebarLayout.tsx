@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu, Sun, Moon } from "lucide-react";
 
@@ -22,6 +22,12 @@ export default function SidebarLayout() {
   const { dark, toggle }            = useTheme();
   const location  = useLocation();
   const pageLabel = PATH_LABELS[location.pathname] ?? "";
+
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -55,6 +61,13 @@ export default function SidebarLayout() {
 
             {/* Spacer */}
             <div className="flex-1" />
+
+            {/* Date & time */}
+            <span className="mr-3 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+              {now.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" })}
+              {" "}
+              {now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
 
             {/* Theme toggle — top right */}
             <button

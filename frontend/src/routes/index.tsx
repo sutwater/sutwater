@@ -14,16 +14,16 @@ function ConfigRoutes() {
   // ตรวจสอบว่าเข้าสู่ระบบหรือยัง
   if (isLoggedIn) {
     switch (role) {
-      case "1":
+      case "1": //Admin
         routes = [AdminRoutes()];
         break;
-      case "2":
+      case "2": //Engineer
         routes = [EngineerRoutes()]; 
         break;
-      case "3":
+      case "3":  //Technical
         routes = [TechnicalRoutes()]; 
         break;
-      case "4":
+      case "4": //User
         routes = [UserRoutes()]; 
         break;
       default:

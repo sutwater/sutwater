@@ -1,11 +1,16 @@
 import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
 
-import Water from "../pages/water/Water";
-import WaterMap from "../pages/water/MeterMap";
-import Maintain from "../pages/maintain/MaintainLog";
-import Profile from "../pages/profile/Profile";
-import NotFound from "../pages/404/404";
+import WaterMeterMap from "../pages/water/MeterMap";
+import DevicePage from "../pages/device/DevicePage";
+import MeterPage from "../pages/water/Meter";
+import EditWaterValuePage from "../pages/water/EditWaterValue";
+import WaterPage from "../pages/water/Water";
+import WaterDetailPage from "../pages/water/WaterDetail";
+import MaintainLogPage from "../pages/maintain/MaintainLogPage";
+import UserPage from "../pages/user/UserPage";
+import ProfilePage from "../pages/profile/ProfilePage";
+import NotFoundPage from "../pages/404/404Page";
 
 
 const EngineerRoutes = (): RouteObject => {
@@ -13,12 +18,16 @@ const EngineerRoutes = (): RouteObject => {
         path: "/",
         element: <SidebarLayout />,
         children: [
-            { path: "/", element: <Water /> },
-            { path: "/water", element: <Water /> },
-            { path: "/water-map", element: <WaterMap /> },
-            { path: "/maintain-log", element: <Maintain /> },
-            { path: "/profile", element: <Profile /> },
-            { path: "*", element: <NotFound /> },
+            { path: "/", element: <WaterPage /> },
+            { path: "/water-map", element: <WaterMeterMap /> },
+            { path: "/device", element: <DevicePage /> },
+            { path: "/meter", element: <MeterPage /> },
+            { path: "/profile", element: <ProfilePage /> },
+            { path: "/meter-edit", element: <EditWaterValuePage /> },
+            { path: "/water-detail", element: <WaterDetailPage /> },
+            { path: "/maintain-log", element: <MaintainLogPage /> },
+            { path: "/user", element: <UserPage /> },
+            { path: "*", element: <NotFoundPage /> },
         ],
     };
 };

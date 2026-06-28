@@ -20,25 +20,25 @@ type NavItem = { label: string; icon: React.ReactNode; path: string };
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
   "1": [
-    { label: "แดชบอร์ด",        icon: <LayoutDashboard size={18} />, path: "/" },
-    { label: "แผนที่มิเตอร์",    icon: <Map size={18} />,            path: "/water-map" },
-    { label: "อุปกรณ์",         icon: <Cpu size={18} />,            path: "/device" },
-    { label: "มิเตอร์",         icon: <Gauge size={18} />,          path: "/meter" },
-    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />,         path: "/maintain-log" },
-    { label: "ผู้ใช้", icon: <Wrench size={18} />,         path: "/user" },
+    { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "แผนที่มิเตอร์", icon: <Map size={18} />, path: "/water-map" },
+    { label: "อุปกรณ์", icon: <Cpu size={18} />, path: "/device" },
+    { label: "มิเตอร์", icon: <Gauge size={18} />, path: "/meter" },
+    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />, path: "/maintain-log" },
+    { label: "ผู้ใช้", icon: <User size={18} />, path: "/user" },
   ],
   "2": [
-    { label: "แดชบอร์ด",        icon: <LayoutDashboard size={18} />, path: "/" },
-    { label: "แผนที่มิเตอร์",    icon: <Map size={18} />,            path: "/water-map" },
-    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />,         path: "/maintain-log" },
-    { label: "ผู้ใช้", icon: <Wrench size={18} />,         path: "/user" },
+    { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "แผนที่มิเตอร์", icon: <Map size={18} />, path: "/water-map" },
+    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />, path: "/maintain-log" },
+    { label: "ผู้ใช้", icon: <Wrench size={18} />, path: "/user" },
   ],
   "3": [
-    { label: "แดชบอร์ด",        icon: <LayoutDashboard size={18} />, path: "/" },
-    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />,         path: "/maintain-log" },
+    { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "บันทึกบำรุงรักษา", icon: <Wrench size={18} />, path: "/maintain-log" },
   ],
   "4": [
-    { label: "แดชบอร์ด",        icon: <LayoutDashboard size={18} />, path: "/" },
+    { label: "แดชบอร์ด", icon: <LayoutDashboard size={18} />, path: "/" },
   ],
 };
 
@@ -52,16 +52,16 @@ type Props = {
 export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onMobileClose }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [userOpen, setUserOpen]     = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
   const [profileImage, setProfileImage] = useState("");
 
-  const email     = localStorage.getItem("email")      ?? "user@suth.ac.th";
+  const email = localStorage.getItem("email") ?? "user@suth.ac.th";
   const firstname = localStorage.getItem("first_name") ?? "";
-  const lastname  = localStorage.getItem("last_name")  ?? "";
-  const initials  = (firstname[0] ?? email[0] ?? "U").toUpperCase();
-  const roleId    = localStorage.getItem("role_id")    ?? "4";
-  const navItems  = NAV_BY_ROLE[roleId] ?? NAV_BY_ROLE["4"];
-  const fullname  = `${firstname} ${lastname}`.trim();
+  const lastname = localStorage.getItem("last_name") ?? "";
+  const initials = (firstname[0] ?? email[0] ?? "U").toUpperCase();
+  const roleId = localStorage.getItem("role_id") ?? "4";
+  const navItems = NAV_BY_ROLE[roleId] ?? NAV_BY_ROLE["4"];
+  const fullname = `${firstname} ${lastname}`.trim();
 
   useEffect(() => {
     const uid = localStorage.getItem("id");
