@@ -1,18 +1,12 @@
 import { message } from "antd";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { AuthLoginResponse } from "../../../interfaces/IAuth"
+import type { AxiosResponse } from "axios";
+import type { AuthLoginResponse } from "../../../interfaces/IAuth";
 import { LogIn } from "../../../services/https/sign";
 import logo from "../../../assets/suth-noname.png";
-import type { AxiosResponse } from "axios";
 import { Eye, EyeOff } from "lucide-react";
 
-const ROLE_ROUTES: Record<number, string> = {
-  1: "/role/admin",
-  2: "/role/engineer",
-  3: "/role/technician",
-  4: "/role/user",
-};
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -49,23 +43,22 @@ function LogInPages() {
     if (!validate()) return;
     setLoading(true);
     const lowerEmail = email.toLowerCase();
-    const res = await LogIn({ email: lowerEmail, password }) as AxiosResponse<AuthLoginResponse>;
+    const res = await LogIn({ email: lowerEmail, password }) as AxiosResponse<AuthLoginResponse> | undefined;
 
     if (res && res.status === 200) {
       const { token, user } = res.data.data;
-      const roleId = user.role_id || 4;
       localStorage.setItem("token", token);
       localStorage.setItem("token_type", "Bearer");
       localStorage.setItem("id", String(user.id));
       localStorage.setItem("email", lowerEmail);
-      localStorage.setItem("role_id", String(roleId));
+      localStorage.setItem("role_id", String(user.role_id ?? 4));
       localStorage.setItem("isLogin", "true");
       messageApi.success("เข้าสู่ระบบสำเร็จ");
-      setTimeout(() => { location.href = ROLE_ROUTES[roleId] ?? "/"; }, 1000);
+      setTimeout(() => { window.location.href = "/"; }, 1000);
     } else {
       setLoading(false);
-      const errData = (res as AxiosResponse<{ error?: { message?: string } }> | undefined)?.data;
-      messageApi.error(errData?.error?.message ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      const errMsg = (res as AxiosResponse<{ error?: { message?: string } }> | undefined)?.data?.error?.message;
+      messageApi.error(errMsg ?? "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
   };
 
