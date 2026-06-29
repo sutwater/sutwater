@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
-import { Menu, Sun, Moon } from "lucide-react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Menu, Sun, Moon, Bell } from "lucide-react";
+import { useAppContext } from "../contexts/AppContextDef";
 
 const PATH_LABELS: Record<string, string> = {
   "/":             "แดชบอร์ด",
@@ -13,6 +14,7 @@ const PATH_LABELS: Record<string, string> = {
   "/user":         "ผู้ใช้",
   "/profile":      "โปรไฟล์",
   "/maintain-noti":      "แจ้งปัญหา",
+  "/notification":       "การแจ้งเตือน",
 };
 import Sidebar from "./Sidebar";
 import { useTheme } from "../contexts/useTheme";
@@ -21,8 +23,12 @@ export default function SidebarLayout() {
   const [collapsed, setCollapsed]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dark, toggle }            = useTheme();
+  const { notifications }           = useAppContext();
   const location  = useLocation();
+  const navigate  = useNavigate();
   const pageLabel = PATH_LABELS[location.pathname] ?? "";
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -69,6 +75,25 @@ export default function SidebarLayout() {
               {" "}
               {now.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </span>
+
+            {/* Notification bell */}
+            <button
+              onClick={() => navigate("/notification")}
+              className="relative flex items-center justify-center w-8 h-8 rounded-lg mr-2
+                border border-gray-200 dark:border-gray-700
+                text-gray-500 dark:text-gray-400
+                bg-white dark:bg-gray-800
+                hover:bg-gray-50 dark:hover:bg-gray-700
+                cursor-pointer transition-colors"
+              title="การแจ้งเตือน"
+            >
+              <Bell size={15} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
 
             {/* Theme toggle — top right */}
             <button

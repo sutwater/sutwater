@@ -12,14 +12,14 @@ export async function GetNotificationsByMeterLocation(id: string) {
 
 export async function GetAllNotifications() {
   return await axios
-    .get(`${apiUrl}/notification`, authHeader())
+    .get(`${apiUrl}/notifications`, authHeader())
     .then((res) => res)
     .catch((e) => e.response);
 }
 
 export const ReadAllNotifications = async () => {
   try {
-    const res = await axios.patch(`${apiUrl}/notification`, {}, authHeader());
+    const res = await axios.put(`${apiUrl}/notifications/read-all`, {}, authHeader());
     return res;
   } catch (e) {
     const error = e as AxiosError;
@@ -30,7 +30,7 @@ export const ReadAllNotifications = async () => {
 // อ่าน Notification ตาม ID
 export const ReadNotificationByID = async (id: string) => {
   try {
-    const res = await axios.patch(`${apiUrl}/notification/${id}`, {}, authHeader());
+    const res = await axios.put(`${apiUrl}/notifications/${id}/read`, {}, authHeader());
     return res;
   } catch (e) {
     const error = e as AxiosError;
@@ -41,7 +41,7 @@ export const ReadNotificationByID = async (id: string) => {
 // ลบ Notification ตาม ID
 export const DeleteNotificationByID = async (id: string) => {
   try {
-    const res = await axios.delete(`${apiUrl}/notification/${id}`, authHeader());
+    const res = await axios.delete(`${apiUrl}/notifications/${id}`, authHeader());
     return res;
   } catch (e) {
     const error = e as AxiosError;

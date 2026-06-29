@@ -10,7 +10,6 @@ type Device struct {
 	Location   *Location `gorm:"foreignKey:LocationID" json:"location,omitempty"`
 
 	WaterMeterValue []WaterMeterValue `gorm:"foreignKey:DeviceID"`
-	Message         []Message         `gorm:"foreignKey:DeviceID"`
 
 	DeviceCredential DeviceCredential `gorm:"foreignKey:DeviceID"`
 }

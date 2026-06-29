@@ -22,7 +22,7 @@ func NewNotificationHandler(router *gin.RouterGroup, service services.Notificati
 	g.PUT("/read-all", h.MarkAllAsRead)
 	g.GET("/:id", h.GetByID)
 	g.PUT("/:id/read", h.MarkAsRead)
-	g.DELETE("/:id", utils.RequireRole(utils.RoleAdmin), h.Delete)
+	g.DELETE("/:id", h.Delete)
 }
 
 func (h *notificationHandler) GetAll(c *gin.Context) {
