@@ -12,6 +12,8 @@ import (
 	"github.com/watermeter/suth/controller/maintainlog"
 	"github.com/watermeter/suth/controller/meter"
 	"github.com/watermeter/suth/controller/notification"
+	"github.com/watermeter/suth/controller/positions"
+	"github.com/watermeter/suth/controller/roles"
 	"github.com/watermeter/suth/controller/users"
 	"github.com/watermeter/suth/controller/waterlog"
 	"github.com/watermeter/suth/middlewares"
@@ -75,6 +77,13 @@ func main() {
 
 	genderRepository := repositories.NewGenderRepository(db)
 	genders.NewGenderHandler(privateRouter, genderRepository)
+
+	roleRepository := repositories.NewRoleRepository(db)
+	roles.NewRoleHandler(privateRouter, roleRepository)
+
+	positionRepository := repositories.NewPositionRepository(db)
+	positions.NewPositionHandler(privateRouter, positionRepository)
+
 	meter.NewMeterHandler(privateRouter, locationService)
 	device.NewDeviceHandler(privateRouter, deviceService)
 	maintainlog.NewMaintainLogHandler(privateRouter, maintainLogService, notificationService)

@@ -14,11 +14,12 @@ import (
 )
 
 type mockUserService struct {
-	getProfileFn     func(userID uint) (*models.UserResponse, error)
-	updateProfileFn  func(userID uint, input models.UpdateUserRequest) (*models.UserResponse, error)
-	changePasswordFn func(userID uint, input models.ChangePasswordRequest) error
-	deleteUserFn     func(userID uint) error
-	getAllUsersFn     func() ([]models.UserResponse, error)
+	getProfileFn             func(userID uint) (*models.UserResponse, error)
+	updateProfileFn          func(userID uint, input models.UpdateUserRequest) (*models.UserResponse, error)
+	updateRoleAndPositionFn  func(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error)
+	changePasswordFn         func(userID uint, input models.ChangePasswordRequest) error
+	deleteUserFn             func(userID uint) error
+	getAllUsersFn             func() ([]models.UserResponse, error)
 }
 
 func (m *mockUserService) GetProfile(userID uint) (*models.UserResponse, error) {
@@ -26,6 +27,9 @@ func (m *mockUserService) GetProfile(userID uint) (*models.UserResponse, error) 
 }
 func (m *mockUserService) UpdateProfile(userID uint, input models.UpdateUserRequest) (*models.UserResponse, error) {
 	return m.updateProfileFn(userID, input)
+}
+func (m *mockUserService) UpdateRoleAndPosition(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error) {
+	return m.updateRoleAndPositionFn(targetUserID, input)
 }
 func (m *mockUserService) ChangePassword(userID uint, input models.ChangePasswordRequest) error {
 	return m.changePasswordFn(userID, input)
@@ -243,12 +247,74 @@ func TestChangePassword_ServiceError(t *testing.T) {
 	assertStatusUser(t, http.StatusBadRequest, w.Code)
 }
 
-// --- DeleteUser ---
+// --- UpdateRoleAndPosition ---
+
+func TestUpdateRoleAndPosition_InvalidID(t *testing.T) {
+	r := setupUserRouter(&mockUserService{}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/abc/assignment", jsonBodyUser(t, map[string]any{})))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateRoleAndPosition_InvalidJSON(t *testing.T) {
+	r := setupUserRouter(&mockUserService{}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/1/assignment", bytes.NewBufferString("{bad}")))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateRoleAndPosition_ValidationError(t *testing.T) {
+	r := setupUserRouter(&mockUserService{}, &testUID)
+	// role_id = 0 ไม่ผ่าน validate:"required,min=1"
+	body := jsonBodyUser(t, map[string]any{"role_id": 0})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/1/assignment", body))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateRoleAndPosition_NotFound(t *testing.T) {
+	r := setupUserRouter(&mockUserService{
+		updateRoleAndPositionFn: func(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error) {
+			return nil, errors.New("user not found")
+		},
+	}, &testUID)
+	body := jsonBodyUser(t, models.UpdateRolePositionRequest{RoleID: 2})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/99/assignment", body))
+	assertStatusUser(t, http.StatusNotFound, w.Code)
+}
+
+func TestUpdateRoleAndPosition_Success(t *testing.T) {
+	posID := uint(1)
+	r := setupUserRouter(&mockUserService{
+		updateRoleAndPositionFn: func(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error) {
+			return &models.UserResponse{ID: targetUserID, RoleID: input.RoleID, PositionID: input.PositionID}, nil
+		},
+	}, &testUID)
+	body := jsonBodyUser(t, models.UpdateRolePositionRequest{RoleID: 3, PositionID: &posID})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/2/assignment", body))
+	assertStatusUser(t, http.StatusOK, w.Code)
+}
+
+func TestUpdateRoleAndPosition_ServiceError(t *testing.T) {
+	r := setupUserRouter(&mockUserService{
+		updateRoleAndPositionFn: func(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error) {
+			return nil, errors.New("update failed")
+		},
+	}, &testUID)
+	body := jsonBodyUser(t, models.UpdateRolePositionRequest{RoleID: 2})
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, jsonReqUser(t, http.MethodPut, "/api/v1/users/1/assignment", body))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+// --- DeleteUser (self-delete via DELETE /me) ---
 
 func TestDeleteUser_MissingUserID(t *testing.T) {
 	r := setupUserRouter(&mockUserService{}, nil)
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/1", nil))
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/me", nil))
 	assertStatusUser(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -257,7 +323,7 @@ func TestDeleteUser_Success(t *testing.T) {
 		deleteUserFn: func(userID uint) error { return nil },
 	}, &testUID)
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/1", nil))
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/me", nil))
 	assertStatusUser(t, http.StatusNoContent, w.Code)
 }
 
@@ -266,6 +332,57 @@ func TestDeleteUser_ServiceError(t *testing.T) {
 		deleteUserFn: func(userID uint) error { return errors.New("delete failed") },
 	}, &testUID)
 	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/me", nil))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+// --- AdminDeleteUser (DELETE /:id) ---
+
+func TestAdminDeleteUser_InvalidID(t *testing.T) {
+	r := setupUserRouter(&mockUserService{}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/abc", nil))
+	assertStatusUser(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAdminDeleteUser_MissingUserID(t *testing.T) {
+	r := setupUserRouter(&mockUserService{}, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/2", nil))
+	assertStatusUser(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestAdminDeleteUser_SelfDelete(t *testing.T) {
+	// testUID = 1, ลบ /users/1 → ลบตัวเอง → 403
+	r := setupUserRouter(&mockUserService{}, &testUID)
+	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/1", nil))
+	assertStatusUser(t, http.StatusForbidden, w.Code)
+}
+
+func TestAdminDeleteUser_Success(t *testing.T) {
+	r := setupUserRouter(&mockUserService{
+		deleteUserFn: func(userID uint) error { return nil },
+	}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/2", nil))
+	assertStatusUser(t, http.StatusNoContent, w.Code)
+}
+
+func TestAdminDeleteUser_NotFound(t *testing.T) {
+	r := setupUserRouter(&mockUserService{
+		deleteUserFn: func(userID uint) error { return errors.New("user not found") },
+	}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/99", nil))
+	assertStatusUser(t, http.StatusNotFound, w.Code)
+}
+
+func TestAdminDeleteUser_ServiceError(t *testing.T) {
+	r := setupUserRouter(&mockUserService{
+		deleteUserFn: func(userID uint) error { return errors.New("db error") },
+	}, &testUID)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/users/2", nil))
 	assertStatusUser(t, http.StatusBadRequest, w.Code)
 }

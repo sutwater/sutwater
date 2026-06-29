@@ -19,3 +19,17 @@ export async function GetGender() {
     .then((res) => res)
     .catch((e) => e.response);
 }
+
+export async function GetRoles() {
+  return await axios
+    .get(`${apiUrl}/roles`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}
+
+export async function GetPositions() {
+  return await axios
+    .get(`${apiUrl}/positions`, authHeader())
+    .then((res) => res)
+    .catch((e) => e.response);
+}

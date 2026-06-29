@@ -9,6 +9,7 @@ export interface UsersInterface {
   gender_id?: number;
   role_id?: number;
   position_id?: number;
+  profile_image?: string;
   Password?: string;
   Gender?: GenderInterface;
 }

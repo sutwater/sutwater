@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { message } from "antd";
-import { Camera, Save, KeyRound, Eye, EyeOff } from "lucide-react";
-import { GetUsersById, UpdateUsersById } from "../../services/https/user";
+import { Camera, Save, KeyRound, Eye, EyeOff, Trash2, TriangleAlert } from "lucide-react";
+import { GetUsersById, UpdateUsersById, DeleteUsersByAdmin } from "../../services/https/user";
 import { ChangePassword } from "../../services/https/sign";
 import { GetGender } from "../../services/https/api";
 
@@ -10,10 +11,18 @@ const INPUT =
 
 const LABEL = "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
 
+const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: THIS_YEAR - 1930 + 1 }, (_, i) => THIS_YEAR - i);
+
 type Gender = { id: number; gender: string };
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [msgApi, ctx] = message.useMessage();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteBtn, setShowDeleteBtn] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const id = localStorage.getItem("id") ?? "";
 
@@ -103,17 +112,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    const res = await DeleteUsersByAdmin();
+    setDeleting(false);
+    if (res?.status === 200 || res?.status === 204) {
+      msgApi.success("ลบบัญชีสำเร็จ");
+      localStorage.clear();
+      setTimeout(() => navigate("/"), 1000);
+    } else {
+      msgApi.error(res?.data?.error?.message ?? "เกิดข้อผิดพลาด");
+      setShowDeleteModal(false);
+    }
+  };
+
+  const bYear  = form.birthday.slice(0, 4);
+  const bMonth = form.birthday.slice(5, 7);
+  const bDay   = form.birthday.slice(8, 10);
+  const daysInMonth = bYear && bMonth ? new Date(Number(bYear), Number(bMonth), 0).getDate() : 31;
+
+  const updateBirthday = (y: string, m: string, d: string) => {
+    if (!y || !m || !d) { setForm((f) => ({ ...f, birthday: "" })); return; }
+    const maxDay = new Date(Number(y), Number(m), 0).getDate();
+    const safeDay = String(Math.min(Number(d), maxDay)).padStart(2, "0");
+    setForm((f) => ({ ...f, birthday: `${y}-${m}-${safeDay}` }));
+  };
+
   const isFormChanged = JSON.stringify(form) !== JSON.stringify(initialForm);
   const initials = (form.first_name[0] ?? form.email[0] ?? "U").toUpperCase();
 
   return (
-    <div className="min-h-full bg-gray-50 dark:bg-gray-950 p-6">
+    <div className="min-h-full bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
       {ctx}
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
 
         {/* ——— Avatar ——— */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 flex items-center gap-5">
-          <div className="relative">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-5">
+          <div className="relative shrink-0">
             {form.profile_image ? (
               <img src={form.profile_image} alt="avatar"
                 className="w-20 h-20 rounded-full object-cover ring-2 ring-teal-500/30" />
@@ -130,7 +165,7 @@ export default function ProfilePage() {
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
           </div>
-          <div>
+          <div className="text-center sm:text-left">
             <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
               {form.first_name} {form.last_name}
             </p>
@@ -140,9 +175,9 @@ export default function ProfilePage() {
         </div>
 
         {/* ——— Personal info ——— */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5">ข้อมูลส่วนตัว</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={LABEL}>ชื่อ</label>
               <input className={INPUT} value={form.first_name}
@@ -153,15 +188,45 @@ export default function ProfilePage() {
               <input className={INPUT} value={form.last_name}
                 onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className={LABEL}>อีเมล</label>
               <input type="email" className={INPUT} value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
             <div>
               <label className={LABEL}>วันเกิด</label>
-              <input type="date" className={INPUT} value={form.birthday}
-                onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))} />
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  className={INPUT}
+                  value={bDay}
+                  onChange={(e) => updateBirthday(bYear, bMonth, e.target.value)}
+                >
+                  <option value="">วัน</option>
+                  {Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
+                    <option key={d} value={d}>{Number(d)}</option>
+                  ))}
+                </select>
+                <select
+                  className={INPUT}
+                  value={bMonth}
+                  onChange={(e) => updateBirthday(bYear, e.target.value, bDay)}
+                >
+                  <option value="">เดือน</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={i} value={String(i + 1).padStart(2, "0")}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  className={INPUT}
+                  value={bYear}
+                  onChange={(e) => updateBirthday(e.target.value, bMonth, bDay)}
+                >
+                  <option value="">ปี</option>
+                  {YEARS.map((y) => (
+                    <option key={y} value={String(y)}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
               <label className={LABEL}>เพศ</label>
@@ -190,7 +255,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ——— Change password ——— */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-5">
             <KeyRound size={16} className="text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">เปลี่ยนรหัสผ่าน</h2>
@@ -232,7 +297,73 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* ——— Danger Zone ——— */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-red-100 dark:border-red-900/40 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <TriangleAlert size={16} className="text-red-500" />
+            <h2 className="text-sm font-semibold text-red-600 dark:text-red-400">พื้นที่อันตราย</h2>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+            การลบบัญชีจะลบข้อมูลทั้งหมดของคุณออกจากระบบถาวร และไม่สามารถกู้คืนได้
+          </p>
+          <button
+            onClick={() => setShowDeleteBtn((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bg-transparent cursor-pointer"
+          >
+            <TriangleAlert size={14} />
+            {showDeleteBtn ? "ซ่อนตัวเลือก" : "จัดการบัญชี"}
+          </button>
+          {showDeleteBtn && (
+            <div className="mt-3 pt-3 border-t border-red-100 dark:border-red-900/30">
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-transparent cursor-pointer"
+              >
+                <Trash2 size={14} />
+                ลบบัญชีของฉัน
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
+
+      {/* ——— Delete Confirmation Modal ——— */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full sm:max-w-sm bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6 pb-8 sm:pb-6">
+            <div className="w-10 h-1 rounded-full bg-gray-200 dark:bg-gray-700 mx-auto mb-5 sm:hidden" />
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">ยืนยันการลบบัญชี</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  บัญชีของ <span className="font-medium text-gray-700 dark:text-gray-200">{form.email}</span> จะถูกลบออกจากระบบถาวร การกระทำนี้ไม่สามารถย้อนกลับได้
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-0 bg-transparent cursor-pointer disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-colors border-0 cursor-pointer"
+              >
+                <Trash2 size={14} />
+                {deleting ? "กำลังลบ..." : "ลบบัญชี"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

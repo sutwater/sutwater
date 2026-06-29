@@ -25,9 +25,23 @@ export async function UpdateUsersById(id: string, data: UsersInterface) {
         .catch((e) => e.response);
 }
 
+export async function DeleteUsersByAdmin() {
+    return await axios
+        .delete(`${apiUrl}/users/me`, authHeader())
+        .then((res) => res)
+        .catch((e) => e.response);
+}
+
 export async function DeleteUsersById(id: string) {
     return await axios
-        .delete(`${apiUrl}/user/${id}`, authHeader())
+        .delete(`${apiUrl}/users/${id}`, authHeader())
+        .then((res) => res)
+        .catch((e) => e.response);
+}
+
+export async function UpdateUserAssignment(id: string, data: { role_id: number; position_id?: number | null }) {
+    return await axios
+        .put(`${apiUrl}/users/${id}/assignment`, data, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
 }
