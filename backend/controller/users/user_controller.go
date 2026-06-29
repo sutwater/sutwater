@@ -2,6 +2,7 @@ package users
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -30,8 +31,10 @@ func NewUserHandler(router *gin.RouterGroup, userService services.UserService) *
 	user.GET("", adminOrEngineer, handler.GetAllUsers)
 	user.GET("/:id", handler.GetProfile)
 	user.PUT("/:id", handler.UpdateProfile)
+	user.PUT("/:id/assignment", adminOnly, handler.UpdateRoleAndPosition)
 	user.PUT("/:id/change-password", handler.ChangePassword)
-	user.DELETE("/:id", adminOnly, handler.DeleteUser)
+	user.DELETE("/me", handler.DeleteUser)
+	user.DELETE("/:id", adminOnly, handler.AdminDeleteUser)
 
 	return handler
 }
@@ -124,6 +127,36 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	utils.JSONSuccess(c, http.StatusNoContent, nil)
 }
 
+func (h *UserHandler) AdminDeleteUser(c *gin.Context) {
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || targetID <= 0 {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	callerID, exists := utils.GetUserIDFromContext(c)
+	if !exists {
+		utils.NewError(c, http.StatusUnauthorized, utils.ErrMissingID)
+		return
+	}
+
+	if uint(targetID) == callerID {
+		utils.NewError(c, http.StatusForbidden, utils.ErrCannotBeDeleted)
+		return
+	}
+
+	if err := h.userService.DeleteUser(uint(targetID)); err != nil {
+		if err.Error() == "user not found" {
+			utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+			return
+		}
+		utils.NewError(c, http.StatusBadRequest, utils.ErrDeleteFailed)
+		return
+	}
+
+	utils.JSONSuccess(c, http.StatusNoContent, nil)
+}
+
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	users, err := h.userService.GetAllUsers()
 	if err != nil {
@@ -132,4 +165,35 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	}
 
 	utils.JSONSuccess(c, http.StatusOK, users)
+}
+
+func (h *UserHandler) UpdateRoleAndPosition(c *gin.Context) {
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || targetID <= 0 {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidID)
+		return
+	}
+
+	var payload models.UpdateRolePositionRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.NewError(c, http.StatusBadRequest, utils.ErrInvalidPayload)
+		return
+	}
+
+	if err := h.validate.Struct(payload); err != nil {
+		utils.JSONError(c, http.StatusBadRequest, utils.ErrValidation.Error(), err.Error())
+		return
+	}
+
+	updated, err := h.userService.UpdateRoleAndPosition(uint(targetID), payload)
+	if err != nil {
+		if err.Error() == "user not found" {
+			utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)
+			return
+		}
+		utils.NewError(c, http.StatusBadRequest, utils.ErrUpdateFailed)
+		return
+	}
+
+	utils.JSONSuccess(c, http.StatusOK, updated)
 }

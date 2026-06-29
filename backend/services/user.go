@@ -13,6 +13,7 @@ import (
 type UserService interface {
 	GetProfile(userID uint) (*models.UserResponse, error)
 	UpdateProfile(userID uint, input models.UpdateUserRequest) (*models.UserResponse, error)
+	UpdateRoleAndPosition(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error)
 	ChangePassword(userID uint, input models.ChangePasswordRequest) error
 	DeleteUser(userID uint) error
 	GetAllUsers() ([]models.UserResponse, error)
@@ -76,6 +77,26 @@ func (s *userService) UpdateProfile(userID uint, input models.UpdateUserRequest)
 	}
 
 	user.UpdatedAt = time.Now().UTC()
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, err
+	}
+
+	return mapUserToResponse(user), nil
+}
+
+func (s *userService) UpdateRoleAndPosition(targetUserID uint, input models.UpdateRolePositionRequest) (*models.UserResponse, error) {
+	user, err := s.userRepo.FindByID(targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	user.RoleID = input.RoleID
+	user.PositionID = input.PositionID
+	user.UpdatedAt = time.Now().UTC()
+
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, err
 	}

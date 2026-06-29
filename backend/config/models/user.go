@@ -30,3 +30,8 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" validate:"required"`
 	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
+
+type UpdateRolePositionRequest struct {
+	RoleID     uint  `json:"role_id"     validate:"required,min=1"`
+	PositionID *uint `json:"position_id"`
+}

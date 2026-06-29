@@ -8,9 +8,9 @@ import (
 
 const (
 	RoleAdmin      = uint(1)
-	RoleUser       = uint(2)
-	RoleEngineer   = uint(3)
-	RoleTechnician = uint(4)
+	RoleEngineer   = uint(2)
+	RoleTechnician = uint(3)
+	RoleUser       = uint(4)
 )
 
 // RequireRole aborts with 403 if the caller's role is not in the allowed list.
