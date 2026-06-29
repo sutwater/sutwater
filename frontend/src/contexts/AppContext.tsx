@@ -65,7 +65,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const res = await GetAllNotifications();
       if (res && res.status === 200) {
-        setNotifications(res.data);
+        const data = res.data?.data ?? res.data;
+        setNotifications(Array.isArray(data) ? data : []);
       } else {
         setNotifications([]);
         messageApi.error(res?.data?.error || "ไม่สามารถโหลดการแจ้งเตือนได้");

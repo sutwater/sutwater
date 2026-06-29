@@ -114,14 +114,9 @@ func mapNotificationToResponse(msg *entity.Message) models.NotificationResponse 
 		ID:           msg.ID,
 		Message:      msg.Message,
 		IsRead:       msg.IsRead,
-		DeviceID:     msg.DeviceID,
 		TargetUserID: msg.TargetUserID,
 		CreatedAt:    msg.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    msg.UpdatedAt.Format(time.RFC3339),
-	}
-	if msg.Device != nil {
-		d := mapDeviceToResponse(msg.Device)
-		resp.Device = &d
 	}
 	return resp
 }

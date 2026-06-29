@@ -115,13 +115,12 @@ export interface WaterMeterImageInterface {
 }
 
 export interface NotificationInterface {
-  ID: number;
-  Message?: string;
-  IsRead?: boolean;
-  CameraDeviceID?: number;
-  CameraDevice?: CameraDeviceInterface; 
-  CreatedAt?: string;
-  UpdatedAt?: string;
+  id: number;
+  message?: string;
+  is_read?: boolean;
+  target_user_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface DashboardStats {

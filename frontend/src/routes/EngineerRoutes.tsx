@@ -1,6 +1,5 @@
 import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
-
 import WaterMeterMap from "../pages/water/MeterMap";
 import DevicePage from "../pages/device/DevicePage";
 import MeterPage from "../pages/water/Meter";
@@ -10,8 +9,8 @@ import WaterDetailPage from "../pages/water/WaterDetail";
 import MaintainLogPage from "../pages/maintain/MaintainLogPage";
 import UserPage from "../pages/user/UserPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import NotificationPage from "../pages/notification/NotificationPage";
 import NotFoundPage from "../pages/404/404Page";
-
 
 const EngineerRoutes = (): RouteObject => {
     return {
@@ -20,6 +19,7 @@ const EngineerRoutes = (): RouteObject => {
         children: [
             { path: "/", element: <WaterPage /> },
             { path: "/water-map", element: <WaterMeterMap /> },
+            { path: "/notification", element: <NotificationPage /> },
             { path: "/device", element: <DevicePage /> },
             { path: "/meter", element: <MeterPage /> },
             { path: "/profile", element: <ProfilePage /> },
