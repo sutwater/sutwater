@@ -11,6 +11,15 @@ export interface UsersInterface {
   Gender?: GenderInterface;
 }
 
+export interface DeviceInterface {
+  id?: number;
+  mac_address: string;
+  location_id?: number | null;
+  location?: MeterLocationInterface;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface WaterValueStatus {
   ID: number;
   Name: string;
