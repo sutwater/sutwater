@@ -11,6 +11,25 @@ export interface UsersInterface {
   Gender?: GenderInterface;
 }
 
+export interface StatusLogInterface {
+  id?: number;
+  status_log: string;
+  description?: string;
+}
+
+export interface MaintainLogInterface {
+  id?: number;
+  title: string;
+  location_text: string;
+  close_at?: string;
+  location_id?: number | null;
+  location?: MeterLocationInterface;
+  status_id?: number | null;
+  status?: StatusLogInterface;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface DeviceInterface {
   id?: number;
   mac_address: string;
