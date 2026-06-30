@@ -15,6 +15,16 @@ export async function GetAllWaterUsageLogs() {
         .catch((e) => e.response);
 }
 
+export async function GetWaterValues(deviceId?: number, statusId?: number) {
+    const params: Record<string, number> = {};
+    if (deviceId != null) params.device_id = deviceId;
+    if (statusId != null) params.status_id = statusId;
+    return await axios
+        .get(`${apiUrl}/water-values`, { ...authHeader(), params })
+        .then((res) => res)
+        .catch((e) => e.response);
+}
+
 export async function GetWaterValueById(id: string) {
     return await axios
         .get(`${apiUrl}/watervalue/${id}`, authHeader())
