@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
-import WaterMeterMap from "../pages/water/MeterMap";
+import WaterMeterMap from "../pages/meter/MeterMap";
 import DevicePage from "../pages/device/DevicePage";
-import MeterPage from "../pages/water/Meter";
+import MeterPage from "../pages/meter/Meter";
 import EditWaterValuePage from "../pages/water/EditWaterValue";
 import WaterPage from "../pages/water/Water";
 import WaterDetailPage from "../pages/water/WaterDetail";

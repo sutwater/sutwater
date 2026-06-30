@@ -1,7 +1,7 @@
 import { RouteObject } from "react-router-dom";
 import SidebarLayout from "@/layout/SidebarLayout";
 import Water from "../pages/water/Water";
-import WaterMeterMap from "../pages/water/MeterMap";
+import WaterMeterMap from "../pages/meter/MeterMap";
 import MaintainLog from "../pages/maintain/MaintainLogPage";
 import NotificationPage from "../pages/notification/NotificationPage";
 import Profile from "../pages/profile/ProfilePage";
