@@ -48,7 +48,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const res = await GetMerters();
       if (res && res.status === 200) {
-        setMeters(res.data);
+        const data = res.data?.data ?? res.data;
+        setMeters(Array.isArray(data) ? data : []);
       } else {
         setMeters([]);
         messageApi.error(res?.data?.error || "ไม่สามารถโหลดข้อมูลมิเตอร์ได้");

@@ -25,12 +25,13 @@ export interface GenderInterface {
 }
 
 export interface MeterLocationInterface {
-  ID?: number;
-  Name: string;
-  Latitude: number;
-  Longitude: number;
-  CameraDevice?: CameraDeviceInterface[];
-  DailyWaterUsage?: DailyWaterUsageInterface[];
+  id?: number;
+  building_name: string;
+  latitude: number;
+  longitude: number;
+  device?: CameraDeviceInterface[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CameraDeviceInterface {
