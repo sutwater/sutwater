@@ -92,6 +92,9 @@ func (s *userService) UpdateRoleAndPosition(targetUserID uint, input models.Upda
 	if user == nil {
 		return nil, errors.New("user not found")
 	}
+	if user.RoleID == 1 {
+		return nil, errors.New("ไม่สามารถแก้ไขผู้ใช้ที่มีบทบาทผู้ดูแลได้")
+	}
 
 	user.RoleID = input.RoleID
 	user.PositionID = input.PositionID

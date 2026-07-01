@@ -9,6 +9,7 @@ type WaterMeterValueRequest struct {
 	Note            string     `json:"note"`
 	ImagePath       string     `json:"image_path"`
 	DeviceID        uint       `json:"device_id"         validate:"required"`
+	StatusID        uint       `json:"status_id"` // 0 = ใช้ค่า default (pending)
 }
 
 type UpdateWaterMeterValueRequest struct {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { message } from "antd";
-import { Search, Pencil, Trash2, X, Users, Save } from "lucide-react";
+import { Search, Pencil, Trash2, X, Users, Save, Lock } from "lucide-react";
 import { GetUsers, DeleteUsersById, UpdateUserAssignment } from "../../services/https/user";
 import { GetRoles, GetPositions } from "../../services/https/api";
 import { UsersInterface } from "../../interfaces/IUser";
@@ -21,14 +21,17 @@ type Role = { id: number; role: string };
 type Position = { id: number; position: string };
 type EditState = { role_id: number | ""; position_id: number | "" };
 
+const ROLE_ADMIN    = 1;
 const ROLE_ENGINEER = 2;
 
 export default function UserPage() {
   const currentId     = Number(localStorage.getItem("id"));
   const currentRoleId = Number(localStorage.getItem("role_id"));
 
-  const canDelete = (u: UsersInterface) =>
-    currentRoleId !== ROLE_ENGINEER && u.id !== currentId;
+  const isAdminUser = (u: UsersInterface) => u.role_id === ROLE_ADMIN;
+  const canEdit     = (u: UsersInterface) => !isAdminUser(u);
+  const canDelete   = (u: UsersInterface) =>
+    !isAdminUser(u) && currentRoleId !== ROLE_ENGINEER && u.id !== currentId;
 
   const [msgApi, ctx] = message.useMessage();
   const [users, setUsers] = useState<UsersInterface[]>([]);
@@ -170,13 +173,19 @@ export default function UserPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => openEdit(u)}
-                        title="แก้ไข"
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
-                      >
-                        <Pencil size={14} />
-                      </button>
+                      {canEdit(u) ? (
+                        <button
+                          onClick={() => openEdit(u)}
+                          title="แก้ไข"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      ) : (
+                        <span className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600" title="ผู้ดูแลไม่สามารถแก้ไขได้">
+                          <Lock size={14} />
+                        </span>
+                      )}
                       {canDelete(u) && (
                         <button
                           onClick={() => setDeleteTarget(u)}
@@ -234,13 +243,19 @@ export default function UserPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openEdit(u)}
-                              title="แก้ไข"
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
-                            >
-                              <Pencil size={14} />
-                            </button>
+                            {canEdit(u) ? (
+                              <button
+                                onClick={() => openEdit(u)}
+                                title="แก้ไข"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            ) : (
+                              <span className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600" title="ผู้ดูแลไม่สามารถแก้ไขได้">
+                                <Lock size={14} />
+                              </span>
+                            )}
                             {canDelete(u) && (
                               <button
                                 onClick={() => setDeleteTarget(u)}

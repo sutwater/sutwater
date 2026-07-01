@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/watermeter/suth/config/models"
@@ -14,18 +15,18 @@ import (
 )
 
 type mockWaterService struct {
-	getAllFn            func(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error)
-	getByIDFn          func(id uint) (*models.WaterMeterValueResponse, error)
-	getLatestFn        func() ([]models.WaterMeterValueResponse, error)
-	getPendingFn       func() ([]models.WaterMeterValueResponse, error)
-	getStatusesFn      func() ([]models.StatusValueResponse, error)
-	createFn           func(input models.WaterMeterValueRequest, userID uint) (*models.WaterMeterValueResponse, error)
-	updateFn           func(id uint, input models.UpdateWaterMeterValueRequest) (*models.WaterMeterValueResponse, error)
-	deleteFn           func(id uint) error
+	getAllFn       func(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error)
+	getByIDFn     func(id uint) (*models.WaterMeterValueResponse, error)
+	getLatestFn   func() ([]models.WaterMeterValueResponse, error)
+	getPendingFn  func() ([]models.WaterMeterValueResponse, error)
+	getStatusesFn func() ([]models.StatusValueResponse, error)
+	createFn      func(input models.WaterMeterValueRequest, userID uint) (*models.WaterMeterValueResponse, error)
+	updateFn      func(id uint, input models.UpdateWaterMeterValueRequest) (*models.WaterMeterValueResponse, error)
+	deleteFn      func(id uint) error
 }
 
-func (m *mockWaterService) GetAll(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error) {
-	return m.getAllFn(deviceID, statusID)
+func (m *mockWaterService) GetAll(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error) {
+	return m.getAllFn(deviceID, statusID, startDate, endDate)
 }
 func (m *mockWaterService) GetByID(id uint) (*models.WaterMeterValueResponse, error) {
 	return m.getByIDFn(id)
@@ -95,7 +96,7 @@ var sampleValue = models.WaterMeterValueResponse{ID: 1, MeterValue: 100, DeviceI
 
 func TestGetAll_NoParams(t *testing.T) {
 	r := setupRouter(&mockWaterService{
-		getAllFn: func(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error) {
+		getAllFn: func(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error) {
 			if deviceID != nil || statusID != nil {
 				t.Error("expected nil params")
 			}
@@ -109,7 +110,7 @@ func TestGetAll_NoParams(t *testing.T) {
 
 func TestGetAll_WithQueryParams(t *testing.T) {
 	r := setupRouter(&mockWaterService{
-		getAllFn: func(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error) {
+		getAllFn: func(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error) {
 			if deviceID == nil || *deviceID != 2 {
 				t.Errorf("expected deviceID=2, got %v", deviceID)
 			}
@@ -126,7 +127,7 @@ func TestGetAll_WithQueryParams(t *testing.T) {
 
 func TestGetAll_ServiceError(t *testing.T) {
 	r := setupRouter(&mockWaterService{
-		getAllFn: func(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error) {
+		getAllFn: func(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error) {
 			return nil, errors.New("db error")
 		},
 	}, nil)

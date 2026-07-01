@@ -9,10 +9,13 @@ import (
 	"github.com/watermeter/suth/repositories"
 )
 
-const statusPending = uint(1)
+const (
+	statusPending  = uint(1)
+	statusApproved = uint(2)
+)
 
 type WaterMeterValueService interface {
-	GetAll(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error)
+	GetAll(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error)
 	GetByID(id uint) (*models.WaterMeterValueResponse, error)
 	GetLatestPerDevice() ([]models.WaterMeterValueResponse, error)
 	GetPending() ([]models.WaterMeterValueResponse, error)
@@ -30,8 +33,8 @@ func NewWaterMeterValueService(repo repositories.WaterMeterValueRepository) Wate
 	return &waterMeterValueService{repo: repo}
 }
 
-func (s *waterMeterValueService) GetAll(deviceID *uint, statusID *uint) ([]models.WaterMeterValueResponse, error) {
-	values, err := s.repo.FetchAll(deviceID, statusID)
+func (s *waterMeterValueService) GetAll(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]models.WaterMeterValueResponse, error) {
+	values, err := s.repo.FetchAll(deviceID, statusID, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +70,18 @@ func (s *waterMeterValueService) GetLatestPerDevice() ([]models.WaterMeterValueR
 }
 
 func (s *waterMeterValueService) GetPending() ([]models.WaterMeterValueResponse, error) {
-	return s.GetAll(nil, &[]uint{statusPending}[0])
+	return s.GetAll(nil, &[]uint{statusPending}[0], nil, nil)
 }
 
 func (s *waterMeterValueService) Create(input models.WaterMeterValueRequest, userID uint) (*models.WaterMeterValueResponse, error) {
 	ts := time.Now()
 	if input.Timestamp != nil {
 		ts = *input.Timestamp
+	}
+
+	sid := statusPending
+	if input.StatusID != 0 {
+		sid = input.StatusID
 	}
 
 	value := &entity.WaterMeterValue{
@@ -84,7 +92,7 @@ func (s *waterMeterValueService) Create(input models.WaterMeterValueRequest, use
 		ImagePath:       input.ImagePath,
 		DeviceID:        input.DeviceID,
 		UserID:          userID,
-		StatusID:        statusPending,
+		StatusID:        sid,
 	}
 
 	if err := s.repo.Create(value); err != nil {

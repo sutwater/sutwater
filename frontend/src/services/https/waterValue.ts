@@ -10,15 +10,17 @@ interface MeterParams {
 
 export async function GetAllWaterUsageLogs() {
     return await axios
-        .get(`${apiUrl}/waterusages`, authHeader())
+        .get(`${apiUrl}/water-values`, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
 }
 
-export async function GetWaterValues(deviceId?: number, statusId?: number) {
-    const params: Record<string, number> = {};
+export async function GetWaterValues(deviceId?: number, statusId?: number, startDate?: string, endDate?: string) {
+    const params: Record<string, string | number> = {};
     if (deviceId != null) params.device_id = deviceId;
     if (statusId != null) params.status_id = statusId;
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
     return await axios
         .get(`${apiUrl}/water-values`, { ...authHeader(), params })
         .then((res) => res)
@@ -127,4 +129,37 @@ export async function DeleteWaterValueById(id: string) {
         .delete(`${apiUrl}/watervalue/${id}`, authHeader())
         .then((res) => res)
         .catch((e) => e.response);
+}
+
+export async function CreateWaterValue(data: {
+    meter_value: number;
+    device_id: number;
+    timestamp?: string;
+    note?: string;
+}) {
+    return await axios
+        .post(`${apiUrl}/water-values`, data, authHeader())
+        .then((res) => res)
+        .catch((e: AxiosError) => e.response);
+}
+
+export async function CreateWaterValueManual(data: {
+    meter_value: number;
+    device_id: number;
+    timestamp?: string;
+    note?: string;
+    image?: File;
+}) {
+    const form = new FormData();
+    form.append("meter_value", String(data.meter_value));
+    form.append("device_id", String(data.device_id));
+    if (data.timestamp) form.append("timestamp", data.timestamp);
+    if (data.note)      form.append("note", data.note);
+    if (data.image)     form.append("image", data.image);
+    return await axios
+        .post(`${apiUrl}/water-values/manual`, form, {
+            headers: { ...authHeader().headers, "Content-Type": "multipart/form-data" },
+        })
+        .then((res) => res)
+        .catch((e: AxiosError) => e.response);
 }

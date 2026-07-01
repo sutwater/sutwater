@@ -56,6 +56,7 @@ func (s *maintainLogService) Create(input models.MaintainLogRequest) (*models.Ma
 		LocationText: input.LocationText,
 		LocationID:   input.LocationID,
 		StatusID:     input.StatusID,
+		ImagePath:    input.ImagePath,
 	}
 	if input.CloseAt != nil {
 		log.CloseAt = *input.CloseAt
@@ -80,6 +81,9 @@ func (s *maintainLogService) Update(id uint, input models.UpdateMaintainLogReque
 	}
 	if log == nil {
 		return nil, errors.New("maintain log not found")
+	}
+	if log.Status != nil && log.Status.StatusLog == "solved" {
+		return nil, errors.New("ไม่สามารถแก้ไขบันทึกที่เสร็จสิ้นแล้ว")
 	}
 
 	if input.Title != "" {
@@ -143,6 +147,7 @@ func mapMaintainLogToResponse(log *entity.MaintainLog) models.MaintainLogRespons
 		ID:           log.ID,
 		Title:        log.Title,
 		LocationText: log.LocationText,
+		ImagePath:    log.ImagePath,
 		LocationID:   log.LocationID,
 		StatusID:     log.StatusID,
 		CreatedAt:    log.CreatedAt.Format(time.RFC3339),

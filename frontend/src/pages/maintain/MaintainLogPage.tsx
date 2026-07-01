@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { message } from "antd";
-import { Search, Plus, Pencil, Trash2, X, Wrench, Save, MapPin, Calendar } from "lucide-react";
+import { message, Image } from "antd";
+import { Search, Plus, Pencil, Trash2, X, Wrench, Save, MapPin, Calendar, Lock } from "lucide-react";
 import dayjs from "dayjs";
+
+const apiBase = import.meta.env.VITE_API_BASE_URL as string;
 import { MaintainLogInterface, StatusLogInterface, MeterLocationInterface } from "../../interfaces/InterfaceAll";
 import {
   GetMaintainLogs,
@@ -19,6 +21,10 @@ const TEXTAREA =
 const SELECT =
   "w-full h-10 px-3 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-lg outline-none transition-all focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20";
 const LABEL = "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
+
+function isSolved(log: MaintainLogInterface) {
+  return log.status?.status_log === "solved";
+}
 
 // Color coding by keyword in status name
 function statusColor(s?: StatusLogInterface) {
@@ -289,21 +295,38 @@ export default function MainTainPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => openEdit(l)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      {canDelete && (
-                        <button
-                          onClick={() => setDeleteTarget(l)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-0 bg-transparent cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {l.image_path && (
+                        <Image
+                          src={`${apiBase}/${l.image_path}`}
+                          width={56}
+                          height={56}
+                          className="!rounded-lg object-cover cursor-pointer"
+                          preview={{ mask: false }}
+                        />
                       )}
+                      <div className="flex items-center gap-1">
+                        {isSolved(l) ? (
+                          <span className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600" title="เสร็จสิ้นแล้ว ไม่สามารถแก้ไขได้">
+                            <Lock size={14} />
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => openEdit(l)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeleteTarget(l)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-0 bg-transparent cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -316,7 +339,7 @@ export default function MainTainPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-800">
-                      {["#", "หัวข้อ", "สถานที่", "สถานะ", "กำหนดปิด", "วันที่แจ้ง", ""].map((h, i) => (
+                      {["#", "รูป", "หัวข้อ", "สถานที่", "สถานะ", "กำหนดปิด", "วันที่แจ้ง", ""].map((h, i) => (
                         <th
                           key={i}
                           className={`px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide ${i < 6 ? "text-left" : ""}`}
@@ -330,6 +353,19 @@ export default function MainTainPage() {
                     {filtered.map((l, idx) => (
                       <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <td className="px-5 py-3.5 text-gray-400 dark:text-gray-500 text-xs">{idx + 1}</td>
+                        <td className="px-4 py-3.5">
+                          {l.image_path ? (
+                            <Image
+                              src={`${apiBase}/${l.image_path}`}
+                              width={48}
+                              height={48}
+                              className="!rounded-lg object-cover cursor-pointer"
+                              preview={{ mask: false }}
+                            />
+                          ) : (
+                            <span className="text-gray-300 dark:text-gray-700 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-5 py-3.5 max-w-[200px]">
                           <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{l.title}</p>
                         </td>
@@ -361,12 +397,18 @@ export default function MainTainPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => openEdit(l)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
-                            >
-                              <Pencil size={14} />
-                            </button>
+                            {isSolved(l) ? (
+                              <span className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 dark:text-gray-600" title="เสร็จสิ้นแล้ว ไม่สามารถแก้ไขได้">
+                                <Lock size={14} />
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => openEdit(l)}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-0 bg-transparent cursor-pointer"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            )}
                             {canDelete && (
                               <button
                                 onClick={() => setDeleteTarget(l)}

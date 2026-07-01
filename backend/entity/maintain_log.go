@@ -11,6 +11,7 @@ type MaintainLog struct {
 	Title        string    `json:"title"`
 	LocationText string    `json:"location_text"`
 	CloseAt      time.Time `json:"close_at"`
+	ImagePath    string    `json:"image_path"`
 
 	LocationID *uint      `json:"location_id"`
 	Location   *Location `gorm:"foreignKey:LocationID" json:"location,omitempty"`

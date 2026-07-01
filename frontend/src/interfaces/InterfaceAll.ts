@@ -22,6 +22,7 @@ export interface MaintainLogInterface {
   title: string;
   location_text: string;
   close_at?: string;
+  image_path?: string;
   location_id?: number | null;
   location?: MeterLocationInterface;
   status_id?: number | null;
@@ -161,3 +162,21 @@ export interface DashboardStats {
 }
 
 export type StatusType = "รอการอนุมัติ" | "อนุมัติ";
+
+// Shape matching GET /water-values response (new backend)
+export interface WaterValueResponse {
+  id: number;
+  meter_value: number;
+  timestamp: string;
+  model_confidence: number;
+  note: string;
+  image_path: string;
+  device_id: number;
+  device?: { id: number; mac_address: string; location_id: number | null };
+  user_id: number;
+  user?: { id: number; first_name: string; last_name: string };
+  status_id: number;
+  status?: { id: number; status_value: string; description: string };
+  created_at: string;
+  updated_at: string;
+}
