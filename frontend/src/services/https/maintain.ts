@@ -59,3 +59,22 @@ export async function DeleteMaintainLog(id: number) {
     .then((res) => res)
     .catch((e) => e.response);
 }
+
+export async function CreateMaintainLogReport(data: {
+  title: string;
+  location_text: string;
+  location_id?: number | null;
+  image?: File;
+}) {
+  const form = new FormData();
+  form.append("title", data.title);
+  form.append("location_text", data.location_text);
+  if (data.location_id != null) form.append("location_id", String(data.location_id));
+  if (data.image) form.append("image", data.image);
+  return await axios
+    .post(`${apiUrl}/maintain-logs/report`, form, {
+      headers: { ...authHeader().headers, "Content-Type": "multipart/form-data" },
+    })
+    .then((res) => res)
+    .catch((e) => e.response);
+}

@@ -145,6 +145,12 @@ func (h *UserHandler) AdminDeleteUser(c *gin.Context) {
 		return
 	}
 
+	targetUser, err := h.userService.GetProfile(uint(targetID))
+	if err == nil && targetUser != nil && targetUser.RoleID == 1 {
+		utils.JSONError(c, http.StatusForbidden, "ไม่สามารถลบผู้ใช้ที่มีบทบาทผู้ดูแลได้", "")
+		return
+	}
+
 	if err := h.userService.DeleteUser(uint(targetID)); err != nil {
 		if err.Error() == "user not found" {
 			utils.NewError(c, http.StatusNotFound, utils.ErrNotFound)

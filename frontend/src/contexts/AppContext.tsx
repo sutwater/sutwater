@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { message } from "antd";
 import { UsersInterface } from "../interfaces/IUser";
 import { GetUsersById } from "../services/https/user";
 import { GetAllNotifications } from "../services/https/message";
 import { GetMerters } from "../services/https/meter";
-import { GetAllWaterDaily, GetAllWaterUsageLogs} from "../services/https/waterValue";
+import { GetAllWaterUsageLogs } from "../services/https/waterValue";
 import {
   MeterLocationInterface,
-  WaterMeterValueInterface,
   NotificationInterface,
-  CameraDeviceInterface,
+  WaterValueResponse,
 } from "../interfaces/InterfaceAll";
 import { AppContext } from "./AppContextDef";
 
@@ -18,14 +16,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const id = String(localStorage.getItem("id") ?? "");
   const token = localStorage.getItem("token");
-  const [messageApi] = message.useMessage();
   const [user, setUser] = useState<UsersInterface | null>(null);
   const [meters, setMeters] = useState<MeterLocationInterface[]>([]);
-  const [waterusage, setWaterUsage] = useState<WaterMeterValueInterface[]>([]);
-  const [waterDaily, setWaterDaily] = useState<CameraDeviceInterface[]>([]);
+  const [waterusage, setWaterUsage] = useState<WaterValueResponse[]>([]);
   const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const getUserById = useCallback(async () => {
     if (!id || !token) return;
     try {
@@ -34,14 +30,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser({ ...res.data });
       } else {
         setUser(null);
-        messageApi.error(res?.data?.error || "ไม่สามารถโหลดข้อมูลผู้ใช้ได้");
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
+    } catch {
       setUser(null);
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
     }
-  }, [id, token, messageApi]);
+  }, [id, token]);
 
   const getMeters = useCallback(async () => {
     if (!token) return;
@@ -52,14 +45,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setMeters(Array.isArray(data) ? data : []);
       } else {
         setMeters([]);
-        messageApi.error(res?.data?.error || "ไม่สามารถโหลดข้อมูลมิเตอร์ได้");
       }
-    } catch (error) {
-      console.error("Error fetching meter data:", error);
+    } catch {
       setMeters([]);
-      messageApi.error("เกิดข้อผิดพลาดในการโหลดมิเตอร์");
     }
-  }, [token, messageApi]);
+  }, [token]);
 
   const getNotification = useCallback(async () => {
     if (!token) return;
@@ -70,62 +60,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         setNotifications(Array.isArray(data) ? data : []);
       } else {
         setNotifications([]);
-        messageApi.error(res?.data?.error || "ไม่สามารถโหลดการแจ้งเตือนได้");
       }
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+    } catch {
       setNotifications([]);
-      messageApi.error("เกิดข้อผิดพลาดในการโหลดการแจ้งเตือน");
     }
-  }, [token, messageApi]);
+  }, [token]);
 
   const getWaterLog = useCallback(async () => {
     if (!token) return;
     try {
       const res = await GetAllWaterUsageLogs();
       if (res && res.status === 200) {
-        setWaterUsage(res.data);
+        const data = res.data?.data ?? res.data;
+        setWaterUsage(Array.isArray(data) ? data : []);
       } else {
         setWaterUsage([]);
-        messageApi.error(res?.data?.error || "ไม่สามารถโหลดข้อมูลการใช้น้ำได้");
       }
-    } catch (error) {
-      console.error("Error fetching water usage logs:", error);
+    } catch {
       setWaterUsage([]);
-      messageApi.error("เกิดข้อผิดพลาดในการโหลดข้อมูลการใช้น้ำ");
     }
-  }, [token, messageApi]);
-
-  const getAllWaterDaily = useCallback(async () => {
-    try {
-      const res = await GetAllWaterDaily();
-      if (res.status === 200) {
-        setWaterDaily(res.data);
-      } else {
-        setWaterDaily([]);
-        messageApi.error(res.data.error);
-      }
-    } catch (error) {
-      console.error("Error fetching daily water data:", error);
-      setWaterDaily([]);
-    }
-  }, [messageApi]);
+  }, [token]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      await Promise.all([
-        getUserById(),
-        getMeters(),
-        getWaterLog(),
-        getNotification(),
-        getAllWaterDaily()
-      ]);
+      await Promise.all([getUserById(), getMeters(), getWaterLog(), getNotification()]);
       setLoading(false);
     };
-
     fetchData();
-  }, [getUserById, getMeters, getWaterLog, getNotification, getAllWaterDaily]); // ใส่ dependencies ให้ครบ
+  }, [getUserById, getMeters, getWaterLog, getNotification]);
 
   return (
     <AppContext.Provider
@@ -138,7 +101,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         setLoading,
         waterusage,
-        waterDaily,
         notifications,
       }}
     >

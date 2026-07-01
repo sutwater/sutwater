@@ -51,7 +51,7 @@ func (r *maintainLogRepository) FindByID(id uint) (*entity.MaintainLog, error) {
 }
 
 func (r *maintainLogRepository) Update(log *entity.MaintainLog) error {
-	return r.db.Save(log).Error
+	return r.db.Omit("Status", "Location").Save(log).Error
 }
 
 func (r *maintainLogRepository) Delete(log *entity.MaintainLog) error {

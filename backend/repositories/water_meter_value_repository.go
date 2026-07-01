@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"time"
 
 	"github.com/watermeter/suth/entity"
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 
 type WaterMeterValueRepository interface {
 	Create(value *entity.WaterMeterValue) error
-	FetchAll(deviceID *uint, statusID *uint) ([]entity.WaterMeterValue, error)
+	FetchAll(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]entity.WaterMeterValue, error)
 	FindByID(id uint) (*entity.WaterMeterValue, error)
 	FetchLatestPerDevice() ([]entity.WaterMeterValue, error)
 	Update(value *entity.WaterMeterValue) error
@@ -29,7 +30,7 @@ func (r *waterMeterValueRepository) Create(value *entity.WaterMeterValue) error 
 	return r.db.Create(value).Error
 }
 
-func (r *waterMeterValueRepository) FetchAll(deviceID *uint, statusID *uint) ([]entity.WaterMeterValue, error) {
+func (r *waterMeterValueRepository) FetchAll(deviceID *uint, statusID *uint, startDate *time.Time, endDate *time.Time) ([]entity.WaterMeterValue, error) {
 	query := r.db.
 		Preload("Device").
 		Preload("Device.Location").
@@ -42,6 +43,12 @@ func (r *waterMeterValueRepository) FetchAll(deviceID *uint, statusID *uint) ([]
 	}
 	if statusID != nil {
 		query = query.Where("status_id = ?", *statusID)
+	}
+	if startDate != nil {
+		query = query.Where("timestamp >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("timestamp <= ?", *endDate)
 	}
 
 	var values []entity.WaterMeterValue

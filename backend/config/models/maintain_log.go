@@ -8,6 +8,7 @@ type MaintainLogRequest struct {
 	CloseAt      *time.Time `json:"close_at"`
 	LocationID   *uint      `json:"location_id"`
 	StatusID     *uint      `json:"status_id"`
+	ImagePath    string     `json:"image_path"`
 }
 
 type UpdateMaintainLogRequest struct {
@@ -29,6 +30,7 @@ type MaintainLogResponse struct {
 	Title        string             `json:"title"`
 	LocationText string             `json:"location_text"`
 	CloseAt      string             `json:"close_at,omitempty"`
+	ImagePath    string             `json:"image_path,omitempty"`
 	LocationID   *uint              `json:"location_id"`
 	Location     *LocationResponse  `json:"location,omitempty"`
 	StatusID     *uint              `json:"status_id"`

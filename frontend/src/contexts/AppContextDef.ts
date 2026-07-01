@@ -2,9 +2,8 @@ import { createContext, useContext } from "react";
 import type { UsersInterface } from "../interfaces/IUser";
 import type {
   MeterLocationInterface,
-  WaterMeterValueInterface,
   NotificationInterface,
-  CameraDeviceInterface,
+  WaterValueResponse,
 } from "../interfaces/InterfaceAll";
 
 export type AppContextType = {
@@ -15,8 +14,7 @@ export type AppContextType = {
   getNotification: () => Promise<void>;
   loading: boolean;
   setLoading: (loading: boolean) => void;
-  waterusage: WaterMeterValueInterface[];
-  waterDaily: CameraDeviceInterface[];
+  waterusage: WaterValueResponse[];
   notifications: NotificationInterface[];
 };
 
@@ -29,7 +27,6 @@ export const AppContext = createContext<AppContextType>({
   loading: true,
   setLoading: () => {},
   waterusage: [],
-  waterDaily: [],
   notifications: [],
 });
 

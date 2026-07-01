@@ -240,35 +240,85 @@ func seedMessage(database *gorm.DB) {
 }
 
 func seedWaterMeterValues(database *gorm.DB) {
-	cameraDeviceID := uint(1)
-	prevValue := uint(33504)
-	dailyUsages := []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7}
-	year := time.Now().Year()
-	month := time.September
+	type buildingConfig struct {
+		deviceID    uint
+		startValue  int
+		dailyUsages []int // m³ consumed each day, oldest → newest
+	}
 
-	for day := 1; day <= len(dailyUsages); day++ {
-		ts := time.Date(year, month, day, 10, 0, 0, 0, time.Local)
-		dailyUsage := dailyUsages[day-1]
-		meterValue := int(prevValue) + dailyUsage
+	// 30 days of realistic daily usage per building type
+	configs := []buildingConfig{
+		{
+			deviceID: 1, startValue: 33504,
+			dailyUsages: []int{5, 7, 6, 8, 6, 5, 7, 6, 8, 10, 6, 7, 8, 5, 9, 7, 8, 9, 7, 9, 8, 6, 7, 9, 7, 6, 9, 7, 9, 7},
+		},
+		{
+			deviceID: 2, startValue: 18200, // โรงอาหาร — ใช้น้ำสูง
+			dailyUsages: []int{14, 12, 15, 13, 16, 14, 11, 15, 13, 17, 14, 12, 16, 13, 15, 14, 12, 16, 15, 13, 14, 16, 12, 15, 14, 13, 16, 14, 15, 13},
+		},
+		{
+			deviceID: 3, startValue: 8500, // ศูนย์สุขภาพช่องปาก
+			dailyUsages: []int{4, 5, 4, 6, 5, 4, 6, 5, 4, 7, 5, 4, 6, 5, 7, 5, 4, 6, 5, 6, 4, 5, 7, 5, 6, 4, 5, 6, 5, 4},
+		},
+		{
+			deviceID: 4, startValue: 12000, // ศูนย์ความเป็นเลิศทางการแพทย์
+			dailyUsages: []int{8, 9, 7, 10, 8, 9, 11, 8, 7, 10, 9, 8, 11, 9, 8, 10, 9, 7, 11, 9, 8, 10, 9, 8, 11, 8, 9, 10, 8, 9},
+		},
+		{
+			deviceID: 5, startValue: 9800, // ศูนย์รังสีวินิจฉัย
+			dailyUsages: []int{6, 7, 5, 8, 6, 7, 9, 6, 5, 8, 7, 6, 9, 7, 6, 8, 7, 5, 9, 7, 6, 8, 7, 6, 9, 6, 7, 8, 6, 7},
+		},
+		{
+			deviceID: 6, startValue: 11500, // วิเคราะห์และบำบัดโรค
+			dailyUsages: []int{9, 10, 8, 11, 9, 10, 12, 9, 8, 11, 10, 9, 12, 10, 9, 11, 10, 8, 12, 10, 9, 11, 10, 9, 12, 9, 10, 11, 9, 10},
+		},
+		{
+			deviceID: 7, startValue: 7200, // สร้างเสริมสุขภาพ
+			dailyUsages: []int{4, 5, 3, 6, 4, 5, 7, 4, 3, 6, 5, 4, 7, 5, 4, 6, 5, 3, 7, 5, 4, 6, 5, 4, 7, 4, 5, 6, 4, 5},
+		},
+		{
+			deviceID: 8, startValue: 6800, // พยาธิวิทยาโภชนาการ
+			dailyUsages: []int{3, 4, 3, 5, 4, 3, 5, 4, 3, 6, 4, 3, 5, 4, 6, 4, 3, 5, 4, 5, 3, 4, 6, 4, 5, 3, 4, 5, 4, 3},
+		},
+	}
 
-		imagePath := fmt.Sprintf("uploads/meter%d.jpg", 1)
+	now := time.Now()
+	totalDays := 30
 
-		var adminUser entity.User
-		database.First(&adminUser, "email = ?", "suth@gmail.com") // หรือ user อื่นที่มีอยู่จริง
-
-		wm := entity.WaterMeterValue{
-			MeterValue:      meterValue,
-			Timestamp:       ts,
-			ModelConfidence: 95,
-			DeviceID:        cameraDeviceID,
-			StatusID:        1,
-			ImagePath:       imagePath,
-			UserID:          1,
+	for _, cfg := range configs {
+		// idempotent — skip if device already has data
+		var count int64
+		database.Model(&entity.WaterMeterValue{}).Where("device_id = ?", cfg.deviceID).Count(&count)
+		if count > 0 {
+			continue
 		}
 
-		database.Create(&wm)
+		prevValue := cfg.startValue
+		for i, usage := range cfg.dailyUsages {
+			daysAgo := totalDays - 1 - i
+			ts := now.AddDate(0, 0, -daysAgo)
+			ts = time.Date(ts.Year(), ts.Month(), ts.Day(), 9, 30, 0, 0, time.Local)
 
-		prevValue = uint(meterValue)
+			meterValue := prevValue + usage
+			statusID := uint(2) // approved สำหรับข้อมูลย้อนหลัง
+			if daysAgo < 3 {
+				statusID = 1 // pending สำหรับ 3 วันล่าสุด
+			}
+
+			confidence := 92.0 + float64((cfg.deviceID+uint(i))%8)
+
+			wm := entity.WaterMeterValue{
+				MeterValue:      meterValue,
+				Timestamp:       ts,
+				ModelConfidence: confidence,
+				DeviceID:        cfg.deviceID,
+				StatusID:        statusID,
+				ImagePath:       fmt.Sprintf("uploads/meter%d.jpg", cfg.deviceID),
+				UserID:          1,
+			}
+			database.Create(&wm)
+			prevValue = meterValue
+		}
 	}
 }
 
