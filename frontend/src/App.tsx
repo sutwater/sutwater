@@ -3,7 +3,6 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { AppProvider } from "./contexts/AppContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ConfigRoutes from "./routes";
-import "./App.css";
 
 const App: React.FC = () => {
   return (
